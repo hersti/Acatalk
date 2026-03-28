@@ -1,0 +1,1 @@
+DELETE FROM departments WHERE id = '074202e8-b11a-4c36-841b-8c06d6dac326';

@@ -1,0 +1,1 @@
+DELETE FROM departments WHERE university = 'İstanbul Arel Üniversitesi' AND name IN ('Hukuk', 'Nükleer Fizik');

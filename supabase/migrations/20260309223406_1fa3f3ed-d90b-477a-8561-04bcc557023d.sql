@@ -1,0 +1,2 @@
+ALTER TABLE public.academic_suggestions DROP CONSTRAINT academic_suggestions_type_check;
+ALTER TABLE public.academic_suggestions ADD CONSTRAINT academic_suggestions_type_check CHECK (type = ANY (ARRAY['department'::text, 'course'::text, 'university'::text, 'info_change'::text]));

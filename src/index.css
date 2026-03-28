@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 217 91% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 40% 18%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 222 30% 20%;
+    --sidebar-ring: 217 91% 56%;
+
+    --notes: 152 55% 41%;
+    --notes-foreground: 0 0% 100%;
+    --exams: 217 91% 50%;
+    --exams-foreground: 0 0% 100%;
+    --discussion: 222 47% 25%;
+    --discussion-foreground: 0 0% 100%;
+    --kaynaklar: 25 95% 53%;
+    --kaynaklar-foreground: 0 0% 100%;
+
+    --success: 152 55% 41%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 20%;
+    --info: 217 91% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --gold: 45 93% 47%;
+    --silver: 220 9% 63%;
+    --bronze: 25 75% 47%;
+
+    --gradient-hero-from: 217 91% 50%;
+    --gradient-hero-to: 222 47% 20%;
+
+    --font-heading: 'Source Serif 4', 'Georgia', serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+
+    --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-warm: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -6px rgb(0 0 0 / 0.04);
+    --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 94%;
+    --card: 222 40% 9%;
+    --card-foreground: 210 20% 94%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 20% 94%;
+    --primary: 217 85% 60%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 16% 86%;
+    --muted: 222 25% 12%;
+    --muted-foreground: 220 9% 52%;
+    --accent: 25 90% 58%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 16%;
+    --input: 222 20% 16%;
+    --ring: 217 85% 60%;
+
+    --notes: 152 50% 48%;
+    --exams: 217 85% 60%;
+    --discussion: 217 50% 56%;
+    --kaynaklar: 25 85% 58%;
+
+    --success: 152 50% 48%;
+    --success-foreground: 152 50% 15%;
+    --warning: 38 85% 55%;
+    --warning-foreground: 38 85% 80%;
+    --info: 217 85% 60%;
+    --info-foreground: 217 85% 15%;
+
+    --gold: 45 90% 55%;
+    --silver: 220 9% 55%;
+    --bronze: 25 70% 55%;
+
+    --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-warm: 0 4px 6px -1px rgb(0 0 0 / 0.2);
+    --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.3);
+    --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .content-badge-notes { background-color: hsl(var(--notes) / 0.1); color: hsl(var(--notes)); font-weight: 600; }
+  .content-badge-exams { background-color: hsl(var(--exams) / 0.1); color: hsl(var(--exams)); font-weight: 600; }
+  .content-badge-discussion { background-color: hsl(var(--discussion) / 0.1); color: hsl(var(--discussion)); font-weight: 600; }
+  .content-badge-kaynaklar { background-color: hsl(var(--kaynaklar) / 0.1); color: hsl(var(--kaynaklar)); font-weight: 600; }
+
+  .gradient-hero { background: linear-gradient(135deg, hsl(var(--gradient-hero-from)), hsl(var(--gradient-hero-to))); }
+
+  .surface-panel {
+    @apply bg-card border border-border;
+    box-shadow: var(--shadow-panel);
+  }
+
+  .surface-soft {
+    @apply bg-card border border-border;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .hover-lift {
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5;
+    &:hover { box-shadow: var(--shadow-warm); }
+  }
+
+  .grid-stable { contain: layout style; }
+}
