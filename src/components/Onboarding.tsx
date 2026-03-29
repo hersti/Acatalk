@@ -369,7 +369,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       placeholder="Bölüm seçin"
                       searchPlaceholder="Bölüm ara..."
                       options={departmentOptions}
-                      allowCustom
                     />
 
                     <button
