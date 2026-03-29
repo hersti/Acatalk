@@ -555,6 +555,17 @@ export default function AuthPage() {
         const sanitizedFirstName = sanitizeInput(firstName.trim());
         const sanitizedLastName = sanitizeInput(lastName.trim());
         const displayName = `${sanitizedFirstName} ${sanitizedLastName}`;
+
+        // check-username edge function ile son kontrol (DB blocklist + uniqueness + AI)
+        const { data: usernameCheckData, error: usernameCheckError } = await supabase.functions.invoke("check-username", {
+          body: { username: sanitizedUsername },
+        });
+        if (usernameCheckError || usernameCheckData?.allowed === false) {
+          toast.error(usernameCheckData?.reason || "Bu kullanıcı adı kullanılamıyor. Lütfen farklı bir kullanıcı adı seçin.");
+          setLoading(false);
+          return;
+        }
+
         await signUp(email, password, sanitizedUsername);
         await logSecurityEvent("signup", { email, device: getDeviceInfo() });
         const domain = extractEmailDomain(email);
