@@ -584,7 +584,7 @@ export default function AuthPage() {
         const { data: usernameCheckData, error: usernameCheckError } = await supabase.functions.invoke("check-username", {
           body: { username: sanitizedUsername },
         });
-        if (usernameCheckError || usernameCheckData?.allowed === false) {
+        if (usernameCheckError || usernameCheckData?.available === false) {
           toast.error(usernameCheckData?.reason || "Bu kullanıcı adı kullanılamıyor. Lütfen farklı bir kullanıcı adı seçin.");
           setLoading(false);
           return;
