@@ -1056,8 +1056,6 @@ export default function AuthPage() {
                         placeholder="Bölüm seçin"
                         searchPlaceholder="Bölüm ara..."
                         options={departmentOptions}
-                        allowCustom
-                        customPlaceholder="Bölümünüz listede yoksa yazın..."
                         error={errors.department}
                       />
                       <button
