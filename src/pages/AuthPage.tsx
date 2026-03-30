@@ -13,7 +13,6 @@ import {
   getDepartmentsForUniversity,
   isValidUniversity,
   isValidDepartment,
-  isValidEduEmail,
   getUniversityByEmailDomain,
   extractEmailDomain,
 } from "@/data/turkish-universities";
@@ -531,9 +530,7 @@ export default function AuthPage() {
       if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
         newErrors.email = "Sadece üniversite e-posta adresleri ile kayıt olabilirsiniz (.edu.tr)";
       }
-      if (!customUniAdded && !isValidEduEmail(email)) {
-        newErrors.email = "Bu e-posta alanı sistemimizde tanımlı bir üniversiteye ait değil. Üniversitenizi ekleyin.";
-      }
+
       if (!university) {
         newErrors.university = "Üniversite seçimi zorunludur.";
       }
