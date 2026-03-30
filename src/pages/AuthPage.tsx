@@ -572,7 +572,7 @@ export default function AuthPage() {
           return;
         }
 
-        const sanitizedUsername = sanitizeInput(username.trim());
+        const sanitizedUsername = sanitizeInput(username.trim().toLowerCase());
         const sanitizedFirstName = sanitizeInput(firstName.trim());
         const sanitizedLastName = sanitizeInput(lastName.trim());
         const displayName = `${sanitizedFirstName} ${sanitizedLastName}`;
@@ -659,7 +659,9 @@ export default function AuthPage() {
                    }
                  }
                }
-            } catch {}
+            } catch {
+              toast.error("Profil bilgileri kaydedilemedi. Lütfen profil sayfanızdan bilgilerinizi güncelleyin.");
+            }
             localStorage.removeItem("pending_profile");
           }
           if (newDevice) {
@@ -1210,7 +1212,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 className="w-full h-11 rounded-lg font-semibold text-sm"
-                disabled={loading || (isSignUp && !detectedUniversity && !customUniAdded) || (isSignUp && (usernameStatus === "taken" || usernameStatus === "inappropriate"))}
+                disabled={loading || (isSignUp && !detectedUniversity && !customUniAdded) || (isSignUp && (usernameStatus === "taken" || usernameStatus === "inappropriate" || usernameStatus === "checking"))}
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
