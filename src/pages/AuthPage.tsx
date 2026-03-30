@@ -205,12 +205,16 @@ function useUsernameCheck(username: string, isSignUp: boolean) {
     const timer = setTimeout(async () => {
       setStatus("checking");
       try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("username", username.trim().toLowerCase())
-          .maybeSingle();
-        setStatus(data ? "taken" : "available");
+        const { data } = await supabase.functions.invoke("check-username", {
+          body: { username: username.trim().toLowerCase() },
+        });
+        switch (data?.status) {
+          case "available":      setStatus("available");     break;
+          case "taken":          setStatus("taken");          break;
+          case "reserved":       setStatus("inappropriate");  break;
+          case "invalid_format": setStatus("idle");           break;
+          default:               setStatus("idle");           break;
+        }
       } catch {
         setStatus("idle");
       }
@@ -281,7 +285,27 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const usernameStatus = useUsernameCheck(username, isSignUp);
 
-  const departmentOptions = getDepartmentsForUniversity(university).map((d) => ({ label: d }));
+  const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!university) { setDbDepartments([]); return; }
+    supabase
+      .from("departments")
+      .select("name")
+      .eq("university", university)
+      .order("name", { ascending: true })
+      .then(({ data }) => {
+        setDbDepartments((data || []).map((d: any) => d.name).filter(Boolean));
+      });
+  }, [university]);
+
+  const departmentOptions = (() => {
+    const staticDepts = getDepartmentsForUniversity(university);
+    const allDepts = [...new Set([...staticDepts, ...dbDepartments])].sort((a, b) =>
+      a.localeCompare(b, "tr")
+    );
+    return allDepts.map((d) => ({ label: d }));
+  })();
 
   // Auto-detect university from email
   useEffect(() => {
@@ -560,7 +584,7 @@ export default function AuthPage() {
         const { data: usernameCheckData, error: usernameCheckError } = await supabase.functions.invoke("check-username", {
           body: { username: sanitizedUsername },
         });
-        if (usernameCheckError || usernameCheckData?.allowed === false) {
+        if (usernameCheckError || usernameCheckData?.available === false) {
           toast.error(usernameCheckData?.reason || "Bu kullanıcı adı kullanılamıyor. Lütfen farklı bir kullanıcı adı seçin.");
           setLoading(false);
           return;
@@ -1056,8 +1080,6 @@ export default function AuthPage() {
                         placeholder="Bölüm seçin"
                         searchPlaceholder="Bölüm ara..."
                         options={departmentOptions}
-                        allowCustom
-                        customPlaceholder="Bölümünüz listede yoksa yazın..."
                         error={errors.department}
                       />
                       <button
