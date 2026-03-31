@@ -1001,6 +1001,7 @@ export type Database = {
       universities: {
         Row: {
           city: string | null
+          country: string
           created_at: string
           created_by: string | null
           id: string
@@ -1009,6 +1010,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          country?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1017,6 +1019,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          country?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1024,6 +1027,100 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      university_domain_requests: {
+        Row: {
+          admin_note: string | null
+          claimed_university_name: string
+          created_at: string
+          id: string
+          request_email: string
+          request_email_domain: string
+          request_note: string | null
+          requester_user_id: string | null
+          resolved_domain: string | null
+          resolved_university_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          claimed_university_name: string
+          created_at?: string
+          id?: string
+          request_email: string
+          request_email_domain: string
+          request_note?: string | null
+          requester_user_id?: string | null
+          resolved_domain?: string | null
+          resolved_university_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          claimed_university_name?: string
+          created_at?: string
+          id?: string
+          request_email?: string
+          request_email_domain?: string
+          request_note?: string | null
+          requester_user_id?: string | null
+          resolved_domain?: string | null
+          resolved_university_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_domain_requests_resolved_university_id_fkey"
+            columns: ["resolved_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      university_email_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_primary: boolean
+          is_verified: boolean
+          university_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          university_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          university_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_email_domains_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       university_messages: {
         Row: {
@@ -1184,6 +1281,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_process_university_domain_request: {
+        Args: {
+          p_action: string
+          p_admin_note?: string
+          p_city?: string
+          p_country?: string
+          p_domain?: string
+          p_request_id: string
+          p_seed_general_department?: boolean
+          p_type?: string
+          p_university_name?: string
+        }
+        Returns: Json
+      }
       admin_update_academic_info: {
         Args: {
           p_class_year?: number
@@ -1194,6 +1305,14 @@ export type Database = {
         Returns: Json
       }
       auto_clear_expired_penalties: { Args: never; Returns: undefined }
+      create_university_domain_request: {
+        Args: {
+          p_claimed_university_name: string
+          p_request_email: string
+          p_request_note?: string
+        }
+        Returns: Json
+      }
       decrement_comment_like: {
         Args: { comment_id_input: string }
         Returns: undefined
@@ -1212,6 +1331,20 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      normalize_email_domain: {
+        Args: { p_email: string }
+        Returns: string
+      }
+      resolve_university_by_email_domain: {
+        Args: { p_email: string }
+        Returns: {
+          country: string | null
+          domain: string | null
+          found: boolean
+          university_id: string | null
+          university_name: string | null
+        }[]
       }
       increment_comment_like: {
         Args: { comment_id_input: string }
