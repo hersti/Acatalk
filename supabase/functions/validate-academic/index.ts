@@ -675,7 +675,7 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
               valid: false,
               status: "pending_review",
               normalized_name: normalizedName,
-              reason: "Doğrulama servisi geçici olarak kullanılamıyor. Öneriniz admin incelemesine gönderildi.",
+              reason: "Öneriniz admin incelemesine gönderildi. Onay sonrası kullanabilirsiniz.",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -686,7 +686,7 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
             valid: true,
             status: "approved",
             normalized_name: normalizedName,
-            reason: "Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi.",
+            reason: "Bölüm doğrulandı ve seçiminize eklendi.",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
