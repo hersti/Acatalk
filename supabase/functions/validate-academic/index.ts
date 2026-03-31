@@ -290,22 +290,36 @@ async function callAnthropicJson(args: {
   model: string;
   systemPrompt: string;
   userPrompt: string;
+  timeoutMs?: number;
 }) {
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": args.apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: args.model,
-      max_tokens: 2000,
-      temperature: 0,
-      system: args.systemPrompt,
-      messages: [{ role: "user", content: args.userPrompt }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort("timeout"), args.timeoutMs ?? 12000);
+  let response: Response;
+  try {
+    response = await fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": args.apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: args.model,
+        max_tokens: 2000,
+        temperature: 0,
+        system: args.systemPrompt,
+        messages: [{ role: "user", content: args.userPrompt }],
+      }),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("ANTHROPIC_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -319,7 +333,84 @@ async function callAnthropicJson(args: {
     .join("\n");
 
   const cleaned = extractJsonFromResponse(rawContent || "{}");
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error("ANTHROPIC_PARSE_ERROR");
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toErrorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error || "UNKNOWN_ERROR");
+  if (message.includes("ANTHROPIC_HTTP_")) {
+    return message.split(":")[0];
+  }
+  if (message.includes("ANTHROPIC_TIMEOUT")) return "ANTHROPIC_TIMEOUT";
+  if (message.includes("ANTHROPIC_PARSE_ERROR")) return "ANTHROPIC_PARSE_ERROR";
+  if (message.includes("INVALID_AI_RESULT_SCHEMA")) return "INVALID_AI_RESULT_SCHEMA";
+  if (message.includes("RETRY_EXHAUSTED")) {
+    return message.split(":")[1] || "RETRY_EXHAUSTED";
+  }
+  return "UNKNOWN_ERROR";
+}
+
+function validateAiResultShape(result: unknown, type: SuggestionType): AiResult | null {
+  if (!result || typeof result !== "object") return null;
+  const obj = result as Record<string, unknown>;
+  if (typeof obj.valid !== "boolean") return null;
+  if (typeof obj.confidence !== "number" || !Number.isFinite(obj.confidence)) return null;
+  if (type === "department") {
+    if (typeof obj.reason !== "string" || !obj.reason.trim()) return null;
+    if (typeof obj.normalized_name !== "string" || !obj.normalized_name.trim()) return null;
+  }
+  return result as AiResult;
+}
+
+async function callAnthropicJsonWithRetry(args: {
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  type: SuggestionType;
+}) {
+  const retryDelaysMs = [0, 400, 1200, 2500];
+  let lastErrorCode: string | null = null;
+
+  for (let i = 0; i < retryDelaysMs.length; i++) {
+    if (retryDelaysMs[i] > 0) {
+      await sleep(retryDelaysMs[i]);
+    }
+
+    try {
+      const raw = await callAnthropicJson({
+        apiKey: args.apiKey,
+        model: args.model,
+        systemPrompt: args.systemPrompt,
+        userPrompt: args.userPrompt,
+        timeoutMs: 12000,
+      });
+
+      const validated = validateAiResultShape(raw, args.type);
+      if (!validated) {
+        throw new Error("INVALID_AI_RESULT_SCHEMA");
+      }
+
+      return {
+        result: validated,
+        attemptCount: i + 1,
+        lastErrorCode,
+      };
+    } catch (error) {
+      lastErrorCode = toErrorCode(error);
+      console.error(`Anthropic attempt ${i + 1} failed:`, lastErrorCode, error);
+    }
+  }
+
+  throw new Error(`RETRY_EXHAUSTED:${lastErrorCode || "UNKNOWN_ERROR"}`);
 }
 
 serve(async (req) => {
@@ -508,7 +599,16 @@ serve(async (req) => {
 
       if (duplicate) {
         return new Response(
-          JSON.stringify({ valid: true, status: "approved", reason: `Bu bölüm zaten mevcut: "${duplicate}".`, existing_name: duplicate, normalized_name: duplicate, validation_provider: "database_duplicate" }),
+          JSON.stringify({
+            valid: true,
+            status: "approved",
+            reason: `Bu bölüm zaten mevcut: "${duplicate}".`,
+            existing_name: duplicate,
+            normalized_name: duplicate,
+            validation_provider: "database_duplicate",
+            attempt_count: 0,
+            last_error_code: null,
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -543,6 +643,8 @@ serve(async (req) => {
             status: "error",
             reason: "Doğrulama servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
             validation_provider: "none",
+            attempt_count: 0,
+            last_error_code: "MISSING_ANTHROPIC_API_KEY",
           }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -662,23 +764,43 @@ KARAR KRİTERLERİ:
 
     let result: AiResult;
     let aiProvider: "anthropic_direct" | "none" = "none";
+    let attemptCount = 0;
+    let lastErrorCode: string | null = null;
 
     try {
       aiProvider = "anthropic_direct";
-      result = await callAnthropicJson({
-        apiKey: ANTHROPIC_API_KEY!,
-        model: ANTHROPIC_MODEL,
-        systemPrompt,
-        userPrompt: prompt,
-      });
+      if (type === "department") {
+        const retryResult = await callAnthropicJsonWithRetry({
+          apiKey: ANTHROPIC_API_KEY!,
+          model: ANTHROPIC_MODEL,
+          systemPrompt,
+          userPrompt: prompt,
+          type,
+        });
+        result = retryResult.result;
+        attemptCount = retryResult.attemptCount;
+        lastErrorCode = retryResult.lastErrorCode;
+      } else {
+        result = await callAnthropicJson({
+          apiKey: ANTHROPIC_API_KEY!,
+          model: ANTHROPIC_MODEL,
+          systemPrompt,
+          userPrompt: prompt,
+        });
+        attemptCount = 1;
+      }
     } catch (aiErr) {
-      console.error("Anthropic request failed:", aiErr);
+      const errorCode = toErrorCode(aiErr);
+      const effectiveAttempts = type === "department" ? 4 : 1;
+      console.error("Anthropic request failed:", errorCode, aiErr);
       return new Response(
         JSON.stringify({
           valid: false,
           status: "error",
           reason: "Dogrulama servisi su an kullanilamiyor. Lutfen daha sonra tekrar deneyin.",
           validation_provider: "none",
+          attempt_count: effectiveAttempts,
+          last_error_code: errorCode,
         }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -711,7 +833,14 @@ KARAR KRİTERLERİ:
         if (insertError) {
           console.error("Department insert error:", insertError);
           return new Response(
-            JSON.stringify({ valid: false, status: "error", reason: "Bölüm eklenirken bir hata oluştu." }),
+            JSON.stringify({
+              valid: false,
+              status: "error",
+              reason: "Bölüm eklenirken bir hata oluştu.",
+              validation_provider: aiProvider,
+              attempt_count: attemptCount,
+              last_error_code: "DEPARTMENT_INSERT_ERROR",
+            }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -721,6 +850,8 @@ KARAR KRİTERLERİ:
             valid: true, status: "approved", normalized_name: normalizedName,
             department_id: inserted?.id, reason: result.reason || "Bölüm doğrulandı ve eklendi!",
             validation_provider: aiProvider,
+            attempt_count: attemptCount,
+            last_error_code: lastErrorCode,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -840,6 +971,8 @@ KARAR KRİTERLERİ:
         reason: result.reason || "Bu bilgi doğrulanamadı. Lütfen doğru bilgileri girdiğinizden emin olun.",
         suggestion: result.suggestion || null,
         validation_provider: aiProvider,
+        attempt_count: attemptCount,
+        last_error_code: lastErrorCode,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
