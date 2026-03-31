@@ -172,7 +172,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     } catch (err) {
       console.error("Dept validation error:", err);
       setDeptValidation("error");
-      setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
       setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };

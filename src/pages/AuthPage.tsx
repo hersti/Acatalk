@@ -587,6 +587,15 @@ export default function AuthPage() {
         setDeptValidation("pending_review");
         setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
         applyDepartmentSelection(customDepartment.trim());
+        if (isSignUp && result.requires_login_submission) {
+          localStorage.setItem(
+            "pending_department_suggestion",
+            JSON.stringify({
+              university: university.trim(),
+              department: customDepartment.trim(),
+            })
+          );
+        }
         setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
       } else {
         setDeptValidation("rejected");
@@ -594,7 +603,6 @@ export default function AuthPage() {
       }
     } catch {
       setDeptValidation("error");
-      setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
       setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
@@ -798,6 +806,54 @@ export default function AuthPage() {
               toast.error("Profil bilgileri kaydedilemedi. Lütfen profil sayfanızdan bilgilerinizi güncelleyin.");
             }
             localStorage.removeItem("pending_profile");
+          }
+          const pendingDept = localStorage.getItem("pending_department_suggestion");
+          if (pendingDept) {
+            try {
+              const parsed = JSON.parse(pendingDept);
+              const pendingUniversity = String(parsed?.university || "").trim();
+              const pendingDepartment = String(parsed?.department || "").trim();
+              const { data: { user } } = await supabase.auth.getUser();
+
+              if (user && pendingUniversity && pendingDepartment) {
+                const { data: existingDept } = await supabase
+                  .from("departments")
+                  .select("id")
+                  .eq("university", pendingUniversity)
+                  .eq("name", pendingDepartment)
+                  .maybeSingle();
+
+                if (!existingDept) {
+                  const { data: existingSuggestion } = await supabase
+                    .from("academic_suggestions")
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .eq("type", "department")
+                    .eq("university", pendingUniversity)
+                    .eq("department", pendingDepartment)
+                    .in("status", ["pending", "approved"])
+                    .limit(1)
+                    .maybeSingle();
+
+                  if (!existingSuggestion) {
+                    await supabase.from("academic_suggestions").insert({
+                      user_id: user.id,
+                      type: "department",
+                      university: pendingUniversity,
+                      department: pendingDepartment,
+                      status: "pending",
+                      ai_confidence: null,
+                      ai_reason: "Signup sırasında doğrulama servisi kullanılamadığı için login sonrası kuyruğa alındı.",
+                      normalized_name: pendingDepartment,
+                    } as any);
+                    toast.info("Bölüm öneriniz admin incelemesine gönderildi.");
+                  }
+                }
+              }
+            } catch {
+              // no-op: pending suggestion queue is best effort
+            }
+            localStorage.removeItem("pending_department_suggestion");
           }
           if (newDevice) {
             toast.info("Yeni bir cihazdan giriş yaptınız. 2FA etkinleştirmenizi öneriyoruz.", { duration: 8000 });

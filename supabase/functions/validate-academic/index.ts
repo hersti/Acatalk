@@ -117,6 +117,17 @@ function looksLikeGarbage(input: string): boolean {
   return false;
 }
 
+const BLOCKED_DEPARTMENT_TERMS = new Set([
+  "sex", "seks", "porno", "porn", "xxx", "fuck", "sikis", "sik", "yarak",
+  "amcik", "penis", "vajina", "vagina", "pussy", "dick",
+]);
+
+function containsBlockedDepartmentTerm(input: string): boolean {
+  const normalized = normalizeForCompare(input).replace(/[^a-z0-9\s]/g, " ");
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  return tokens.some((t) => BLOCKED_DEPARTMENT_TERMS.has(t));
+}
+
 function levenshteinDistance(a: string, b: string): number {
   const matrix: number[][] = [];
   for (let i = 0; i <= a.length; i++) matrix[i] = [i];
@@ -542,6 +553,12 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      if (containsBlockedDepartmentTerm(department)) {
+        return new Response(
+          JSON.stringify({ valid: false, status: "rejected", reason: "Bu bölüm adı uygunsuz veya akademik değil." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     if (type === "course") {
@@ -657,6 +674,12 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        if (containsBlockedDepartmentTerm(normalizedName)) {
+          return new Response(
+            JSON.stringify({ valid: false, status: "rejected", reason: "Bu bölüm adı uygunsuz veya akademik değil." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
         if (userId) {
           await supabaseAdmin.from("academic_suggestions").insert({
@@ -665,7 +688,7 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
             university,
             department: normalizedName,
             faculty,
-            status: "pending_review",
+            status: "pending",
             ai_confidence: null,
             ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
             normalized_name: normalizedName,
@@ -683,10 +706,11 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
 
         return new Response(
           JSON.stringify({
-            valid: true,
-            status: "approved",
+            valid: false,
+            status: "pending_review",
             normalized_name: normalizedName,
-            reason: "Bölüm doğrulandı ve seçiminize eklendi.",
+            reason: "Öneriniz doğrulama kuyruğuna alındı. Kaydı tamamlayıp giriş yaptıktan sonra admin incelemesine gönderilecektir.",
+            requires_login_submission: true,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -702,7 +726,7 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
           course_code: course_code,
           class_year: class_year,
           explanation,
-          status: "pending_review",
+          status: "pending",
           ai_confidence: null,
           ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
           normalized_name: normalizeLoose(course_name!),
