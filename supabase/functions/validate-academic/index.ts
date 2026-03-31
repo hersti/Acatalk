@@ -7,8 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-pro";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 type SuggestionType = "department" | "course" | "university";
 
@@ -22,9 +21,12 @@ type AiResult = {
   reason?: string;
   needs_review?: boolean;
   suggestion?: string | null;
+  validation_provider?: string;
   city?: string | null;
   university_type?: string | null;
   program_years?: number;
+  recommended_year?: number | null;
+  discovered_code?: string | null;
 };
 
 function extractJsonFromResponse(raw: string): string {
@@ -115,6 +117,17 @@ function looksLikeGarbage(input: string): boolean {
   const letters = (s.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g) || []).length;
   if (letters / Math.max(1, s.length) < 0.35) return true;
   return false;
+}
+
+const BLOCKED_DEPARTMENT_TERMS = new Set([
+  "sex", "seks", "porno", "porn", "xxx", "fuck", "sikis", "sik", "yarak",
+  "amcik", "penis", "vajina", "vagina", "pussy", "dick",
+]);
+
+function containsBlockedDepartmentTerm(input: string): boolean {
+  const normalized = normalizeForCompare(input).replace(/[^a-z0-9\s]/g, " ");
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  return tokens.some((t) => BLOCKED_DEPARTMENT_TERMS.has(t));
 }
 
 function levenshteinDistance(a: string, b: string): number {
@@ -272,12 +285,140 @@ function isOverlyGenericCourseName(courseName: string): boolean {
   return GENERIC_ONE_WORD_COURSES.has(normalized);
 }
 
+async function callAnthropicJson(args: {
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  timeoutMs?: number;
+}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort("timeout"), args.timeoutMs ?? 12000);
+  let response: Response;
+  try {
+    response = await fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": args.apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: args.model,
+        max_tokens: 2000,
+        temperature: 0,
+        system: args.systemPrompt,
+        messages: [{ role: "user", content: args.userPrompt }],
+      }),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("ANTHROPIC_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`ANTHROPIC_HTTP_${response.status}:${text.slice(0, 400)}`);
+  }
+
+  const payload = await response.json();
+  const rawContent = ((payload.content || []) as any[])
+    .filter((part) => part?.type === "text")
+    .map((part) => String(part.text || ""))
+    .join("\n");
+
+  const cleaned = extractJsonFromResponse(rawContent || "{}");
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error("ANTHROPIC_PARSE_ERROR");
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toErrorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error || "UNKNOWN_ERROR");
+  if (message.includes("ANTHROPIC_HTTP_")) {
+    return message.split(":")[0];
+  }
+  if (message.includes("ANTHROPIC_TIMEOUT")) return "ANTHROPIC_TIMEOUT";
+  if (message.includes("ANTHROPIC_PARSE_ERROR")) return "ANTHROPIC_PARSE_ERROR";
+  if (message.includes("INVALID_AI_RESULT_SCHEMA")) return "INVALID_AI_RESULT_SCHEMA";
+  if (message.includes("RETRY_EXHAUSTED")) {
+    return message.split(":")[1] || "RETRY_EXHAUSTED";
+  }
+  return "UNKNOWN_ERROR";
+}
+
+function validateAiResultShape(result: unknown, type: SuggestionType): AiResult | null {
+  if (!result || typeof result !== "object") return null;
+  const obj = result as Record<string, unknown>;
+  if (typeof obj.valid !== "boolean") return null;
+  if (typeof obj.confidence !== "number" || !Number.isFinite(obj.confidence)) return null;
+  if (type === "department") {
+    if (typeof obj.reason !== "string" || !obj.reason.trim()) return null;
+    if (typeof obj.normalized_name !== "string" || !obj.normalized_name.trim()) return null;
+  }
+  return result as AiResult;
+}
+
+async function callAnthropicJsonWithRetry(args: {
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  type: SuggestionType;
+}) {
+  const retryDelaysMs = [0, 400, 1200, 2500];
+  let lastErrorCode: string | null = null;
+
+  for (let i = 0; i < retryDelaysMs.length; i++) {
+    if (retryDelaysMs[i] > 0) {
+      await sleep(retryDelaysMs[i]);
+    }
+
+    try {
+      const raw = await callAnthropicJson({
+        apiKey: args.apiKey,
+        model: args.model,
+        systemPrompt: args.systemPrompt,
+        userPrompt: args.userPrompt,
+        timeoutMs: 12000,
+      });
+
+      const validated = validateAiResultShape(raw, args.type);
+      if (!validated) {
+        throw new Error("INVALID_AI_RESULT_SCHEMA");
+      }
+
+      return {
+        result: validated,
+        attemptCount: i + 1,
+        lastErrorCode,
+      };
+    } catch (error) {
+      lastErrorCode = toErrorCode(error);
+      console.error(`Anthropic attempt ${i + 1} failed:`, lastErrorCode, error);
+    }
+  }
+
+  throw new Error(`RETRY_EXHAUSTED:${lastErrorCode || "UNKNOWN_ERROR"}`);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    const ANTHROPIC_MODEL = Deno.env.get("ANTHROPIC_MODEL") || "claude-3-5-sonnet-20241022";
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -348,7 +489,7 @@ serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // ===== UNIVERSITY TYPE =====
+        // ===== UNIVERSITY TYPE =====
     if (type === "university") {
       return new Response(
         JSON.stringify({
@@ -356,175 +497,6 @@ serve(async (req) => {
           status: "rejected",
           reason: "Universite oneri akisi kapatildi. Signup yalnizca kayitli domain eslesmesiyle ilerler.",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-
-      if (looksLikeGarbage(university)) {
-        return new Response(
-          JSON.stringify({ valid: false, status: "rejected", reason: "Üniversite adı doğrulanamadı (geçersiz format)." }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const { data: existingUnis } = await supabaseAdmin.from("departments").select("university").limit(1000);
-      const uniqueUnis = [...new Set((existingUnis || []).map((d: any) => d.university).filter(Boolean))];
-      const normalizedNew = normalizeForCompare(university);
-      
-      const duplicate = uniqueUnis.find((u: string) => {
-        const norm = normalizeForCompare(u);
-        if (norm === normalizedNew) return true;
-        const minLen = Math.min(norm.length, normalizedNew.length);
-        const maxDist = minLen >= 20 ? 3 : minLen >= 12 ? 2 : 1;
-        return levenshteinDistance(norm, normalizedNew) <= maxDist;
-      });
-
-      if (duplicate) {
-        return new Response(
-          JSON.stringify({ valid: false, status: "duplicate", reason: `Bu üniversite zaten mevcut: "${duplicate}".`, existing_name: duplicate }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (emailDomain) {
-        const domainMatch = domainMatchesUniversity(emailDomain, university);
-        if (domainMatch === false) {
-          if (userId) {
-            await supabaseAdmin.from("academic_suggestions").insert({
-              user_id: userId, type: "university", university,
-              status: "rejected", ai_confidence: 0,
-              ai_reason: `E-posta alanı (${emailDomain}) üniversiteyle eşleşmiyor.`,
-            });
-          }
-          return new Response(
-            JSON.stringify({ valid: false, status: "rejected", reason: `E-posta adresiniz (${emailDomain}) bildirdiğiniz üniversiteyle eşleşmiyor.` }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      const domainBase = emailDomain ? extractDomainBase(emailDomain) : "";
-      const uniPrompt = `Bir kullanıcı Türkiye'de bir üniversite adı bildiriyor: "${university}"
-${emailDomain ? `Kullanıcının E-posta Alanı: ${emailDomain} (kök: ${domainBase})` : ""}
-
-Bu üniversitenin Türkiye'de GERÇEKTEN var olup olmadığını doğrula. YÖK tarafından tanınan bir kurum mu?
-${emailDomain ? `E-posta alanı bu üniversiteye ait mi kontrol et. Eşleşmiyorsa domain_mismatch=true döndür.` : ""}`;
-
-      const aiResponse = await fetch(AI_GATEWAY_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: MODEL, temperature: 0.0, max_tokens: 450,
-          messages: [
-            {
-              role: "system",
-              content: `Sen Türk üniversite doğrulama sistemisin. Sadece JSON döndür:
-{"valid":true/false,"confidence":0.0-1.0,"normalized_name":"...","city":"...","university_type":"devlet"|"vakıf","reason":"...","domain_mismatch":true/false,"expected_domain":"..."}
-Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confidence düşük ver.`,
-            },
-            { role: "user", content: uniPrompt },
-          ],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        if (userId) {
-          await supabaseAdmin.from("academic_suggestions").insert({
-            user_id: userId, type: "university", university, status: "pending",
-            ai_confidence: null, ai_reason: "AI servisi kullanılamadı",
-          });
-        }
-        return new Response(
-          JSON.stringify({ valid: false, status: "pending_review", reason: "Doğrulama servisi meşgul. Öneriniz incelemeye gönderildi." }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const aiData = await aiResponse.json();
-      const rawContent = aiData.choices?.[0]?.message?.content || "{}";
-      let result: AiResult;
-      try {
-        result = JSON.parse(extractJsonFromResponse(rawContent));
-      } catch {
-        result = { valid: false, confidence: 0, reason: "AI yanıtı ayrıştırılamadı", needs_review: true };
-      }
-
-      const confidence = typeof result.confidence === "number" ? result.confidence : 0;
-      const normalizedName = normalizeLoose(result.normalized_name || university);
-      
-      if (emailDomain && (result as any).domain_mismatch === true) {
-        if (userId) {
-          await supabaseAdmin.from("academic_suggestions").insert({
-            user_id: userId, type: "university", university,
-            status: "rejected", ai_confidence: confidence,
-            ai_reason: `E-posta alanı eşleşmiyor.`,
-          });
-        }
-        return new Response(
-          JSON.stringify({ valid: false, status: "rejected", reason: `E-posta adresiniz bildirdiğiniz üniversiteyle eşleşmiyor.` }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (emailDomain && result.valid && (result as any).expected_domain) {
-        const expectedBase = extractDomainBase((result as any).expected_domain);
-        const actualBase = extractDomainBase(emailDomain);
-        if (expectedBase && actualBase && expectedBase !== actualBase) {
-          if (userId) {
-            await supabaseAdmin.from("academic_suggestions").insert({
-              user_id: userId, type: "university", university,
-              status: "rejected", ai_confidence: confidence,
-              ai_reason: `Çapraz kontrol başarısız: beklenen=${expectedBase}, gerçek=${actualBase}`,
-            });
-          }
-          return new Response(
-            JSON.stringify({ valid: false, status: "rejected", reason: `E-posta adresiniz bildirdiğiniz üniversiteyle eşleşmiyor.` }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      if (result.valid && confidence >= AUTO_APPROVE_THRESHOLD) {
-        await supabaseAdmin.from("universities").upsert({
-          name: normalizedName, city: result.city || null, type: result.university_type || null, created_by: userId,
-        }, { onConflict: "name" });
-
-        const { data: existingDept } = await supabaseAdmin.from("departments").select("id").eq("university", normalizedName).limit(1);
-        if (!existingDept || existingDept.length === 0) {
-          await supabaseAdmin.from("departments").insert({
-            university: normalizedName, name: "Genel", program_years: 4, created_by: userId,
-          });
-        }
-
-        if (userId) {
-          await supabaseAdmin.from("academic_suggestions").insert({
-            user_id: userId, type: "university", university: normalizedName,
-            status: "approved", ai_confidence: confidence, ai_reason: result.reason || null, normalized_name: normalizedName,
-          });
-        }
-        return new Response(
-          JSON.stringify({ valid: true, status: "approved", normalized_name: normalizedName, city: result.city, university_type: result.university_type, reason: result.reason || "Üniversite doğrulandı." }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Not approved - reject or send to review
-      if (userId) {
-        await supabaseAdmin.from("academic_suggestions").insert({
-          user_id: userId, type: "university", university,
-          status: confidence >= REJECT_THRESHOLD ? "pending" : "rejected",
-          ai_confidence: confidence, ai_reason: result.reason || null, normalized_name: normalizedName,
-        });
-      }
-
-      if (confidence >= REJECT_THRESHOLD) {
-        return new Response(
-          JSON.stringify({ valid: false, status: "pending_review", reason: result.reason || "Öneriniz incelemeye gönderildi." }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({ valid: false, status: "rejected", reason: result.reason || "Bu üniversite doğrulanamadı." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -539,6 +511,12 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
       if (looksLikeGarbage(department)) {
         return new Response(
           JSON.stringify({ valid: false, status: "rejected", reason: "Bölüm adı doğrulanamadı (geçersiz format)." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (containsBlockedDepartmentTerm(department)) {
+        return new Response(
+          JSON.stringify({ valid: false, status: "rejected", reason: "Bu bölüm adı uygunsuz veya akademik değil." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -621,7 +599,16 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
 
       if (duplicate) {
         return new Response(
-          JSON.stringify({ valid: false, status: "duplicate", reason: `Bu bölüm zaten mevcut: "${duplicate}".`, existing_name: duplicate }),
+          JSON.stringify({
+            valid: true,
+            status: "approved",
+            reason: `Bu bölüm zaten mevcut: "${duplicate}".`,
+            existing_name: duplicate,
+            normalized_name: duplicate,
+            validation_provider: "database_duplicate",
+            attempt_count: 0,
+            last_error_code: null,
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -642,6 +629,48 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
       if (duplicate) {
         return new Response(
           JSON.stringify({ valid: false, status: "duplicate", reason: `Bu ders zaten mevcut: "${duplicate.name}"${duplicate.code ? ` (${duplicate.code})` : ""}.`, existing_name: duplicate.name, existing_id: duplicate.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // AI service unavailable
+    if (!ANTHROPIC_API_KEY) {
+      if (type === "department") {
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            status: "error",
+            reason: "Doğrulama servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+            validation_provider: "none",
+            attempt_count: 0,
+            last_error_code: "MISSING_ANTHROPIC_API_KEY",
+          }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (type === "course") {
+        await supabaseAdmin.from("academic_suggestions").insert({
+          user_id: userId,
+          type: "course",
+          university,
+          department: department!,
+          course_name: course_name!,
+          course_code: course_code,
+          class_year: class_year,
+          explanation,
+          status: "pending",
+          ai_confidence: null,
+          ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
+          normalized_name: normalizeLoose(course_name!),
+        });
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            status: "pending_review",
+            reason: "Doğrulama servisi geçici olarak kullanılamıyor. Öneriniz admin incelemesine gönderildi.",
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -692,15 +721,7 @@ DİL KURALI:
 - normalized_name MUTLAKA TÜRKÇE olmalı. "Calculus" → "Kalkülüs", "Data Structures" → "Veri Yapıları", "Linear Algebra" → "Lineer Cebir" vb.
 - TEK İSTİSNA: Yabancı dil ve edebiyat bölümleri için o dildeki isimler kabul edilir.`;
 
-    const aiResponse = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL, temperature: 0.0, max_tokens: 4000,
-        messages: [
-          {
-            role: "system",
-            content: `Sen bir Türk üniversite akademik veri doğrulama sistemisin. Türkiye'deki üniversitelerin resmi müfredatlarını araştırarak karar veriyorsun.
+    const systemPrompt = `Sen bir Türk üniversite akademik veri doğrulama sistemisin. Türkiye'deki üniversitelerin resmi müfredatlarını araştırarak karar veriyorsun.
 
 GÖREVİN: Bölüm veya dersin GERÇEK olup olmadığını araştır ve KARAR VER.
 - Doğruysa → otomatik olarak veritabanına eklenecek
@@ -739,36 +760,52 @@ KARAR KRİTERLERİ:
 - Ders için confidence >= 0.90: ONAYLANIR
 - Altı: REDDEDİLİR
 - Saçma/spam → confidence=0
-- Sınıf düzeyini belirleyemiyorsan → valid=false, reason'da açıkla`,
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
+- Sınıf düzeyini belirleyemiyorsan → valid=false, reason'da açıkla`;
 
-    if (!aiResponse.ok) {
-      console.error("AI Gateway error:", aiResponse.status);
-      // AI failed - reject rather than queue
+    let result: AiResult;
+    let aiProvider: "anthropic_direct" | "none" = "none";
+    let attemptCount = 0;
+    let lastErrorCode: string | null = null;
+
+    try {
+      aiProvider = "anthropic_direct";
+      if (type === "department") {
+        const retryResult = await callAnthropicJsonWithRetry({
+          apiKey: ANTHROPIC_API_KEY!,
+          model: ANTHROPIC_MODEL,
+          systemPrompt,
+          userPrompt: prompt,
+          type,
+        });
+        result = retryResult.result;
+        attemptCount = retryResult.attemptCount;
+        lastErrorCode = retryResult.lastErrorCode;
+      } else {
+        result = await callAnthropicJson({
+          apiKey: ANTHROPIC_API_KEY!,
+          model: ANTHROPIC_MODEL,
+          systemPrompt,
+          userPrompt: prompt,
+        });
+        attemptCount = 1;
+      }
+    } catch (aiErr) {
+      const errorCode = toErrorCode(aiErr);
+      const effectiveAttempts = type === "department" ? 4 : 1;
+      console.error("Anthropic request failed:", errorCode, aiErr);
       return new Response(
-        JSON.stringify({ valid: false, status: "rejected", reason: "Doğrulama servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          valid: false,
+          status: "error",
+          reason: "Dogrulama servisi su an kullanilamiyor. Lutfen daha sonra tekrar deneyin.",
+          validation_provider: "none",
+          attempt_count: effectiveAttempts,
+          last_error_code: errorCode,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "{}";
-    console.log("AI raw response:", rawContent.substring(0, 500));
-
-    let result: AiResult;
-    try {
-      const cleaned = extractJsonFromResponse(rawContent);
-      console.log("AI cleaned JSON:", cleaned.substring(0, 500));
-      result = JSON.parse(cleaned);
-      console.log("AI result:", JSON.stringify(result));
-    } catch (parseErr) {
-      console.error("JSON parse error:", parseErr, "cleaned:", extractJsonFromResponse(rawContent).substring(0, 300));
-      result = { valid: false, confidence: 0, reason: "AI yanıtı ayrıştırılamadı" };
-    }
 
     const confidence = typeof result.confidence === "number" ? result.confidence : 0;
     const normalizedName = normalizeLoose(result.normalized_name || (type === "department" ? department! : course_name!));
@@ -779,37 +816,42 @@ KARAR KRİTERLERİ:
       if (type === "department") {
         const programYears = sanitizeProgramYears(result.program_years, normalizedName);
         const { data: inserted, error: insertError } = await supabaseAdmin
-          .from("departments")
-          .insert({
-            university,
-            name: normalizedName,
-            faculty: faculty || null,
-            program_years: programYears,
-            created_by: userId,
-          })
-          .select("id")
-          .single();
+          .from("departments" as any)
+          .upsert(
+            {
+              university,
+              name: normalizedName,
+              faculty: faculty || null,
+              program_years: programYears,
+              created_by: userId,
+            },
+            { onConflict: "university,name_normalized" }
+          )
+          .select("id, name")
+          .maybeSingle();
 
         if (insertError) {
           console.error("Department insert error:", insertError);
           return new Response(
-            JSON.stringify({ valid: false, status: "error", reason: "Bölüm eklenirken bir hata oluştu." }),
+            JSON.stringify({
+              valid: false,
+              status: "error",
+              reason: "Bölüm eklenirken bir hata oluştu.",
+              validation_provider: aiProvider,
+              attempt_count: attemptCount,
+              last_error_code: "DEPARTMENT_INSERT_ERROR",
+            }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
-        }
-
-        if (userId) {
-          await supabaseAdmin.from("academic_suggestions").insert({
-            user_id: userId, type: "department", university, department: normalizedName, faculty,
-            status: "approved", ai_confidence: confidence, ai_reason: result.reason || null,
-            normalized_name: normalizedName, inserted_id: inserted?.id || null,
-          });
         }
 
         return new Response(
           JSON.stringify({
             valid: true, status: "approved", normalized_name: normalizedName,
             department_id: inserted?.id, reason: result.reason || "Bölüm doğrulandı ve eklendi!",
+            validation_provider: aiProvider,
+            attempt_count: attemptCount,
+            last_error_code: lastErrorCode,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -914,7 +956,7 @@ KARAR KRİTERLERİ:
     }
 
     // ===== REJECTED =====
-    if (userId) {
+    if (userId && type !== "department") {
       await supabaseAdmin.from("academic_suggestions").insert({
         user_id: userId, type, university, faculty, department,
         course_name, course_code, class_year, explanation,
@@ -928,6 +970,9 @@ KARAR KRİTERLERİ:
         valid: false, status: "rejected",
         reason: result.reason || "Bu bilgi doğrulanamadı. Lütfen doğru bilgileri girdiğinizden emin olun.",
         suggestion: result.suggestion || null,
+        validation_provider: aiProvider,
+        attempt_count: attemptCount,
+        last_error_code: lastErrorCode,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

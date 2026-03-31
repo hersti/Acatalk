@@ -11,7 +11,7 @@ interface ModerationResult {
 
 /**
  * Moderate text content before sending.
- * First runs a fast client-side check, then AI moderation.
+ * First runs a fast client-side check, then server-side rule moderation.
  */
 export async function moderateText(
   text: string,
@@ -56,6 +56,7 @@ export async function moderateText(
 
 /**
  * Moderate an image before making it public.
+ * Server-side moderation currently uses deterministic URL/content rules.
  */
 export async function moderateImage(
   imageUrl: string,

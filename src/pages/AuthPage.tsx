@@ -26,11 +26,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   GraduationCap, Lock, AlertTriangle, Mail, ShieldCheck, Info,
   Eye, EyeOff, CheckCircle2, XCircle, Loader2, User, KeyRound,
-  FileText, Shield, Search, CheckCircle, Clock,
+  FileText, Shield, Search, CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type ValidationStatus = "idle" | "validating" | "approved" | "pending_review" | "rejected" | "duplicate" | "error";
+type ValidationStatus = "idle" | "validating" | "approved" | "rejected" | "duplicate" | "error";
 
 /**
  * Determines program duration (in years) based on department name.
@@ -78,7 +78,6 @@ function ValidationFeedback({ status, message }: { status: ValidationStatus; mes
     idle: { icon: null, color: "", bg: "" },
     validating: { icon: Loader2, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
     approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10 border-success/20" },
-    pending_review: { icon: Clock, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
     rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
     duplicate: { icon: CheckCircle, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
     error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
@@ -308,6 +307,49 @@ export default function AuthPage() {
   useEffect(() => {
     let cancelled = false;
 
+    const buildDomainProbes = (fullDomain: string): string[] => {
+      const probes: string[] = [];
+      let probe = fullDomain.trim().toLowerCase();
+      while (probe && probe.includes(".")) {
+        probes.push(probe);
+        const dot = probe.indexOf(".");
+        if (dot === -1) break;
+        probe = probe.substring(dot + 1);
+      }
+      return [...new Set(probes)];
+    };
+
+    const resolveUniversityFallback = async (fullDomain: string) => {
+      const probes = buildDomainProbes(fullDomain);
+      if (probes.length === 0) return null;
+
+      const { data: domainRows, error: domainError } = await supabase
+        .from("university_email_domains")
+        .select("domain, university_id")
+        .in("domain", probes);
+
+      if (domainError || !domainRows || domainRows.length === 0) return null;
+
+      const bestDomainMatch = [...domainRows]
+        .sort((a: any, b: any) => String(b.domain || "").length - String(a.domain || "").length)[0];
+
+      if (!bestDomainMatch?.university_id) return null;
+
+      const { data: uniRow, error: uniError } = await supabase
+        .from("universities")
+        .select("id, name, country")
+        .eq("id", bestDomainMatch.university_id)
+        .in("country", ["TR", "KKTC"])
+        .maybeSingle();
+
+      if (uniError || !uniRow?.name) return null;
+
+      return {
+        found: true,
+        university_name: uniRow.name,
+      };
+    };
+
     if (!isSignUp || !email.trim()) {
       setDetectedUniversity(null);
       setUniversity("");
@@ -349,13 +391,25 @@ export default function AuthPage() {
       if (cancelled) return;
 
       if (error) {
+        const fallbackResolved = await resolveUniversityFallback(domain);
+        if (cancelled) return;
+        if (fallbackResolved?.found && fallbackResolved?.university_name) {
+          setDetectedUniversity(fallbackResolved.university_name);
+          setUniversity(fallbackResolved.university_name);
+          setDepartment("");
+          setEmailError("");
+          setRequestedUniversityName("");
+          setRequestNote("");
+          return;
+        }
+
         setDetectedUniversity(null);
         setUniversity("");
-        setEmailError("Üniversite alanı çözümlenemedi. Lütfen tekrar deneyin.");
+        setEmailError("Domain doğrulama servisi şu an yanıt vermiyor. Bu alan için talep oluşturabilirsiniz.");
         return;
       }
 
-      const resolved = Array.isArray(data) ? data[0] : null;
+      const resolved = Array.isArray(data) ? data[0] : (data && typeof data === "object" ? data : null);
       if (resolved?.found && resolved?.university_name) {
         setDetectedUniversity(resolved.university_name);
         setUniversity(resolved.university_name);
@@ -419,13 +473,53 @@ export default function AuthPage() {
     setRequestSending(true);
     setRequestResultMsg("");
     try {
-      const { data, error } = await supabase.rpc("create_university_domain_request", {
-        p_request_email: email.trim().toLowerCase(),
-        p_claimed_university_name: requestedUniversityName.trim(),
-        p_request_note: requestNote.trim() || null,
-      } as any);
+      const requestEmail = email.trim().toLowerCase();
+      const requestDomain = extractEmailDomain(requestEmail);
+      const requestUniversity = requestedUniversityName.trim();
+      const requestNoteValue = requestNote.trim() || null;
 
-      if (error) throw error;
+      const { data, error } = await supabase.rpc("create_university_domain_request", {
+        p_request_email: requestEmail,
+        p_claimed_university_name: requestUniversity,
+        p_request_note: requestNoteValue,
+      } as any);
+      const rpcMissing =
+        !!error &&
+        ((error as any)?.code === "PGRST202" ||
+          String((error as any)?.message || "").includes("Could not find the function"));
+
+      if (error && !rpcMissing) throw error;
+
+      if (rpcMissing) {
+        const { data: existingPending } = await supabase
+          .from("university_domain_requests" as any)
+          .select("id")
+          .eq("request_email_domain", requestDomain)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle();
+
+        if (existingPending?.id) {
+          setRequestSubmitted(true);
+          setRequestResultMsg("Bu domain için zaten bekleyen bir talep var. Admin incelemesini bekleyin.");
+          return;
+        }
+
+        const { error: insertErr } = await supabase.from("university_domain_requests" as any).insert({
+          request_email: requestEmail,
+          request_email_domain: requestDomain,
+          claimed_university_name: requestUniversity,
+          request_note: requestNoteValue,
+          status: "pending",
+        });
+
+        if (insertErr) throw insertErr;
+
+        setRequestSubmitted(true);
+        setRequestResultMsg("Talebiniz admin incelemesine gönderildi.");
+        toast.success("Domain talebiniz gönderildi.");
+        return;
+      }
 
       if (data?.already_known && data?.university_name) {
         setDetectedUniversity(data.university_name);
@@ -456,6 +550,14 @@ export default function AuthPage() {
 
   const validateDepartment = async () => {
     if (!customDepartment.trim() || !university) return;
+    const applyDepartmentSelection = (name: string) => {
+      const next = name.trim();
+      if (!next) return;
+      setDepartment(next);
+      setClassYear("");
+      setProgramYears(getProgramYearsForDepartment(next));
+      setErrors((prev) => ({ ...prev, department: "" }));
+    };
     setDeptValidation("validating");
     setDeptValidationMsg("Bölüm doğrulanıyor...");
     try {
@@ -467,29 +569,29 @@ export default function AuthPage() {
       if (result.status === "approved") {
         setDeptValidation("approved");
         setDeptValidationMsg(result.reason || "Bölüm doğrulandı!");
-        setDepartment(result.normalized_name || customDepartment.trim());
+        applyDepartmentSelection(result.normalized_name || customDepartment.trim());
         setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1500);
       } else if (result.status === "duplicate") {
         setDeptValidation("duplicate");
         setDeptValidationMsg(result.reason || "Bu bölüm zaten mevcut.");
         if (result.existing_name) {
           setTimeout(() => {
-            setDepartment(result.existing_name);
+            applyDepartmentSelection(result.existing_name);
             setShowCustomDept(false);
             setCustomDepartment("");
             setDeptValidation("idle");
-          }, 2000);
+          }, 1200);
         }
-      } else if (result.status === "pending_review") {
-        setDeptValidation("pending_review");
-        setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
+      } else if (result.status === "error") {
+        setDeptValidation("error");
+        setDeptValidationMsg(result.reason || "Doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
       }
     } catch {
       setDeptValidation("error");
-      setDeptValidationMsg("Doğrulama sırasında bir hata oluştu.");
+      setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
 
@@ -803,12 +905,13 @@ export default function AuthPage() {
   const passwordsMatch = isSignUp && confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = isSignUp && confirmPassword.length > 0 && password !== confirmPassword;
   const isAcademicEmailDomain = emailDomain.endsWith(".edu.tr") || emailDomain.endsWith(".edu");
+  const isHardEmailRejection = emailError.startsWith("Sadece Türkiye ve KKTC");
   const shouldShowUnknownDomainRequest =
     isSignUp &&
     !!email &&
     isAcademicEmailDomain &&
     !detectedUniversity &&
-    emailError.startsWith("Bu e-posta domaini sistemde kayıtlı değil");
+    !isHardEmailRejection;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8 bg-background">
@@ -1170,7 +1273,7 @@ export default function AuthPage() {
                               )}
                             </Button>
                           </div>
-                          <p className="text-[9px] text-muted-foreground">Yapay zeka ile doğrulanacak.</p>
+                          <p className="text-[9px] text-muted-foreground">Bölüm doğrulama servisi ile kontrol edilir.</p>
                         </motion.div>
                       )}
 

@@ -230,7 +230,7 @@ export default function AdminPage() {
       setSecurityLogs(secLogsRes.data || []);
       setModerationQueue(modQueueRes.data || []);
       setModerationLogs(modLogsRes.data || []);
-      setAcademicSuggestions(suggestionsRes.data || []);
+      setAcademicSuggestions(((suggestionsRes.data || []) as any[]).filter((s) => s.type !== "department"));
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
       setDomainRequests((domainRequestsRes.data || []) as any[]);
@@ -471,6 +471,10 @@ export default function AdminPage() {
     academicSuggestions.filter((s: any) => s.status === "pending").length +
     domainRequests.filter((r: any) => r.status === "pending").length;
   const openTicketsCount = supportTickets.filter((t: any) => t.status === "open").length;
+  const isMissingFunctionError = (error: any) =>
+    !!error &&
+    ((error.code === "PGRST202" || error.code === "42883") ||
+      String(error.message || "").includes("Could not find the function"));
 
   // ─── Action Handlers ───
   const handleDeletePost = async (postId: string) => {
@@ -662,12 +666,8 @@ export default function AdminPage() {
   // ─── Suggestion Handlers ───
   const handleApproveSuggestion = async (suggestion: any) => {
     if (suggestion.type === "department") {
-      const deptName = (suggestion.normalized_name || suggestion.department || "").trim();
-      if (!deptName) { toast.error("Bölüm adı bulunamadı"); return; }
-      const deptUpsertRes = await supabase.from("departments" as any).upsert({ university: suggestion.university, name: deptName, faculty: suggestion.faculty || null, created_by: suggestion.user_id }, { onConflict: "university,name_normalized" }).select("id").maybeSingle();
-      if (deptUpsertRes.error) { toast.error("Bölüm eklenemedi: " + deptUpsertRes.error.message); return; }
-      await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString(), inserted_id: (deptUpsertRes.data as any)?.id ?? null } as any).eq("id", suggestion.id);
-      toast.success("Bölüm onaylandı!"); fetchAll(true); return;
+      toast.error("Bolum onerileri admin kuyrugunda islenmez.");
+      return;
     }
     if (suggestion.type === "info_change") {
       const targetUserId = suggestion.user_id;
@@ -734,7 +734,7 @@ export default function AdminPage() {
       toast.error("Domain zorunlu.");
       return;
     }
-    const { error } = await supabase.rpc("admin_process_university_domain_request", {
+    const { data: rpcData, error } = await supabase.rpc("admin_process_university_domain_request", {
       p_request_id: request.id,
       p_action: "approved",
       p_university_name: universityName,
@@ -745,25 +745,105 @@ export default function AdminPage() {
       p_admin_note: draft.admin_note.trim() || null,
       p_seed_general_department: draft.seed_general_department,
     } as any);
-    if (error) {
+    if (!error && rpcData) {
+      toast.success("Domain talebi onaylandi ve sisteme eklendi.");
+      fetchAll(true);
+      return;
+    }
+
+    if (error && !isMissingFunctionError(error)) {
       toast.error("Talep onaylanamadi: " + error.message);
       return;
     }
+
+    const { data: uniRow, error: uniErr } = await supabase
+      .from("universities" as any)
+      .upsert({
+        name: universityName,
+        country: draft.country,
+        city: draft.city.trim() || null,
+        type: draft.type.trim() || null,
+        created_by: user?.id || null,
+      }, { onConflict: "name" })
+      .select("id")
+      .maybeSingle();
+    if (uniErr || !uniRow?.id) {
+      toast.error("Universite eklenemedi: " + (uniErr?.message || "Bilinmeyen hata"));
+      return;
+    }
+
+    const { error: domainErr } = await supabase
+      .from("university_email_domains" as any)
+      .upsert({
+        university_id: uniRow.id,
+        domain,
+        is_primary: true,
+        is_verified: true,
+      }, { onConflict: "domain" });
+    if (domainErr) {
+      toast.error("Domain eklenemedi: " + domainErr.message);
+      return;
+    }
+
+    if (draft.seed_general_department) {
+      await supabase.from("departments" as any).upsert({
+        university: universityName,
+        name: "Genel",
+        created_by: user?.id || null,
+      }, { onConflict: "university,name_normalized" });
+    }
+
+    const { error: reqErr } = await supabase
+      .from("university_domain_requests" as any)
+      .update({
+        status: "approved",
+        admin_note: draft.admin_note.trim() || null,
+        reviewed_by: user?.id || null,
+        reviewed_at: new Date().toISOString(),
+        resolved_university_id: uniRow.id,
+        resolved_domain: domain,
+      })
+      .eq("id", request.id);
+    if (reqErr) {
+      toast.error("Talep güncellenemedi: " + reqErr.message);
+      return;
+    }
+
     toast.success("Domain talebi onaylandi ve sisteme eklendi.");
     fetchAll(true);
   };
 
   const handleRejectDomainRequest = async (request: any) => {
     const draft = getDomainDraft(request);
-    const { error } = await supabase.rpc("admin_process_university_domain_request", {
+    const { data: rpcData, error } = await supabase.rpc("admin_process_university_domain_request", {
       p_request_id: request.id,
       p_action: "rejected",
       p_admin_note: draft.admin_note.trim() || "Admin tarafindan reddedildi",
     } as any);
-    if (error) {
+    if (!error && rpcData) {
+      toast.success("Domain talebi reddedildi.");
+      fetchAll(true);
+      return;
+    }
+    if (error && !isMissingFunctionError(error)) {
       toast.error("Talep reddedilemedi: " + error.message);
       return;
     }
+
+    const { error: fallbackErr } = await supabase
+      .from("university_domain_requests" as any)
+      .update({
+        status: "rejected",
+        admin_note: draft.admin_note.trim() || "Admin tarafindan reddedildi",
+        reviewed_by: user?.id || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", request.id);
+    if (fallbackErr) {
+      toast.error("Talep reddedilemedi: " + fallbackErr.message);
+      return;
+    }
+
     toast.success("Domain talebi reddedildi.");
     fetchAll(true);
   };
@@ -1466,7 +1546,7 @@ export default function AdminPage() {
                           {allUniversities.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <CourseFormDialog universities={allUniversities} courses={courses} onSaved={() => fetchAll(true)} />
+                      <CourseFormDialog universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
                     </div>
                     <Card className="overflow-hidden">
                       <ScrollArea className="max-h-[600px]">
@@ -1492,7 +1572,7 @@ export default function AdminPage() {
                                 <TableCell><Badge variant="secondary" className="text-[10px]">{c.year === 0 ? "Hazırlık" : `${c.year}. Sınıf`}</Badge></TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">
-                                    <CourseFormDialog course={c} universities={allUniversities} courses={courses} onSaved={() => fetchAll(true)} />
+                                    <CourseFormDialog course={c} universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
                                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteCourse(c.id)}>
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -1892,7 +1972,19 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
 }
 
 /* ═══ Course Form Dialog ═══ */
-function CourseFormDialog({ course, universities, courses, onSaved }: { course?: any; universities: string[]; courses: any[]; onSaved: () => void }) {
+function CourseFormDialog({
+  course,
+  universities,
+  courses,
+  departmentsCatalog,
+  onSaved,
+}: {
+  course?: any;
+  universities: string[];
+  courses: any[];
+  departmentsCatalog: any[];
+  onSaved: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(course?.name || "");
@@ -1908,10 +2000,15 @@ function CourseFormDialog({ course, universities, courses, onSaved }: { course?:
   const allUnis = [...new Set(universities.filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
   const departmentsForUniversity = useMemo(() => {
     if (!selectedUniversity) return [];
-    const staticDepts = getDepartmentsForUniversity(selectedUniversity);
+    const dbDepts = departmentsCatalog
+      .filter((d: any) => d.university === selectedUniversity && d.name)
+      .map((d: any) => d.name);
     const existingDepts = courses.filter((c: any) => c.university === selectedUniversity && c.department).map((c: any) => c.department);
-    return [...new Set([...staticDepts, ...existingDepts])].sort((a, b) => a.localeCompare(b, "tr"));
-  }, [selectedUniversity, courses]);
+    const merged = [...new Set([...dbDepts, ...existingDepts])];
+    if (merged.length > 0) return merged.sort((a, b) => a.localeCompare(b, "tr"));
+    const staticDepts = getDepartmentsForUniversity(selectedUniversity);
+    return [...new Set(staticDepts)].sort((a, b) => a.localeCompare(b, "tr"));
+  }, [selectedUniversity, courses, departmentsCatalog]);
 
   useEffect(() => {
     if (!department && departmentsForUniversity.length > 0) { setDepartment(departmentsForUniversity[0]); return; }
