@@ -121,6 +121,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   // AI validation for department
   const validateDepartment = async () => {
     if (!customDepartment.trim() || !university) return;
+    const applyDepartmentSelection = (name: string) => {
+      const next = name.trim();
+      if (!next) return;
+      setDepartment(next);
+      setYear("");
+    };
     setDeptValidation("validating");
     setDeptValidationMsg("Bölüm doğrulanıyor...");
 
@@ -135,8 +141,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       if (result.status === "approved") {
         setDeptValidation("approved");
         setDeptValidationMsg(result.reason || "Bölüm doğrulandı!");
-        setDepartment(result.normalized_name || customDepartment.trim());
-        setYear("");
+        applyDepartmentSelection(result.normalized_name || customDepartment.trim());
         setTimeout(() => {
           setMissingDeptOpen(false);
           setCustomDepartment("");
@@ -146,18 +151,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         setDeptValidationMsg(result.reason || "Bu bölüm zaten mevcut.");
         if (result.existing_name) {
           setTimeout(() => {
-            setDepartment(result.existing_name);
-            setYear("");
+            applyDepartmentSelection(result.existing_name);
             setMissingDeptOpen(false);
             setCustomDepartment("");
             setDeptValidation("idle");
-          }, 2000);
+          }, 1200);
         }
       } else if (result.status === "pending_review") {
         setDeptValidation("pending_review");
         setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi. Onay sonrası kullanabilirsiniz.");
-        setDepartment(customDepartment.trim());
-        setYear("");
+        applyDepartmentSelection(customDepartment.trim());
         setTimeout(() => {
           setMissingDeptOpen(false);
           setCustomDepartment("");
@@ -168,14 +171,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       }
     } catch (err) {
       console.error("Dept validation error:", err);
-      setDeptValidation("pending_review");
+      setDeptValidation("error");
       setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
-      setDepartment(customDepartment.trim());
-      setYear("");
-      setTimeout(() => {
-        setMissingDeptOpen(false);
-        setCustomDepartment("");
-      }, 1200);
+      setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
 

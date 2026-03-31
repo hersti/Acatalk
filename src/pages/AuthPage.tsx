@@ -551,6 +551,14 @@ export default function AuthPage() {
 
   const validateDepartment = async () => {
     if (!customDepartment.trim() || !university) return;
+    const applyDepartmentSelection = (name: string) => {
+      const next = name.trim();
+      if (!next) return;
+      setDepartment(next);
+      setClassYear("");
+      setProgramYears(getProgramYearsForDepartment(next));
+      setErrors((prev) => ({ ...prev, department: "" }));
+    };
     setDeptValidation("validating");
     setDeptValidationMsg("Bölüm doğrulanıyor...");
     try {
@@ -562,33 +570,32 @@ export default function AuthPage() {
       if (result.status === "approved") {
         setDeptValidation("approved");
         setDeptValidationMsg(result.reason || "Bölüm doğrulandı!");
-        setDepartment(result.normalized_name || customDepartment.trim());
+        applyDepartmentSelection(result.normalized_name || customDepartment.trim());
         setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1500);
       } else if (result.status === "duplicate") {
         setDeptValidation("duplicate");
         setDeptValidationMsg(result.reason || "Bu bölüm zaten mevcut.");
         if (result.existing_name) {
           setTimeout(() => {
-            setDepartment(result.existing_name);
+            applyDepartmentSelection(result.existing_name);
             setShowCustomDept(false);
             setCustomDepartment("");
             setDeptValidation("idle");
-          }, 2000);
+          }, 1200);
         }
       } else if (result.status === "pending_review") {
         setDeptValidation("pending_review");
         setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
-        setDepartment(customDepartment.trim());
+        applyDepartmentSelection(customDepartment.trim());
         setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
       }
     } catch {
-      setDeptValidation("pending_review");
+      setDeptValidation("error");
       setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
-      setDepartment(customDepartment.trim());
-      setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
+      setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
 
