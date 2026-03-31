@@ -99,13 +99,53 @@ export default function SuggestAcademicDialog({
   const [classYear, setClassYear] = useState("");
   const [explanation, setExplanation] = useState("");
 
-  const universityOptions = getSortedUniversities().map((u) => ({
+  const [dbUniversities, setDbUniversities] = useState<{ name: string; city: string | null; type: string | null }[]>([]);
+  const staticUniversityOptions = getSortedUniversities().map((u) => ({
     label: u.name,
     sublabel: `${u.city} · ${u.type === "devlet" ? "Devlet" : "Vakıf"}`,
     group: u.popular ? "⭐ Popüler" : "",
   }));
+  const universityOptions = (() => {
+    const staticNames = new Set(staticUniversityOptions.map((u) => u.label));
+    const dbOnly = dbUniversities
+      .filter((u) => !staticNames.has(u.name))
+      .map((u) => ({
+        label: u.name,
+        sublabel: u.city
+          ? `${u.city} · ${u.type === "devlet" ? "Devlet" : u.type === "vakıf" ? "Vakıf" : "Üniversite"}`
+          : "Üniversite",
+        group: "",
+      }));
+    return [...staticUniversityOptions, ...dbOnly];
+  })();
 
   const [dbDepartments, setDbDepartments] = useState<DepartmentOption[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let isCancelled = false;
+
+    const fetchUniversities = async () => {
+      const { data } = await supabase
+        .from("universities" as any)
+        .select("name, city, type, country")
+        .in("country", ["TR", "KKTC"])
+        .order("name", { ascending: true })
+        .limit(1000);
+
+      if (isCancelled) return;
+      setDbUniversities((data || []).map((u: any) => ({
+        name: u.name,
+        city: u.city || null,
+        type: u.type || null,
+      })));
+    };
+
+    fetchUniversities();
+    return () => {
+      isCancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open || !university || type !== "course") return;

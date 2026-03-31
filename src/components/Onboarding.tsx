@@ -156,14 +156,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       } else if (result.status === "pending_review") {
         setDeptValidation("pending_review");
         setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi. Onay sonrası kullanabilirsiniz.");
+        setDepartment(customDepartment.trim());
+        setYear("");
+        setTimeout(() => {
+          setMissingDeptOpen(false);
+          setCustomDepartment("");
+        }, 1200);
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
       }
     } catch (err) {
       console.error("Dept validation error:", err);
-      setDeptValidation("error");
-      setDeptValidationMsg("Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      setDeptValidation("pending_review");
+      setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
+      setDepartment(customDepartment.trim());
+      setYear("");
+      setTimeout(() => {
+        setMissingDeptOpen(false);
+        setCustomDepartment("");
+      }, 1200);
     }
   };
 

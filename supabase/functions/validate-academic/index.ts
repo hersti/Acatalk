@@ -276,8 +276,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const AI_GATEWAY_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = AI_GATEWAY_KEY;
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -647,6 +647,77 @@ Sadece YÖK onaylı gerçek Türk üniversitelerini onayla. Emin değilsen confi
       }
     }
 
+    // AI service unavailable -> deterministic fallback (no hard 500)
+    if (!AI_GATEWAY_KEY) {
+      if (type === "department") {
+        const normalizedName = normalizeLoose(department || "");
+        if (!normalizedName || looksLikeGarbage(normalizedName)) {
+          return new Response(
+            JSON.stringify({ valid: false, status: "rejected", reason: "Bölüm adı doğrulanamadı (geçersiz format)." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (userId) {
+          await supabaseAdmin.from("academic_suggestions").insert({
+            user_id: userId,
+            type: "department",
+            university,
+            department: normalizedName,
+            faculty,
+            status: "pending_review",
+            ai_confidence: null,
+            ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
+            normalized_name: normalizedName,
+          });
+          return new Response(
+            JSON.stringify({
+              valid: false,
+              status: "pending_review",
+              normalized_name: normalizedName,
+              reason: "Doğrulama servisi geçici olarak kullanılamıyor. Öneriniz admin incelemesine gönderildi.",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            valid: true,
+            status: "approved",
+            normalized_name: normalizedName,
+            reason: "Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (type === "course") {
+        await supabaseAdmin.from("academic_suggestions").insert({
+          user_id: userId,
+          type: "course",
+          university,
+          department: department!,
+          course_name: course_name!,
+          course_code: course_code,
+          class_year: class_year,
+          explanation,
+          status: "pending_review",
+          ai_confidence: null,
+          ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
+          normalized_name: normalizeLoose(course_name!),
+        });
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            status: "pending_review",
+            reason: "Doğrulama servisi geçici olarak kullanılamıyor. Öneriniz admin incelemesine gönderildi.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Context for AI
     const deptContext = await supabaseAdmin.from("departments" as any).select("name").eq("university", university).order("name", { ascending: true }).limit(200);
     const existingDeptNames: string[] = (((deptContext.data as any[]) || []).map((d) => d.name).filter(Boolean) as string[]).slice(0, 60);
@@ -694,7 +765,7 @@ DİL KURALI:
 
     const aiResponse = await fetch(AI_GATEWAY_URL, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${AI_GATEWAY_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL, temperature: 0.0, max_tokens: 4000,
         messages: [

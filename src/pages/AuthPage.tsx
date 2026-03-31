@@ -406,7 +406,7 @@ export default function AuthPage() {
 
         setDetectedUniversity(null);
         setUniversity("");
-        setEmailError("Üniversite alanı çözümlenemedi. Lütfen tekrar deneyin.");
+        setEmailError("Domain doğrulama servisi şu an yanıt vermiyor. Bu alan için talep oluşturabilirsiniz.");
         return;
       }
 
@@ -474,13 +474,53 @@ export default function AuthPage() {
     setRequestSending(true);
     setRequestResultMsg("");
     try {
-      const { data, error } = await supabase.rpc("create_university_domain_request", {
-        p_request_email: email.trim().toLowerCase(),
-        p_claimed_university_name: requestedUniversityName.trim(),
-        p_request_note: requestNote.trim() || null,
-      } as any);
+      const requestEmail = email.trim().toLowerCase();
+      const requestDomain = extractEmailDomain(requestEmail);
+      const requestUniversity = requestedUniversityName.trim();
+      const requestNoteValue = requestNote.trim() || null;
 
-      if (error) throw error;
+      const { data, error } = await supabase.rpc("create_university_domain_request", {
+        p_request_email: requestEmail,
+        p_claimed_university_name: requestUniversity,
+        p_request_note: requestNoteValue,
+      } as any);
+      const rpcMissing =
+        !!error &&
+        ((error as any)?.code === "PGRST202" ||
+          String((error as any)?.message || "").includes("Could not find the function"));
+
+      if (error && !rpcMissing) throw error;
+
+      if (rpcMissing) {
+        const { data: existingPending } = await supabase
+          .from("university_domain_requests" as any)
+          .select("id")
+          .eq("request_email_domain", requestDomain)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle();
+
+        if (existingPending?.id) {
+          setRequestSubmitted(true);
+          setRequestResultMsg("Bu domain için zaten bekleyen bir talep var. Admin incelemesini bekleyin.");
+          return;
+        }
+
+        const { error: insertErr } = await supabase.from("university_domain_requests" as any).insert({
+          request_email: requestEmail,
+          request_email_domain: requestDomain,
+          claimed_university_name: requestUniversity,
+          request_note: requestNoteValue,
+          status: "pending",
+        });
+
+        if (insertErr) throw insertErr;
+
+        setRequestSubmitted(true);
+        setRequestResultMsg("Talebiniz admin incelemesine gönderildi.");
+        toast.success("Domain talebiniz gönderildi.");
+        return;
+      }
 
       if (data?.already_known && data?.university_name) {
         setDetectedUniversity(data.university_name);
@@ -538,13 +578,17 @@ export default function AuthPage() {
       } else if (result.status === "pending_review") {
         setDeptValidation("pending_review");
         setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
+        setDepartment(customDepartment.trim());
+        setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
       }
     } catch {
-      setDeptValidation("error");
-      setDeptValidationMsg("Doğrulama sırasında bir hata oluştu.");
+      setDeptValidation("pending_review");
+      setDeptValidationMsg("Doğrulama servisi geçici olarak kullanılamıyor. Bölümünüz kaydedildi, admin incelemesine alınacaktır.");
+      setDepartment(customDepartment.trim());
+      setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
     }
   };
 
@@ -858,12 +902,13 @@ export default function AuthPage() {
   const passwordsMatch = isSignUp && confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = isSignUp && confirmPassword.length > 0 && password !== confirmPassword;
   const isAcademicEmailDomain = emailDomain.endsWith(".edu.tr") || emailDomain.endsWith(".edu");
+  const isHardEmailRejection = emailError.startsWith("Sadece Türkiye ve KKTC");
   const shouldShowUnknownDomainRequest =
     isSignUp &&
     !!email &&
     isAcademicEmailDomain &&
     !detectedUniversity &&
-    emailError.startsWith("Bu e-posta domaini sistemde kayıtlı değil");
+    !isHardEmailRejection;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8 bg-background">
