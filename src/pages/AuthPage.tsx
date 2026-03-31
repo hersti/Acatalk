@@ -9,15 +9,11 @@ import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import SearchableSelect from "@/components/SearchableSelect";
 import {
-  getSortedUniversities,
   getDepartmentsForUniversity,
-  isValidUniversity,
-  isValidDepartment,
-  getUniversityByEmailDomain,
   extractEmailDomain,
 } from "@/data/turkish-universities";
 import { sanitizeInput } from "@/lib/sanitize";
-import { quickContentCheck, checkUsernameProfanity } from "@/lib/profanity-filter";
+import { checkUsernameProfanity } from "@/lib/profanity-filter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -259,13 +255,15 @@ export default function AuthPage() {
   const [detectedUniversity, setDetectedUniversity] = useState<string | null>(null);
   const [emailDomain, setEmailDomain] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [customUniAdded, setCustomUniAdded] = useState(false);
 
-  // Custom university/department validation
-  const [showCustomUni, setShowCustomUni] = useState(false);
-  const [customUniversity, setCustomUniversity] = useState("");
-  const [uniValidation, setUniValidation] = useState<ValidationStatus>("idle");
-  const [uniValidationMsg, setUniValidationMsg] = useState("");
+  // Unknown domain request (admin-approved)
+  const [requestedUniversityName, setRequestedUniversityName] = useState("");
+  const [requestNote, setRequestNote] = useState("");
+  const [requestSending, setRequestSending] = useState(false);
+  const [requestResultMsg, setRequestResultMsg] = useState("");
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
+
+  // Custom department validation
   const [showCustomDept, setShowCustomDept] = useState(false);
   const [customDepartment, setCustomDepartment] = useState("");
   const [deptValidation, setDeptValidation] = useState<ValidationStatus>("idle");
@@ -306,43 +304,79 @@ export default function AuthPage() {
     return allDepts.map((d) => ({ label: d }));
   })();
 
-  // Auto-detect university from email
+  // Auto-detect university from email via DB domain mapping (single source of truth)
   useEffect(() => {
-    if (!isSignUp || !email) {
+    let cancelled = false;
+
+    if (!isSignUp || !email.trim()) {
       setDetectedUniversity(null);
+      setUniversity("");
       setEmailDomain("");
+      setEmailError("");
+      setRequestResultMsg("");
+      setRequestSubmitted(false);
+      setRequestedUniversityName("");
+      setRequestNote("");
+      return;
+    }
+
+    const domain = extractEmailDomain(email);
+    setEmailDomain(domain);
+    setRequestResultMsg("");
+    setRequestSubmitted(false);
+
+    if (!domain || !domain.includes(".")) {
+      setDetectedUniversity(null);
+      setUniversity("");
       setEmailError("");
       return;
     }
-    const domain = extractEmailDomain(email);
-    setEmailDomain(domain);
 
-    if (domain && domain.includes(".")) {
-      const detected = getUniversityByEmailDomain(email);
-      if (detected) {
-        setDetectedUniversity(detected);
-        setUniversity(detected);
+    if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
+      setDetectedUniversity(null);
+      setUniversity("");
+      setEmailError("Sadece Türkiye ve KKTC üniversitelerine ait e-posta adresleriyle kayıt olabilirsiniz.");
+      setRequestedUniversityName("");
+      setRequestNote("");
+      return;
+    }
+
+    const resolve = async () => {
+      const { data, error } = await supabase.rpc("resolve_university_by_email_domain", {
+        p_email: email.trim().toLowerCase(),
+      } as any);
+
+      if (cancelled) return;
+
+      if (error) {
+        setDetectedUniversity(null);
+        setUniversity("");
+        setEmailError("Üniversite alanı çözümlenemedi. Lütfen tekrar deneyin.");
+        return;
+      }
+
+      const resolved = Array.isArray(data) ? data[0] : null;
+      if (resolved?.found && resolved?.university_name) {
+        setDetectedUniversity(resolved.university_name);
+        setUniversity(resolved.university_name);
         setDepartment("");
         setEmailError("");
-        setCustomUniAdded(false);
-        setShowCustomUni(false);
-      } else if (domain.endsWith(".edu.tr") || domain.endsWith(".edu")) {
-        setDetectedUniversity(null);
-        setEmailError("");
-        // Show option to add university
-        if (!customUniAdded) {
-          setShowCustomUni(true);
-        }
-      } else {
-        setDetectedUniversity(null);
-        setShowCustomUni(false);
-        setEmailError("Kayıt için üniversite e-posta adresinizi kullanın (örn: isim@universite.edu.tr)");
+        setRequestedUniversityName("");
+        setRequestNote("");
+        return;
       }
-    } else {
+
       setDetectedUniversity(null);
-      setEmailError("");
-      setShowCustomUni(false);
-    }
+      setUniversity("");
+      setDepartment("");
+      setEmailError("Bu e-posta domaini sistemde kayıtlı değil. Devam etmek için talep oluşturun.");
+    };
+
+    void resolve();
+
+    return () => {
+      cancelled = true;
+    };
   }, [email, isSignUp]);
 
   // Resend cooldown timer
@@ -379,49 +413,44 @@ export default function AuthPage() {
     }
   };
 
-  const validateUniversity = async () => {
-    if (!customUniversity.trim()) return;
-    setUniValidation("validating");
-    setUniValidationMsg("Üniversite doğrulanıyor...");
+  const submitUnknownDomainRequest = async () => {
+    if (!requestedUniversityName.trim() || !email.trim()) return;
+
+    setRequestSending(true);
+    setRequestResultMsg("");
     try {
-      const { data, error } = await supabase.functions.invoke("validate-academic", {
-        body: { type: "university", university: customUniversity.trim(), email_domain: emailDomain || undefined },
-      });
+      const { data, error } = await supabase.rpc("create_university_domain_request", {
+        p_request_email: email.trim().toLowerCase(),
+        p_claimed_university_name: requestedUniversityName.trim(),
+        p_request_note: requestNote.trim() || null,
+      } as any);
+
       if (error) throw error;
-      const result = data as any;
-      if (result.status === "approved") {
-        setUniValidation("approved");
-        setUniValidationMsg(result.reason || "Üniversite doğrulandı!");
-        const approvedName = result.normalized_name || customUniversity.trim();
-        setUniversity(approvedName);
-        setDetectedUniversity(approvedName);
-        setCustomUniAdded(true);
+
+      if (data?.already_known && data?.university_name) {
+        setDetectedUniversity(data.university_name);
+        setUniversity(data.university_name);
         setDepartment("");
-        setTimeout(() => { setShowCustomUni(false); setCustomUniversity(""); }, 1500);
-      } else if (result.status === "duplicate") {
-        setUniValidation("duplicate");
-        setUniValidationMsg(result.reason || "Bu üniversite zaten mevcut.");
-        if (result.existing_name) {
-          setTimeout(() => {
-            setUniversity(result.existing_name);
-            setDetectedUniversity(result.existing_name);
-            setCustomUniAdded(true);
-            setDepartment("");
-            setShowCustomUni(false);
-            setCustomUniversity("");
-            setUniValidation("idle");
-          }, 2000);
-        }
-      } else if (result.status === "pending_review") {
-        setUniValidation("pending_review");
-        setUniValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
-      } else {
-        setUniValidation("rejected");
-        setUniValidationMsg(result.reason || "Bu üniversite doğrulanamadı.");
+        setEmailError("");
+        setRequestSubmitted(false);
+        setRequestResultMsg("Bu domain bu sırada sisteme eklendi. Kayda devam edebilirsiniz.");
+        return;
       }
-    } catch {
-      setUniValidation("error");
-      setUniValidationMsg("Doğrulama sırasında bir hata oluştu.");
+
+      if (data?.ok) {
+        setRequestSubmitted(true);
+        setRequestResultMsg(data.reason || "Talebiniz admin incelemesine gönderildi.");
+        toast.success("Domain talebiniz gönderildi.");
+        return;
+      }
+
+      setRequestSubmitted(false);
+      setRequestResultMsg(data?.reason || "Talep gönderilemedi.");
+    } catch (err: any) {
+      setRequestSubmitted(false);
+      setRequestResultMsg(err?.message || "Talep gönderilirken bir hata oluştu.");
+    } finally {
+      setRequestSending(false);
     }
   };
 
@@ -528,7 +557,7 @@ export default function AuthPage() {
       }
       const domain = extractEmailDomain(email);
       if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
-        newErrors.email = "Sadece üniversite e-posta adresleri ile kayıt olabilirsiniz (.edu.tr)";
+        newErrors.email = "Sadece Türkiye ve KKTC üniversitelerine ait e-posta adresleri ile kayıt olabilirsiniz.";
       }
 
       if (!university) {
@@ -687,6 +716,10 @@ export default function AuthPage() {
     setIsSignUp(!isSignUp);
     setErrors({});
     setEmailError("");
+    setRequestResultMsg("");
+    setRequestSubmitted(false);
+    setRequestedUniversityName("");
+    setRequestNote("");
     setConfirmPassword("");
     setAcceptTerms(false);
   };
@@ -769,6 +802,13 @@ export default function AuthPage() {
 
   const passwordsMatch = isSignUp && confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = isSignUp && confirmPassword.length > 0 && password !== confirmPassword;
+  const isAcademicEmailDomain = emailDomain.endsWith(".edu.tr") || emailDomain.endsWith(".edu");
+  const shouldShowUnknownDomainRequest =
+    isSignUp &&
+    !!email &&
+    isAcademicEmailDomain &&
+    !detectedUniversity &&
+    emailError.startsWith("Bu e-posta domaini sistemde kayıtlı değil");
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8 bg-background">
@@ -904,7 +944,7 @@ export default function AuthPage() {
                   className="h-10 rounded-lg"
                   autoComplete="email"
                 />
-                {isSignUp && !emailError && !detectedUniversity && !showCustomUni && email && (
+                {isSignUp && !emailError && !detectedUniversity && email && (
                   <div className="flex items-start gap-1.5 mt-1">
                     <Info className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
                     <p className="text-[10px] text-muted-foreground">
@@ -920,16 +960,12 @@ export default function AuthPage() {
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] font-semibold text-success">
-                        ✓ Üniversite {customUniAdded ? "doğrulandı" : "algılandı"}: {detectedUniversity}
-                      </p>
-                      <p className="text-[9px] text-success/80">
-                        {customUniAdded ? "Yapay zeka ile doğrulanmıştır." : "E-posta doğrulaması ile üniversiteniz otomatik bağlanacaktır."}
-                      </p>
+                      <p className="text-[10px] font-semibold text-success">✓ Üniversite algılandı: {detectedUniversity}</p>
+                      <p className="text-[9px] text-success/80">E-posta domain eşleşmesi ile üniversiteniz otomatik bağlanacaktır.</p>
                     </div>
                   </motion.div>
                 )}
-                {isSignUp && showCustomUni && !detectedUniversity && (
+                {shouldShowUnknownDomainRequest && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -938,46 +974,49 @@ export default function AuthPage() {
                     <div className="flex items-start gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
                       <p className="text-[10px] text-warning-foreground">
-                        Bu e-posta alanı henüz sistemimizde tanımlı değil. Üniversitenizi ekleyebilirsiniz.
+                        Bu e-posta domaini henüz sistemde kayıtlı değil. Kayda devam etmeden önce talep oluşturmalısınız.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Üniversite adını girin</Label>
+                      <Label className="text-xs font-semibold">Bu e-posta hangi üniversiteye ait?</Label>
                       <Input
-                        value={customUniversity}
-                        onChange={(e) => { setCustomUniversity(e.target.value); setUniValidation("idle"); }}
-                        placeholder="Örn: Yeni Üniversite Adı"
+                        value={requestedUniversityName}
+                        onChange={(e) => setRequestedUniversityName(e.target.value)}
+                        placeholder="Örn: Yakın Doğu Üniversitesi"
                         className="h-9 text-sm"
                         maxLength={200}
-                        disabled={uniValidation === "validating"}
+                        disabled={requestSending || requestSubmitted}
                       />
-                      <ValidationFeedback status={uniValidation} message={uniValidationMsg} />
+                      <Label className="text-xs font-semibold">Not (opsiyonel)</Label>
+                      <Input
+                        value={requestNote}
+                        onChange={(e) => setRequestNote(e.target.value)}
+                        placeholder="Örn: Domain neu.edu.tr"
+                        className="h-9 text-sm"
+                        maxLength={200}
+                        disabled={requestSending || requestSubmitted}
+                      />
+                      {requestResultMsg && (
+                        <p className={`text-[10px] ${requestSubmitted ? "text-success" : "text-muted-foreground"}`}>
+                          {requestResultMsg}
+                        </p>
+                      )}
                       <div className="flex gap-2">
                         <Button
                           type="button"
                           size="sm"
-                          variant="outline"
                           className="text-xs flex-1"
-                          onClick={() => { setShowCustomUni(false); setCustomUniversity(""); setUniValidation("idle"); }}
-                          disabled={uniValidation === "validating"}
+                          disabled={!requestedUniversityName.trim() || requestSending || requestSubmitted}
+                          onClick={submitUnknownDomainRequest}
                         >
-                          İptal
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="text-xs flex-1"
-                          disabled={!customUniversity.trim() || uniValidation === "validating" || uniValidation === "approved"}
-                          onClick={validateUniversity}
-                        >
-                          {uniValidation === "validating" ? (
-                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Doğrulanıyor</>
+                          {requestSending ? (
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gönderiliyor</>
                           ) : (
-                            "Doğrula ve Kullan"
+                            "Talep Oluştur"
                           )}
                         </Button>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">Yapay zeka ile doğrulanacak.</p>
+                      <p className="text-[9px] text-muted-foreground">Admin onayı olmadan bu domain ile signup tamamlanamaz.</p>
                     </div>
                   </motion.div>
                 )}
@@ -1175,7 +1214,7 @@ export default function AuthPage() {
               </AnimatePresence>
 
               {/* Warning for invalid domain */}
-              {isSignUp && !detectedUniversity && !showCustomUni && email && emailDomain && emailError && (
+              {isSignUp && !detectedUniversity && !shouldShowUnknownDomainRequest && email && emailDomain && emailError && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                   <Mail className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                   <p className="text-[10px] text-warning-foreground">
@@ -1212,7 +1251,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 className="w-full h-11 rounded-lg font-semibold text-sm"
-                disabled={loading || (isSignUp && !detectedUniversity && !customUniAdded) || (isSignUp && (usernameStatus === "taken" || usernameStatus === "inappropriate" || usernameStatus === "checking"))}
+                disabled={loading || (isSignUp && !detectedUniversity) || (isSignUp && (usernameStatus === "taken" || usernameStatus === "inappropriate" || usernameStatus === "checking"))}
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

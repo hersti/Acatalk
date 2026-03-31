@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { GraduationCap, Building2, BookOpen, ArrowRight, Check, Search, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
-import { getSortedUniversities, getDepartmentsForUniversity, ONLISANS_PROGRAMS } from "@/data/turkish-universities";
+import { getDepartmentsForUniversity, ONLISANS_PROGRAMS } from "@/data/turkish-universities";
 
 const ALL_YEARS = ["Hazırlık", "1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf"];
 
@@ -23,16 +23,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [department, setDepartment] = useState("");
   const [year, setYear] = useState("");
 
-  const [missingUniOpen, setMissingUniOpen] = useState(false);
   const [missingDeptOpen, setMissingDeptOpen] = useState(false);
-  const [customUniversity, setCustomUniversity] = useState("");
   const [customDepartment, setCustomDepartment] = useState("");
   const [dbDepartments, setDbDepartments] = useState<string[]>([]);
   const [dbUniversities, setDbUniversities] = useState<{ name: string; city: string | null; type: string | null }[]>([]);
 
   // AI validation states
-  const [uniValidation, setUniValidation] = useState<ValidationStatus>("idle");
-  const [uniValidationMsg, setUniValidationMsg] = useState("");
   const [deptValidation, setDeptValidation] = useState<ValidationStatus>("idle");
   const [deptValidationMsg, setDeptValidationMsg] = useState("");
 
@@ -46,7 +42,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   useEffect(() => {
     supabase
       .from("universities" as any)
-      .select("name, city, type")
+      .select("name, city, type, country")
+      .in("country", ["TR", "KKTC"])
       .limit(1000)
       .then(({ data }) => {
         setDbUniversities((data || []).map((u: any) => ({
@@ -88,22 +85,15 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const canProceed = step === 0 ? !!university : step === 1 ? !!department : !!year;
 
   const universityOptions = (() => {
-    const staticOpts = getSortedUniversities().map((u) => ({
-      label: u.name,
-      sublabel: `${u.city} · ${u.type === "devlet" ? "Devlet" : "Vakıf"}`,
-      group: u.popular ? "⭐ Popüler" : "",
-    }));
-    const staticNames = new Set(staticOpts.map(o => o.label));
-    const dbOnlyOpts = dbUniversities
-      .filter(u => !staticNames.has(u.name))
+    return dbUniversities
       .map(u => ({
         label: u.name,
         sublabel: u.city
           ? `${u.city} · ${u.type === "devlet" ? "Devlet" : u.type === "vakıf" ? "Vakıf" : "Üniversite"}`
-          : "Türkiye",
+          : "Üniversite",
         group: "",
-      }));
-    return [...staticOpts, ...dbOnlyOpts];
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "tr"));
   })();
 
   const departmentOptions = (() => {
@@ -119,8 +109,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setUniversity(val);
     setDepartment("");
     setYear("");
-    setUniValidation("idle");
-    setUniValidationMsg("");
   };
 
   const handleDepartmentChange = (val: string) => {
@@ -128,61 +116,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setYear("");
     setDeptValidation("idle");
     setDeptValidationMsg("");
-  };
-
-  // AI validation for university
-  const validateUniversity = async () => {
-    if (!customUniversity.trim()) return;
-    setUniValidation("validating");
-    setUniValidationMsg("Üniversite doğrulanıyor...");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("validate-academic", {
-        body: { type: "university", university: customUniversity.trim() },
-      });
-
-      if (error) throw error;
-      const result = data as any;
-
-      if (result.status === "approved") {
-        setUniValidation("approved");
-        setUniValidationMsg(result.reason || "Üniversite doğrulandı!");
-        const approvedName = result.normalized_name || customUniversity.trim();
-        setUniversity(approvedName);
-        setDepartment("");
-        setYear("");
-        // Add to local list so it appears immediately in dropdown
-        const newUni = { name: approvedName, city: result.city || null, type: result.university_type || null };
-        setDbUniversities(prev => prev.some(u => u.name === approvedName) ? prev : [...prev, newUni]);
-        setTimeout(() => {
-          setMissingUniOpen(false);
-          setCustomUniversity("");
-        }, 1500);
-      } else if (result.status === "duplicate") {
-        setUniValidation("duplicate");
-        setUniValidationMsg(result.reason || "Bu üniversite zaten mevcut.");
-        if (result.existing_name) {
-          setTimeout(() => {
-            setUniversity(result.existing_name);
-            setDepartment("");
-            setYear("");
-            setMissingUniOpen(false);
-            setCustomUniversity("");
-            setUniValidation("idle");
-          }, 2000);
-        }
-      } else if (result.status === "pending_review") {
-        setUniValidation("pending_review");
-        setUniValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi. Onay sonrası kullanabilirsiniz.");
-      } else {
-        setUniValidation("rejected");
-        setUniValidationMsg(result.reason || "Bu üniversite doğrulanamadı.");
-      }
-    } catch (err) {
-      console.error("Uni validation error:", err);
-      setUniValidation("error");
-      setUniValidationMsg("Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.");
-    }
   };
 
   // AI validation for department
@@ -301,63 +234,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       searchPlaceholder="Üniversite veya şehir ara..."
                       options={universityOptions}
                     />
-
-                    <button
-                      type="button"
-                      onClick={() => { setMissingUniOpen(true); setUniValidation("idle"); setUniValidationMsg(""); }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all"
-                    >
-                      <Search className="h-4 w-4" />
-                      Üniversitemi Bulamadım
-                    </button>
-
-                    {missingUniOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-xl bg-secondary/50 border text-left space-y-3"
-                      >
-                        <Label className="text-xs font-semibold">Üniversite adını girin</Label>
-                        <Input
-                          value={customUniversity}
-                          onChange={(e) => { setCustomUniversity(e.target.value); setUniValidation("idle"); }}
-                          placeholder="Örn: Yeni Üniversite Adı"
-                          className="h-9 text-sm"
-                          maxLength={200}
-                          autoFocus
-                          disabled={uniValidation === "validating"}
-                        />
-
-                        <ValidationFeedback status={uniValidation} message={uniValidationMsg} />
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs flex-1"
-                            onClick={() => { setMissingUniOpen(false); setCustomUniversity(""); setUniValidation("idle"); }}
-                            disabled={uniValidation === "validating"}
-                          >
-                            İptal
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="text-xs flex-1"
-                            disabled={!customUniversity.trim() || uniValidation === "validating" || uniValidation === "approved"}
-                            onClick={validateUniversity}
-                          >
-                            {uniValidation === "validating" ? (
-                              <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Doğrulanıyor</>
-                            ) : (
-                              "Doğrula ve Kullan"
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Yapay zeka ile doğrulanacak. Onay sonrası devam edebilirsiniz.
-                        </p>
-                      </motion.div>
-                    )}
                   </div>
                 )}
 

@@ -26,7 +26,7 @@ import {
   VolumeX, UserX, CircleAlert, RefreshCw, Download, Clock,
   Mail, Activity, TrendingUp, Hash, Filter, MoreHorizontal,
 } from "lucide-react";
-import { getSortedUniversities, getDepartmentsForUniversity } from "@/data/turkish-universities";
+import { getDepartmentsForUniversity } from "@/data/turkish-universities";
 
 const PAGE_SIZE = 25;
 
@@ -137,6 +137,8 @@ export default function AdminPage() {
   const [moderationQueue, setModerationQueue] = useState<any[]>([]);
   const [moderationLogs, setModerationLogs] = useState<any[]>([]);
   const [academicSuggestions, setAcademicSuggestions] = useState<any[]>([]);
+  const [domainRequests, setDomainRequests] = useState<any[]>([]);
+  const [universitiesCatalog, setUniversitiesCatalog] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState("stats");
@@ -159,6 +161,16 @@ export default function AdminPage() {
   const [modQueueFilter, setModQueueFilter] = useState("all");
   const [modSearch, setModSearch] = useState("");
   const [suggestionFilter, setSuggestionFilter] = useState("pending");
+  const [domainRequestFilter, setDomainRequestFilter] = useState("pending");
+  const [domainRequestDrafts, setDomainRequestDrafts] = useState<Record<string, {
+    university_name: string;
+    domain: string;
+    country: "TR" | "KKTC";
+    city: string;
+    type: string;
+    admin_note: string;
+    seed_general_department: boolean;
+  }>>({});
 
   // Pages
   const [userPage, setUserPage] = useState(0);
@@ -178,7 +190,22 @@ export default function AdminPage() {
     if (!silent) setDataLoading(true);
     else setRefreshing(true);
     try {
-      const [usersRes, postsRes, commentsRes, reportsRes, coursesRes, rolesRes, secLogsRes, modQueueRes, modLogsRes, suggestionsRes, deptsRes, ticketsRes] = await Promise.all([
+      const [
+        usersRes,
+        postsRes,
+        commentsRes,
+        reportsRes,
+        coursesRes,
+        rolesRes,
+        secLogsRes,
+        modQueueRes,
+        modLogsRes,
+        suggestionsRes,
+        deptsRes,
+        ticketsRes,
+        domainRequestsRes,
+        universitiesRes,
+      ] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("posts").select("*").order("created_at", { ascending: false }),
         supabase.from("comments").select("*").order("created_at", { ascending: false }),
@@ -191,6 +218,8 @@ export default function AdminPage() {
         supabase.from("academic_suggestions").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("departments").select("*") as any,
         supabase.from("support_tickets").select("*").order("created_at", { ascending: false }).limit(500) as any,
+        supabase.from("university_domain_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
+        supabase.from("universities" as any).select("*").in("country", ["TR", "KKTC"]).order("name", { ascending: true }),
       ]);
       setUsers(usersRes.data || []);
       setPosts(postsRes.data || []);
@@ -204,6 +233,8 @@ export default function AdminPage() {
       setAcademicSuggestions(suggestionsRes.data || []);
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
+      setDomainRequests((domainRequestsRes.data || []) as any[]);
+      setUniversitiesCatalog((universitiesRes.data || []) as any[]);
     } finally {
       setDataLoading(false);
       setRefreshing(false);
@@ -235,7 +266,7 @@ export default function AdminPage() {
   // ─── Stats ───
   const stats = useMemo(() => {
     const universities = new Set([
-      ...getSortedUniversities().map((u) => u.name),
+      ...universitiesCatalog.map((u: any) => u.name).filter(Boolean),
       ...courses.map((c: any) => c.university).filter(Boolean),
       ...departments.map((d: any) => d.university).filter(Boolean),
       ...users.map((u: any) => u.university).filter(Boolean),
@@ -250,7 +281,9 @@ export default function AdminPage() {
     const flaggedUsers = users.filter((u: any) => (u.moderation_score || 0) > 0).length;
     const pendingReports = reports.filter((r: any) => r.status === "pending").length;
     const pendingMod = moderationQueue.filter((m: any) => m.status === "flagged").length;
-    const pendingSuggestions = academicSuggestions.filter((s: any) => s.status === "pending").length;
+    const pendingSuggestions =
+      academicSuggestions.filter((s: any) => s.status === "pending").length +
+      domainRequests.filter((r: any) => r.status === "pending").length;
     const openTickets = supportTickets.filter((t: any) => t.status === "open").length;
 
     const contentCounts = {
@@ -286,7 +319,7 @@ export default function AdminPage() {
       mutedUsers, suspendedUsers, flaggedUsers, pendingReports, pendingMod, pendingSuggestions,
       openTickets, totalReports: reports.length, contentCounts, topCourses, topUsers,
     };
-  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, supportTickets]);
+  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, domainRequests, supportTickets, universitiesCatalog]);
 
   // ─── Filtered data ───
   const filteredUsers = useMemo(() => {
@@ -376,6 +409,48 @@ export default function AdminPage() {
     return academicSuggestions.filter((s: any) => s.status === suggestionFilter);
   }, [academicSuggestions, suggestionFilter]);
 
+  const filteredDomainRequests = useMemo(() => {
+    if (domainRequestFilter === "all") return domainRequests;
+    return domainRequests.filter((r: any) => r.status === domainRequestFilter);
+  }, [domainRequests, domainRequestFilter]);
+
+  const getDomainDraft = useCallback((request: any) => {
+    const existing = domainRequestDrafts[request.id];
+    if (existing) return existing;
+    const inferredCountry: "TR" | "KKTC" =
+      /kktc|kibris|lefkosa|girne|gazimagusa|magusa|iskele/i.test(request.claimed_university_name || "")
+        ? "KKTC"
+        : "TR";
+    return {
+      university_name: request.claimed_university_name || "",
+      domain: request.request_email_domain || "",
+      country: inferredCountry,
+      city: "",
+      type: "",
+      admin_note: "",
+      seed_general_department: true,
+    };
+  }, [domainRequestDrafts]);
+
+  const updateDomainDraft = useCallback((request: any, patch: Partial<{
+    university_name: string;
+    domain: string;
+    country: "TR" | "KKTC";
+    city: string;
+    type: string;
+    admin_note: string;
+    seed_general_department: boolean;
+  }>) => {
+    setDomainRequestDrafts((prev) => ({
+      ...prev,
+      [request.id]: {
+        ...getDomainDraft(request),
+        ...prev[request.id],
+        ...patch,
+      },
+    }));
+  }, [getDomainDraft]);
+
   const filteredSecurityLogs = useMemo(() => {
     let result = securityLogs;
     if (securityLogFilter !== "all") result = result.filter((l: any) => l.event_type === securityLogFilter);
@@ -392,7 +467,9 @@ export default function AdminPage() {
   // ─── Badge counts ───
   const pendingReportsCount = reports.filter((r: any) => r.status === "pending").length;
   const pendingModCount = moderationQueue.filter((m: any) => m.status === "flagged").length;
-  const pendingSuggestionsCount = academicSuggestions.filter((s: any) => s.status === "pending").length;
+  const pendingSuggestionsCount =
+    academicSuggestions.filter((s: any) => s.status === "pending").length +
+    domainRequests.filter((r: any) => r.status === "pending").length;
   const openTicketsCount = supportTickets.filter((t: any) => t.status === "open").length;
 
   // ─── Action Handlers ───
@@ -645,6 +722,52 @@ export default function AdminPage() {
     toast.success("Öneri reddedildi"); fetchAll(true);
   };
 
+  const handleApproveDomainRequest = async (request: any) => {
+    const draft = getDomainDraft(request);
+    const universityName = (draft.university_name || "").trim();
+    const domain = (draft.domain || "").trim().toLowerCase();
+    if (!universityName) {
+      toast.error("Universite adi zorunlu.");
+      return;
+    }
+    if (!domain) {
+      toast.error("Domain zorunlu.");
+      return;
+    }
+    const { error } = await supabase.rpc("admin_process_university_domain_request", {
+      p_request_id: request.id,
+      p_action: "approved",
+      p_university_name: universityName,
+      p_country: draft.country,
+      p_domain: domain,
+      p_city: draft.city.trim() || null,
+      p_type: draft.type.trim() || null,
+      p_admin_note: draft.admin_note.trim() || null,
+      p_seed_general_department: draft.seed_general_department,
+    } as any);
+    if (error) {
+      toast.error("Talep onaylanamadi: " + error.message);
+      return;
+    }
+    toast.success("Domain talebi onaylandi ve sisteme eklendi.");
+    fetchAll(true);
+  };
+
+  const handleRejectDomainRequest = async (request: any) => {
+    const draft = getDomainDraft(request);
+    const { error } = await supabase.rpc("admin_process_university_domain_request", {
+      p_request_id: request.id,
+      p_action: "rejected",
+      p_admin_note: draft.admin_note.trim() || "Admin tarafindan reddedildi",
+    } as any);
+    if (error) {
+      toast.error("Talep reddedilemedi: " + error.message);
+      return;
+    }
+    toast.success("Domain talebi reddedildi.");
+    fetchAll(true);
+  };
+
   // Support
   const handleReplyTicket = async (ticketId: string, reply: string) => {
     if (!reply.trim()) return;
@@ -664,10 +787,14 @@ export default function AdminPage() {
   };
 
   // ─── Universities list ───
-  const staticUniversities = getSortedUniversities().map((u) => u.name);
   const allUniversities = useMemo(() => {
-    return [...new Set([...staticUniversities, ...courses.map((c: any) => c.university).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "tr"));
-  }, [courses]);
+    return [...new Set([
+      ...universitiesCatalog.map((u: any) => u.name).filter(Boolean),
+      ...courses.map((c: any) => c.university).filter(Boolean),
+      ...departments.map((d: any) => d.university).filter(Boolean),
+      ...users.map((u: any) => u.university).filter(Boolean),
+    ])].sort((a, b) => a.localeCompare(b, "tr"));
+  }, [universitiesCatalog, courses, departments, users]);
 
   // Security event types
   const securityEventTypes = useMemo(() => {
@@ -1139,6 +1266,147 @@ export default function AdminPage() {
                         )}
                       </Card>
                     ))}
+
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center gap-2 py-2">
+                        <h3 className="text-sm font-bold">Unknown Domain Talepleri</h3>
+                        <Select value={domainRequestFilter} onValueChange={setDomainRequestFilter}>
+                          <SelectTrigger className="w-40 h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tumu</SelectItem>
+                            <SelectItem value="pending">Bekleyen</SelectItem>
+                            <SelectItem value="approved">Onaylanan</SelectItem>
+                            <SelectItem value="rejected">Reddedilen</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-muted-foreground">{filteredDomainRequests.length} talep</span>
+                      </div>
+
+                      {filteredDomainRequests.length === 0 && (
+                        <Card className="p-6 text-center text-sm text-muted-foreground">Domain talebi bulunamadi.</Card>
+                      )}
+
+                      {filteredDomainRequests.map((r: any) => {
+                        const draft = getDomainDraft(r);
+                        return (
+                          <Card key={r.id} className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px]">Domain Talebi</Badge>
+                                <StatusBadge status={r.status} />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Talep E-posta</p>
+                                <p className="font-medium">{r.request_email}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Domain</p>
+                                <p className="font-medium">{r.request_email_domain}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Bildirilen Universite</p>
+                                <p className="font-medium">{r.claimed_university_name}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Oneren</p>
+                                <p className="font-medium">{r.requester_user_id ? getUsername(r.requester_user_id) : "Anonim"}</p>
+                              </div>
+                            </div>
+
+                            {r.request_note && <p className="text-xs text-muted-foreground">Not: {r.request_note}</p>}
+
+                            {r.status === "pending" ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Universite Adi</Label>
+                                  <Input
+                                    value={draft.university_name}
+                                    onChange={(e) => updateDomainDraft(r, { university_name: e.target.value })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Domain</Label>
+                                  <Input
+                                    value={draft.domain}
+                                    onChange={(e) => updateDomainDraft(r, { domain: e.target.value.toLowerCase() })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Ulke</Label>
+                                  <Select value={draft.country} onValueChange={(v) => updateDomainDraft(r, { country: v as "TR" | "KKTC" })}>
+                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="TR">TR</SelectItem>
+                                      <SelectItem value="KKTC">KKTC</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Universite Tipi (opsiyonel)</Label>
+                                  <Input
+                                    value={draft.type}
+                                    onChange={(e) => updateDomainDraft(r, { type: e.target.value })}
+                                    placeholder="devlet / vakif"
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Sehir (opsiyonel)</Label>
+                                  <Input
+                                    value={draft.city}
+                                    onChange={(e) => updateDomainDraft(r, { city: e.target.value })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] text-muted-foreground">Genel Bolum Eklenmesi</Label>
+                                  <Select
+                                    value={draft.seed_general_department ? "yes" : "no"}
+                                    onValueChange={(v) => updateDomainDraft(r, { seed_general_department: v === "yes" })}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="yes">Evet</SelectItem>
+                                      <SelectItem value="no">Hayir</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1 md:col-span-2">
+                                  <Label className="text-[10px] text-muted-foreground">Admin Notu</Label>
+                                  <Textarea
+                                    value={draft.admin_note}
+                                    onChange={(e) => updateDomainDraft(r, { admin_note: e.target.value })}
+                                    className="text-xs min-h-20"
+                                  />
+                                </div>
+                                <div className="md:col-span-2 flex gap-2">
+                                  <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => handleApproveDomainRequest(r)}>
+                                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Onayla ve Ekle
+                                  </Button>
+                                  <Button size="sm" variant="destructive" className="flex-1 h-8 text-xs" onClick={() => handleRejectDomainRequest(r)}>
+                                    <XCircle className="h-3.5 w-3.5 mr-1" /> Reddet
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                <p>Onaylanan Domain: {r.resolved_domain || "-"}</p>
+                                <p>Inceleyen: {r.reviewed_by ? getUsername(r.reviewed_by) : "-"}</p>
+                                {r.admin_note && <p className="md:col-span-2">Admin Notu: {r.admin_note}</p>}
+                              </div>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

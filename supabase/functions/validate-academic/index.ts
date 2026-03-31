@@ -350,6 +350,15 @@ serve(async (req) => {
 
     // ===== UNIVERSITY TYPE =====
     if (type === "university") {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          status: "rejected",
+          reason: "Universite oneri akisi kapatildi. Signup yalnizca kayitli domain eslesmesiyle ilerler.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+
       if (looksLikeGarbage(university)) {
         return new Response(
           JSON.stringify({ valid: false, status: "rejected", reason: "Üniversite adı doğrulanamadı (geçersiz format)." }),
