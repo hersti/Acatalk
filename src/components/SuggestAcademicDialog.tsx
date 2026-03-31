@@ -254,9 +254,15 @@ export default function SuggestAcademicDialog({
         onApproved?.({ normalized_name: result.normalized_name, course_id: result.course_id, department_id: result.department_id });
         setTimeout(() => { setOpen(false); resetForm(); }, 2000);
       } else if (result.status === "pending_review") {
-        setStatus("pending_review");
-        setStatusMessage(result.reason || "Öneriniz admin incelemesine gönderildi.");
-        toast.info("Öneriniz inceleme kuyruğuna eklendi.");
+        if (type === "department") {
+          setStatus("error");
+          setStatusMessage(result.reason || "Bölüm doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
+          toast.error("Bölüm doğrulama servisi geçici olarak kullanılamıyor.");
+        } else {
+          setStatus("pending_review");
+          setStatusMessage(result.reason || "Öneriniz admin incelemesine gönderildi.");
+          toast.info("Öneriniz inceleme kuyruğuna eklendi.");
+        }
       } else if (result.status === "duplicate") {
         setStatus("duplicate");
         setStatusMessage(result.reason || "Bu kayıt zaten mevcut.");

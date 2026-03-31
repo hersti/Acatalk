@@ -26,11 +26,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   GraduationCap, Lock, AlertTriangle, Mail, ShieldCheck, Info,
   Eye, EyeOff, CheckCircle2, XCircle, Loader2, User, KeyRound,
-  FileText, Shield, Search, CheckCircle, Clock,
+  FileText, Shield, Search, CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type ValidationStatus = "idle" | "validating" | "approved" | "pending_review" | "rejected" | "duplicate" | "error";
+type ValidationStatus = "idle" | "validating" | "approved" | "rejected" | "duplicate" | "error";
 
 /**
  * Determines program duration (in years) based on department name.
@@ -78,7 +78,6 @@ function ValidationFeedback({ status, message }: { status: ValidationStatus; mes
     idle: { icon: null, color: "", bg: "" },
     validating: { icon: Loader2, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
     approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10 border-success/20" },
-    pending_review: { icon: Clock, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
     rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
     duplicate: { icon: CheckCircle, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
     error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
@@ -583,20 +582,9 @@ export default function AuthPage() {
             setDeptValidation("idle");
           }, 1200);
         }
-      } else if (result.status === "pending_review") {
-        setDeptValidation("pending_review");
-        setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi.");
-        applyDepartmentSelection(customDepartment.trim());
-        if (isSignUp && result.requires_login_submission) {
-          localStorage.setItem(
-            "pending_department_suggestion",
-            JSON.stringify({
-              university: university.trim(),
-              department: customDepartment.trim(),
-            })
-          );
-        }
-        setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1200);
+      } else if (result.status === "error") {
+        setDeptValidation("error");
+        setDeptValidationMsg(result.reason || "Doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
@@ -806,54 +794,6 @@ export default function AuthPage() {
               toast.error("Profil bilgileri kaydedilemedi. Lütfen profil sayfanızdan bilgilerinizi güncelleyin.");
             }
             localStorage.removeItem("pending_profile");
-          }
-          const pendingDept = localStorage.getItem("pending_department_suggestion");
-          if (pendingDept) {
-            try {
-              const parsed = JSON.parse(pendingDept);
-              const pendingUniversity = String(parsed?.university || "").trim();
-              const pendingDepartment = String(parsed?.department || "").trim();
-              const { data: { user } } = await supabase.auth.getUser();
-
-              if (user && pendingUniversity && pendingDepartment) {
-                const { data: existingDept } = await supabase
-                  .from("departments")
-                  .select("id")
-                  .eq("university", pendingUniversity)
-                  .eq("name", pendingDepartment)
-                  .maybeSingle();
-
-                if (!existingDept) {
-                  const { data: existingSuggestion } = await supabase
-                    .from("academic_suggestions")
-                    .select("id")
-                    .eq("user_id", user.id)
-                    .eq("type", "department")
-                    .eq("university", pendingUniversity)
-                    .eq("department", pendingDepartment)
-                    .in("status", ["pending", "approved"])
-                    .limit(1)
-                    .maybeSingle();
-
-                  if (!existingSuggestion) {
-                    await supabase.from("academic_suggestions").insert({
-                      user_id: user.id,
-                      type: "department",
-                      university: pendingUniversity,
-                      department: pendingDepartment,
-                      status: "pending",
-                      ai_confidence: null,
-                      ai_reason: "Signup sırasında doğrulama servisi kullanılamadığı için login sonrası kuyruğa alındı.",
-                      normalized_name: pendingDepartment,
-                    } as any);
-                    toast.info("Bölüm öneriniz admin incelemesine gönderildi.");
-                  }
-                }
-              }
-            } catch {
-              // no-op: pending suggestion queue is best effort
-            }
-            localStorage.removeItem("pending_department_suggestion");
           }
           if (newDevice) {
             toast.info("Yeni bir cihazdan giriş yaptınız. 2FA etkinleştirmenizi öneriyoruz.", { duration: 8000 });
@@ -1333,7 +1273,7 @@ export default function AuthPage() {
                               )}
                             </Button>
                           </div>
-                          <p className="text-[9px] text-muted-foreground">Yapay zeka ile doğrulanacak.</p>
+                          <p className="text-[9px] text-muted-foreground">Bölüm doğrulama servisi ile kontrol edilir.</p>
                         </motion.div>
                       )}
 

@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Building2, BookOpen, ArrowRight, Check, Search, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { GraduationCap, Building2, BookOpen, ArrowRight, Check, Search, Loader2, CheckCircle, XCircle } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { getDepartmentsForUniversity, ONLISANS_PROGRAMS } from "@/data/turkish-universities";
 
 const ALL_YEARS = ["Hazırlık", "1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf"];
 
-type ValidationStatus = "idle" | "validating" | "approved" | "pending_review" | "rejected" | "duplicate" | "error";
+type ValidationStatus = "idle" | "validating" | "approved" | "rejected" | "duplicate" | "error";
 
 interface OnboardingProps {
   onComplete: (university: string, dept: string, year: string) => void;
@@ -157,14 +157,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             setDeptValidation("idle");
           }, 1200);
         }
-      } else if (result.status === "pending_review") {
-        setDeptValidation("pending_review");
-        setDeptValidationMsg(result.reason || "Öneriniz admin incelemesine gönderildi. Onay sonrası kullanabilirsiniz.");
-        applyDepartmentSelection(customDepartment.trim());
-        setTimeout(() => {
-          setMissingDeptOpen(false);
-          setCustomDepartment("");
-        }, 1200);
+      } else if (result.status === "error") {
+        setDeptValidation("error");
+        setDeptValidationMsg(result.reason || "Doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
       } else {
         setDeptValidation("rejected");
         setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
@@ -182,7 +177,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       idle: { icon: null, color: "", bg: "" },
       validating: { icon: Loader2, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
       approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10 border-success/20" },
-      pending_review: { icon: Clock, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
       rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
       duplicate: { icon: CheckCircle, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
       error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
@@ -308,7 +302,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                           </Button>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                          Yapay zeka ile doğrulanacak. Onay sonrası devam edebilirsiniz.
+                          Bölüm doğrulama servisi ile kontrol edilir. Onay sonrası devam edebilirsiniz.
                         </p>
                       </motion.div>
                     )}

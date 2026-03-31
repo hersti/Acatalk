@@ -230,7 +230,7 @@ export default function AdminPage() {
       setSecurityLogs(secLogsRes.data || []);
       setModerationQueue(modQueueRes.data || []);
       setModerationLogs(modLogsRes.data || []);
-      setAcademicSuggestions(suggestionsRes.data || []);
+      setAcademicSuggestions(((suggestionsRes.data || []) as any[]).filter((s) => s.type !== "department"));
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
       setDomainRequests((domainRequestsRes.data || []) as any[]);
@@ -666,12 +666,8 @@ export default function AdminPage() {
   // ─── Suggestion Handlers ───
   const handleApproveSuggestion = async (suggestion: any) => {
     if (suggestion.type === "department") {
-      const deptName = (suggestion.normalized_name || suggestion.department || "").trim();
-      if (!deptName) { toast.error("Bölüm adı bulunamadı"); return; }
-      const deptUpsertRes = await supabase.from("departments" as any).upsert({ university: suggestion.university, name: deptName, faculty: suggestion.faculty || null, created_by: suggestion.user_id }, { onConflict: "university,name_normalized" }).select("id").maybeSingle();
-      if (deptUpsertRes.error) { toast.error("Bölüm eklenemedi: " + deptUpsertRes.error.message); return; }
-      await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString(), inserted_id: (deptUpsertRes.data as any)?.id ?? null } as any).eq("id", suggestion.id);
-      toast.success("Bölüm onaylandı!"); fetchAll(true); return;
+      toast.error("Bolum onerileri admin kuyrugunda islenmez.");
+      return;
     }
     if (suggestion.type === "info_change") {
       const targetUserId = suggestion.user_id;
