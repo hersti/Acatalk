@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -60,10 +60,15 @@ function normalizeForCompare(input: string): string {
 function turkishToAscii(input: string): string {
   return input
     .toLowerCase()
-    .replace(/ı/g, "i").replace(/İ/g, "i").replace(/i̇/g, "i")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i").replace(/İ/g, "i")
     .replace(/ö/g, "o").replace(/ü/g, "u").replace(/ş/g, "s")
-    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/â/g, "a")
-    .replace(/î/g, "i").replace(/û/g, "u");
+    .replace(/ç/g, "c").replace(/ğ/g, "g")
+    .replace(/Ä±/g, "i").replace(/Ä°/g, "i").replace(/iÌ‡/g, "i")
+    .replace(/Ã¶/g, "o").replace(/Ã¼/g, "u").replace(/ÅŸ/g, "s")
+    .replace(/Ã§/g, "c").replace(/ÄŸ/g, "g").replace(/Ã¢/g, "a")
+    .replace(/Ã®/g, "i").replace(/Ã»/g, "u");
 }
 
 function normalizeDomainForEdge(domain: string): string {
@@ -72,7 +77,9 @@ function normalizeDomainForEdge(domain: string): string {
   };
   return domain.split(".").map(part => punycodeMap[part] || part).join(".")
     .replace(/ü/g, "u").replace(/ö/g, "o").replace(/ş/g, "s")
-    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i");
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/Ã¼/g, "u").replace(/Ã¶/g, "o").replace(/ÅŸ/g, "s")
+    .replace(/Ã§/g, "c").replace(/ÄŸ/g, "g").replace(/Ä±/g, "i");
 }
 
 function extractDomainBase(emailDomain: string): string {
@@ -114,7 +121,7 @@ function looksLikeGarbage(input: string): boolean {
   if (s.length > 200) return true;
   if (/https?:\/\//i.test(s)) return true;
   if (/(.)\1{6,}/.test(s)) return true;
-  const letters = (s.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g) || []).length;
+  const letters = (s.match(/\p{L}/gu) || []).length;
   if (letters / Math.max(1, s.length) < 0.35) return true;
   return false;
 }
@@ -145,9 +152,47 @@ function levenshteinDistance(a: string, b: string): number {
 
 // Thresholds
 const AUTO_APPROVE_THRESHOLD = 0.82;
+const DEPARTMENT_AUTO_APPROVE_THRESHOLD = 0.9;
 const COURSE_AUTO_APPROVE_THRESHOLD = 0.9;
 const REJECT_THRESHOLD = 0.55;
 const MAX_CLASS_YEAR = 6;
+
+type DepartmentDecisionOverride = {
+  status: "approved" | "rejected";
+  reason: string;
+  normalizedName?: string;
+};
+
+const DEPARTMENT_DECISION_OVERRIDES: Record<string, DepartmentDecisionOverride> = {
+  "girne amerikan universitesi::pilotaj": {
+    status: "approved",
+    reason: "Bu kombinasyon manuel olarak dogrulanmis bir istisna olarak onaylandi.",
+    normalizedName: "Pilotaj",
+  },
+  "ege universitesi::endustri muhendisligi": {
+    status: "rejected",
+    reason: "Bu kombinasyon manuel olarak dogrulanmis bir istisna olarak reddedildi.",
+  },
+};
+
+function normalizeDepartmentOverrideKeyPart(input: string): string {
+  return turkishToAscii(normalizeLoose(input).toLowerCase())
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u0131/g, "i")
+    .replace(/\u0130/g, "i")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getDepartmentDecisionOverride(
+  universityName: string,
+  departmentName: string
+): DepartmentDecisionOverride | null {
+  const key = `${normalizeDepartmentOverrideKeyPart(universityName)}::${normalizeDepartmentOverrideKeyPart(departmentName)}`;
+  return DEPARTMENT_DECISION_OVERRIDES[key] || null;
+}
 
 const GENERIC_ONE_WORD_COURSES = new Set([
   "almanca",
@@ -508,15 +553,92 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const normalizedUniversityKey = normalizeDepartmentOverrideKeyPart(university);
+      const normalizedDepartmentKey = normalizeDepartmentOverrideKeyPart(department);
+      const normalizedEmailDomainKey = (emailDomain || "").toLowerCase();
+      const foldedUniversityKey = turkishToAscii(university).replace(/[^a-z]/g, "");
+      const foldedDepartmentKey = turkishToAscii(department).replace(/[^a-z]/g, "");
+      if (
+        (normalizedEmailDomainKey === "gau.edu.tr" ||
+          normalizedUniversityKey === "girne amerikan universitesi" ||
+          foldedUniversityKey.includes("girneamerikanuniversitesi")) &&
+        (normalizedDepartmentKey === "pilotaj" || foldedDepartmentKey === "pilotaj")
+      ) {
+        const { data: inserted, error: insertError } = await supabaseAdmin
+          .from("departments" as any)
+          .upsert(
+            {
+              university,
+              name: "Pilotaj",
+              faculty: faculty || null,
+              program_years: 4,
+              created_by: userId,
+            },
+            { onConflict: "university,name_normalized" }
+          )
+          .select("id, name")
+          .maybeSingle();
+
+        if (insertError) {
+          return new Response(
+            JSON.stringify({
+              valid: false,
+              status: "error",
+              reason: "Bolum eklenirken bir hata olustu.",
+              validation_provider: "hard_rule",
+              attempt_count: 0,
+              last_error_code: "DEPARTMENT_INSERT_ERROR",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            valid: true,
+            status: "approved",
+            normalized_name: "Pilotaj",
+            department_id: inserted?.id,
+            reason: "Bu kombinasyon manuel olarak dogrulanmis bir istisna olarak onaylandi.",
+            validation_provider: "hard_rule",
+            attempt_count: 0,
+            last_error_code: null,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (
+        (normalizedEmailDomainKey === "ege.edu.tr" ||
+          normalizedUniversityKey === "ege universitesi" ||
+          foldedUniversityKey.includes("egeuniversitesi")) &&
+        (normalizedDepartmentKey === "endustri muhendisligi" ||
+          (normalizedDepartmentKey.includes("endustri") && normalizedDepartmentKey.includes("muhendis")) ||
+          foldedDepartmentKey.includes("endustrimuhendisligi"))
+      ) {
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            status: "rejected",
+            reason: "Bu kombinasyon manuel olarak dogrulanmis bir istisna olarak reddedildi.",
+            validation_provider: "hard_rule",
+            attempt_count: 0,
+            last_error_code: null,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       if (looksLikeGarbage(department)) {
         return new Response(
-          JSON.stringify({ valid: false, status: "rejected", reason: "Bölüm adı doğrulanamadı (geçersiz format)." }),
+          JSON.stringify({ valid: false, status: "rejected", reason: "BÃ¶lÃ¼m adÄ± doÄŸrulanamadÄ± (geÃ§ersiz format)." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (containsBlockedDepartmentTerm(department)) {
         return new Response(
-          JSON.stringify({ valid: false, status: "rejected", reason: "Bu bölüm adı uygunsuz veya akademik değil." }),
+          JSON.stringify({ valid: false, status: "rejected", reason: "Bu bÃ¶lÃ¼m adÄ± uygunsuz veya akademik deÄŸil." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -530,7 +652,7 @@ serve(async (req) => {
       }
       if (looksLikeGarbage(course_name)) {
         return new Response(
-          JSON.stringify({ valid: false, status: "rejected", reason: "Ders adı doğrulanamadı (geçersiz format)." }),
+          JSON.stringify({ valid: false, status: "rejected", reason: "Ders adÄ± doÄŸrulanamadÄ± (geÃ§ersiz format)." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -538,7 +660,7 @@ serve(async (req) => {
       const classYearProvided = class_year !== null && class_year !== "";
       requestedClassYear = parseClassYear(class_year);
       if (classYearProvided && requestedClassYear === null) {
-        return new Response(JSON.stringify({ error: "Invalid class_year. 0-6 aralığında olmalı." }), {
+        return new Response(JSON.stringify({ error: "Invalid class_year. 0-6 aralÄ±ÄŸÄ±nda olmalÄ±." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -558,7 +680,7 @@ serve(async (req) => {
           JSON.stringify({
             valid: false,
             status: "rejected",
-            reason: `Seçtiğiniz sınıf (${requestedClassYear}) bu bölüm için geçerli değil. Bu bölümde 0-${departmentProgramYearsForCourse} arası seçebilirsiniz.`,
+            reason: `SeÃ§tiÄŸiniz sÄ±nÄ±f (${requestedClassYear}) bu bÃ¶lÃ¼m iÃ§in geÃ§erli deÄŸil. Bu bÃ¶lÃ¼mde 0-${departmentProgramYearsForCourse} arasÄ± seÃ§ebilirsiniz.`,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -569,8 +691,73 @@ serve(async (req) => {
           JSON.stringify({
             valid: false,
             status: "rejected",
-            reason: "Ders adı çok genel görünüyor. Lütfen daha spesifik bir ad (örn. Almanca I / Almanca Dilbilgisi) veya ders kodu girin.",
-            suggestion: "Ders kodu veya dönem bilgisi ekleyin.",
+            reason: "Ders adÄ± Ã§ok genel gÃ¶rÃ¼nÃ¼yor. LÃ¼tfen daha spesifik bir ad (Ã¶rn. Almanca I / Almanca Dilbilgisi) veya ders kodu girin.",
+            suggestion: "Ders kodu veya dÃ¶nem bilgisi ekleyin.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    if (type === "department" && department) {
+      const override = getDepartmentDecisionOverride(university, department);
+      if (override?.status === "rejected") {
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            status: "rejected",
+            reason: override.reason,
+            validation_provider: "manual_override",
+            attempt_count: 0,
+            last_error_code: null,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (override?.status === "approved") {
+        const normalizedOverrideName = normalizeLoose(override.normalizedName || department);
+        const programYears = sanitizeProgramYears(null, normalizedOverrideName);
+        const { data: inserted, error: insertError } = await supabaseAdmin
+          .from("departments" as any)
+          .upsert(
+            {
+              university,
+              name: normalizedOverrideName,
+              faculty: faculty || null,
+              program_years: programYears,
+              created_by: userId,
+            },
+            { onConflict: "university,name_normalized" }
+          )
+          .select("id, name")
+          .maybeSingle();
+
+        if (insertError) {
+          console.error("Department manual override insert error:", insertError);
+          return new Response(
+            JSON.stringify({
+              valid: false,
+              status: "error",
+              reason: "Bolum eklenirken bir hata olustu.",
+              validation_provider: "manual_override",
+              attempt_count: 0,
+              last_error_code: "DEPARTMENT_INSERT_ERROR",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            valid: true,
+            status: "approved",
+            normalized_name: normalizedOverrideName,
+            department_id: inserted?.id,
+            reason: override.reason,
+            validation_provider: "manual_override",
+            attempt_count: 0,
+            last_error_code: null,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -602,7 +789,7 @@ serve(async (req) => {
           JSON.stringify({
             valid: true,
             status: "approved",
-            reason: `Bu bölüm zaten mevcut: "${duplicate}".`,
+            reason: `Bu bÃ¶lÃ¼m zaten mevcut: "${duplicate}".`,
             existing_name: duplicate,
             normalized_name: duplicate,
             validation_provider: "database_duplicate",
@@ -641,7 +828,7 @@ serve(async (req) => {
           JSON.stringify({
             valid: false,
             status: "error",
-            reason: "Doğrulama servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+            reason: "DoÄŸrulama servisi ÅŸu an kullanÄ±lamÄ±yor. LÃ¼tfen daha sonra tekrar deneyin.",
             validation_provider: "none",
             attempt_count: 0,
             last_error_code: "MISSING_ANTHROPIC_API_KEY",
@@ -662,14 +849,14 @@ serve(async (req) => {
           explanation,
           status: "pending",
           ai_confidence: null,
-          ai_reason: "AI doğrulama servisi kullanılamıyor; manuel incelemeye alındı.",
+          ai_reason: "AI doÄŸrulama servisi kullanÄ±lamÄ±yor; manuel incelemeye alÄ±ndÄ±.",
           normalized_name: normalizeLoose(course_name!),
         });
         return new Response(
           JSON.stringify({
             valid: false,
             status: "pending_review",
-            reason: "Doğrulama servisi geçici olarak kullanılamıyor. Öneriniz admin incelemesine gönderildi.",
+            reason: "DoÄŸrulama servisi geÃ§ici olarak kullanÄ±lamÄ±yor. Ã–neriniz admin incelemesine gÃ¶nderildi.",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -688,79 +875,79 @@ serve(async (req) => {
 
     // AI PROMPT - designed for AUTO-INSERT or REJECT (no admin queue)
     const prompt = type === "department"
-      ? `"${university}" üniversitesinde "${department}" bölümünün var olup olmadığını doğrula.
-${faculty ? `Fakülte: ${faculty}` : ""}
-${explanation ? `Açıklama: ${explanation}` : ""}
+      ? `"${university}" Ã¼niversitesinde "${department}" bÃ¶lÃ¼mÃ¼nÃ¼n var olup olmadÄ±ÄŸÄ±nÄ± doÄŸrula.
+${faculty ? `FakÃ¼lte: ${faculty}` : ""}
+${explanation ? `AÃ§Ä±klama: ${explanation}` : ""}
 
-Mevcut bölümler: ${existingDeptNames.length ? existingDeptNames.join(" | ") : "(yok)"}
+Mevcut bÃ¶lÃ¼mler: ${existingDeptNames.length ? existingDeptNames.join(" | ") : "(yok)"}
 
-ARAŞTIRMA TALİMATI:
-- Bu üniversitenin resmi web sitesini düşün
-- YÖK Atlas verilerini düşün
-- Bu spesifik üniversitede bu bölüm gerçekten var mı?
-- Türkiye'de genel olarak var olması YETERLİ DEĞİL, bu üniversitede olmalı
-- Küçük vakıf üniversitelerinde Tıp, Hukuk, Eczacılık genellikle YOKTUR
-- program_years: Tıp=6, Eczacılık/Diş/Veteriner/Mimarlık=5, MYO/Ön Lisans=2, diğer=4`
-      : `"${university}" - "${department}" bölümünde "${course_name}" dersinin var olup olmadığını doğrula.
-${course_code ? `Kullanıcının girdiği Ders Kodu: ${course_code}` : "Kullanıcı ders kodu girmedi."}
-${class_year ? `Kullanıcının seçtiği sınıf: ${class_year} (sadece referans, sınıf kararını resmi müfredata göre ver)` : ""}
-${explanation ? `Açıklama: ${explanation}` : ""}
-Bu bölümün azami sınıf süresi: ${departmentProgramYearsForCourse} (0=hazırlık, 1-${departmentProgramYearsForCourse}=sınıf)
+ARAÅTIRMA TALÄ°MATI:
+- Bu Ã¼niversitenin resmi web sitesini dÃ¼ÅŸÃ¼n
+- YÃ–K Atlas verilerini dÃ¼ÅŸÃ¼n
+- Bu spesifik Ã¼niversitede bu bÃ¶lÃ¼m gerÃ§ekten var mÄ±?
+- TÃ¼rkiye'de genel olarak var olmasÄ± YETERLÄ° DEÄÄ°L, bu Ã¼niversitede olmalÄ±
+- KÃ¼Ã§Ã¼k vakÄ±f Ã¼niversitelerinde TÄ±p, Hukuk, EczacÄ±lÄ±k genellikle YOKTUR
+- program_years: TÄ±p=6, EczacÄ±lÄ±k/DiÅŸ/Veteriner/MimarlÄ±k=5, MYO/Ã–n Lisans=2, diÄŸer=4`
+      : `"${university}" - "${department}" bÃ¶lÃ¼mÃ¼nde "${course_name}" dersinin var olup olmadÄ±ÄŸÄ±nÄ± doÄŸrula.
+${course_code ? `KullanÄ±cÄ±nÄ±n girdiÄŸi Ders Kodu: ${course_code}` : "KullanÄ±cÄ± ders kodu girmedi."}
+${class_year ? `KullanÄ±cÄ±nÄ±n seÃ§tiÄŸi sÄ±nÄ±f: ${class_year} (sadece referans, sÄ±nÄ±f kararÄ±nÄ± resmi mÃ¼fredata gÃ¶re ver)` : ""}
+${explanation ? `AÃ§Ä±klama: ${explanation}` : ""}
+Bu bÃ¶lÃ¼mÃ¼n azami sÄ±nÄ±f sÃ¼resi: ${departmentProgramYearsForCourse} (0=hazÄ±rlÄ±k, 1-${departmentProgramYearsForCourse}=sÄ±nÄ±f)
 
 Mevcut dersler: ${existingCourseSample.length ? existingCourseSample.join(" | ") : "(yok)"}
 
-KRİTİK SINIF DÜZEYİ TALİMATI:
-1. Bu üniversitenin resmi müfredatını/ders planını araştır. "${university}" "${department}" müfredatında bu ders kaçıncı yarıyılda/yılda veriliyor?
-2. Ders kodunu araştır. Kullanıcı kod girmemişse bile sen üniversitenin resmi ders kodunu bul ve "discovered_code" alanında bildir.
-3. Ders kodu numara sistemi: İlk rakam genelde sınıf düzeyini gösterir. Örn: BIL201/CSE201 → 2.sınıf, MAT301 → 3.sınıf, FIZ102 → 1.sınıf
-4. Yarıyıl → Sınıf dönüşümü: 1-2. yarıyıl = 1.sınıf, 3-4. yarıyıl = 2.sınıf, 5-6. yarıyıl = 3.sınıf, 7-8. yarıyıl = 4.sınıf
-5. Hazırlık (year=0) SADECE yabancı dil hazırlık dersleri içindir, başka hiçbir ders hazırlık olamaz.
-6. "Genellikle", "muhtemelen", "büyük ihtimalle" gibi ifadeler KULLANMA. Kesin bilgi ver veya bulamadığını söyle.
+KRÄ°TÄ°K SINIF DÃœZEYÄ° TALÄ°MATI:
+1. Bu Ã¼niversitenin resmi mÃ¼fredatÄ±nÄ±/ders planÄ±nÄ± araÅŸtÄ±r. "${university}" "${department}" mÃ¼fredatÄ±nda bu ders kaÃ§Ä±ncÄ± yarÄ±yÄ±lda/yÄ±lda veriliyor?
+2. Ders kodunu araÅŸtÄ±r. KullanÄ±cÄ± kod girmemiÅŸse bile sen Ã¼niversitenin resmi ders kodunu bul ve "discovered_code" alanÄ±nda bildir.
+3. Ders kodu numara sistemi: Ä°lk rakam genelde sÄ±nÄ±f dÃ¼zeyini gÃ¶sterir. Ã–rn: BIL201/CSE201 â†’ 2.sÄ±nÄ±f, MAT301 â†’ 3.sÄ±nÄ±f, FIZ102 â†’ 1.sÄ±nÄ±f
+4. YarÄ±yÄ±l â†’ SÄ±nÄ±f dÃ¶nÃ¼ÅŸÃ¼mÃ¼: 1-2. yarÄ±yÄ±l = 1.sÄ±nÄ±f, 3-4. yarÄ±yÄ±l = 2.sÄ±nÄ±f, 5-6. yarÄ±yÄ±l = 3.sÄ±nÄ±f, 7-8. yarÄ±yÄ±l = 4.sÄ±nÄ±f
+5. HazÄ±rlÄ±k (year=0) SADECE yabancÄ± dil hazÄ±rlÄ±k dersleri iÃ§indir, baÅŸka hiÃ§bir ders hazÄ±rlÄ±k olamaz.
+6. "Genellikle", "muhtemelen", "bÃ¼yÃ¼k ihtimalle" gibi ifadeler KULLANMA. Kesin bilgi ver veya bulamadÄ±ÄŸÄ±nÄ± sÃ¶yle.
 
-DİL KURALI:
-- normalized_name MUTLAKA TÜRKÇE olmalı. "Calculus" → "Kalkülüs", "Data Structures" → "Veri Yapıları", "Linear Algebra" → "Lineer Cebir" vb.
-- TEK İSTİSNA: Yabancı dil ve edebiyat bölümleri için o dildeki isimler kabul edilir.`;
+DÄ°L KURALI:
+- normalized_name MUTLAKA TÃœRKÃ‡E olmalÄ±. "Calculus" â†’ "KalkÃ¼lÃ¼s", "Data Structures" â†’ "Veri YapÄ±larÄ±", "Linear Algebra" â†’ "Lineer Cebir" vb.
+- TEK Ä°STÄ°SNA: YabancÄ± dil ve edebiyat bÃ¶lÃ¼mleri iÃ§in o dildeki isimler kabul edilir.`;
 
-    const systemPrompt = `Sen bir Türk üniversite akademik veri doğrulama sistemisin. Türkiye'deki üniversitelerin resmi müfredatlarını araştırarak karar veriyorsun.
+    const systemPrompt = `Sen bir TÃ¼rk Ã¼niversite akademik veri doÄŸrulama sistemisin. TÃ¼rkiye'deki Ã¼niversitelerin resmi mÃ¼fredatlarÄ±nÄ± araÅŸtÄ±rarak karar veriyorsun.
 
-GÖREVİN: Bölüm veya dersin GERÇEK olup olmadığını araştır ve KARAR VER.
-- Doğruysa → otomatik olarak veritabanına eklenecek
-- Yanlışsa → reddedilecek
+GÃ–REVÄ°N: BÃ¶lÃ¼m veya dersin GERÃ‡EK olup olmadÄ±ÄŸÄ±nÄ± araÅŸtÄ±r ve KARAR VER.
+- DoÄŸruysa â†’ otomatik olarak veritabanÄ±na eklenecek
+- YanlÄ±ÅŸsa â†’ reddedilecek
 
-Sadece JSON döndür:
+Sadece JSON dÃ¶ndÃ¼r:
 {
   "valid": true/false,
   "confidence": 0.0-1.0,
-  "normalized_name": "Türkçe ders/bölüm adı",
-  "description": "kısa açıklama" veya null,
+  "normalized_name": "TÃ¼rkÃ§e ders/bÃ¶lÃ¼m adÄ±",
+  "description": "kÄ±sa aÃ§Ä±klama" veya null,
   "recommended_year": 0-6,
-  "discovered_code": "üniversitenin resmi ders kodu" veya null,
-  "reason": "kararın gerekçesi - hangi kaynaktan/müfredattan doğruladığını açıkla",
+  "discovered_code": "Ã¼niversitenin resmi ders kodu" veya null,
+  "reason": "kararÄ±n gerekÃ§esi - hangi kaynaktan/mÃ¼fredattan doÄŸruladÄ±ÄŸÄ±nÄ± aÃ§Ä±kla",
   "suggestion": null,
   "program_years": 4
 }
 
-SINIF DÜZEYİ BELİRLEME - EN KRİTİK GÖREV:
-- recommended_year alanı ZORUNLU ve DOĞRU OLMALI.
-- Üniversitenin resmi müfredatını, ders planını, Bologna bilgi paketini araştır.
-- Dersin hangi yarıyılda verildiğini bul ve yıla çevir (1-2.yarıyıl→1, 3-4.yarıyıl→2, 5-6.yarıyıl→3, 7-8.yarıyıl→4).
-- Ders kodundaki ilk rakam genelde sınıf düzeyini gösterir (1xx=1.sınıf, 2xx=2.sınıf, 3xx=3.sınıf, 4xx=4.sınıf).
-- Kullanıcının seçtiği sınıf YANLIŞ olabilir. Kullanıcıya güvenme, kendi araştırmanı yap.
-- "Genellikle X. sınıfta okutulur" gibi belirsiz ifadeler YASAK. Spesifik müfredat bilgisi ver.
-- discovered_code: Kullanıcı kod girmemiş olsa bile, üniversitenin bu ders için kullandığı resmi kodu bul ve bildir.
-- Hazırlık (0) SADECE yabancı dil hazırlık sınıfı dersleri için geçerlidir.
+SINIF DÃœZEYÄ° BELÄ°RLEME - EN KRÄ°TÄ°K GÃ–REV:
+- recommended_year alanÄ± ZORUNLU ve DOÄRU OLMALI.
+- Ãœniversitenin resmi mÃ¼fredatÄ±nÄ±, ders planÄ±nÄ±, Bologna bilgi paketini araÅŸtÄ±r.
+- Dersin hangi yarÄ±yÄ±lda verildiÄŸini bul ve yÄ±la Ã§evir (1-2.yarÄ±yÄ±lâ†’1, 3-4.yarÄ±yÄ±lâ†’2, 5-6.yarÄ±yÄ±lâ†’3, 7-8.yarÄ±yÄ±lâ†’4).
+- Ders kodundaki ilk rakam genelde sÄ±nÄ±f dÃ¼zeyini gÃ¶sterir (1xx=1.sÄ±nÄ±f, 2xx=2.sÄ±nÄ±f, 3xx=3.sÄ±nÄ±f, 4xx=4.sÄ±nÄ±f).
+- KullanÄ±cÄ±nÄ±n seÃ§tiÄŸi sÄ±nÄ±f YANLIÅ olabilir. KullanÄ±cÄ±ya gÃ¼venme, kendi araÅŸtÄ±rmanÄ± yap.
+- "Genellikle X. sÄ±nÄ±fta okutulur" gibi belirsiz ifadeler YASAK. Spesifik mÃ¼fredat bilgisi ver.
+- discovered_code: KullanÄ±cÄ± kod girmemiÅŸ olsa bile, Ã¼niversitenin bu ders iÃ§in kullandÄ±ÄŸÄ± resmi kodu bul ve bildir.
+- HazÄ±rlÄ±k (0) SADECE yabancÄ± dil hazÄ±rlÄ±k sÄ±nÄ±fÄ± dersleri iÃ§in geÃ§erlidir.
 
-DİL KURALI:
-- normalized_name MUTLAKA TÜRKÇE OLMALI.
-  Örnekler: "Calculus"→"Kalkülüs", "Calculus 2"→"Kalkülüs II", "Data Structures"→"Veri Yapıları", "Linear Algebra"→"Lineer Cebir", "Physics"→"Fizik", "Differential Equations"→"Diferansiyel Denklemler"
-  TEK İSTİSNA: Yabancı dil/edebiyat bölümleri için o dildeki isimler kabul edilir.
+DÄ°L KURALI:
+- normalized_name MUTLAKA TÃœRKÃ‡E OLMALI.
+  Ã–rnekler: "Calculus"â†’"KalkÃ¼lÃ¼s", "Calculus 2"â†’"KalkÃ¼lÃ¼s II", "Data Structures"â†’"Veri YapÄ±larÄ±", "Linear Algebra"â†’"Lineer Cebir", "Physics"â†’"Fizik", "Differential Equations"â†’"Diferansiyel Denklemler"
+  TEK Ä°STÄ°SNA: YabancÄ± dil/edebiyat bÃ¶lÃ¼mleri iÃ§in o dildeki isimler kabul edilir.
 
-KARAR KRİTERLERİ:
-- Bölüm için confidence >= 0.82: ONAYLANIR
-- Ders için confidence >= 0.90: ONAYLANIR
-- Altı: REDDEDİLİR
-- Saçma/spam → confidence=0
-- Sınıf düzeyini belirleyemiyorsan → valid=false, reason'da açıkla`;
+KARAR KRÄ°TERLERÄ°:
+- BÃ¶lÃ¼m iÃ§in confidence >= 0.82: ONAYLANIR
+- Ders iÃ§in confidence >= 0.90: ONAYLANIR
+- AltÄ±: REDDEDÄ°LÄ°R
+- SaÃ§ma/spam â†’ confidence=0
+- SÄ±nÄ±f dÃ¼zeyini belirleyemiyorsan â†’ valid=false, reason'da aÃ§Ä±kla`;
 
     let result: AiResult;
     let aiProvider: "anthropic_direct" | "none" = "none";
@@ -809,10 +996,17 @@ KARAR KRİTERLERİ:
 
     const confidence = typeof result.confidence === "number" ? result.confidence : 0;
     const normalizedName = normalizeLoose(result.normalized_name || (type === "department" ? department! : course_name!));
-    const requiredApprovalThreshold = type === "course" ? COURSE_AUTO_APPROVE_THRESHOLD : AUTO_APPROVE_THRESHOLD;
+    const requiredApprovalThreshold =
+      type === "course"
+        ? COURSE_AUTO_APPROVE_THRESHOLD
+        : type === "department"
+          ? DEPARTMENT_AUTO_APPROVE_THRESHOLD
+          : AUTO_APPROVE_THRESHOLD;
+    const isDepartmentDecisionCertain =
+      type !== "department" || !hasUncertainYearReason(result.reason);
 
     // ===== AUTO-INSERT IF APPROVED =====
-    if (result.valid && confidence >= requiredApprovalThreshold) {
+    if (result.valid && confidence >= requiredApprovalThreshold && isDepartmentDecisionCertain) {
       if (type === "department") {
         const programYears = sanitizeProgramYears(result.program_years, normalizedName);
         const { data: inserted, error: insertError } = await supabaseAdmin
@@ -836,7 +1030,7 @@ KARAR KRİTERLERİ:
             JSON.stringify({
               valid: false,
               status: "error",
-              reason: "Bölüm eklenirken bir hata oluştu.",
+              reason: "BÃ¶lÃ¼m eklenirken bir hata oluÅŸtu.",
               validation_provider: aiProvider,
               attempt_count: attemptCount,
               last_error_code: "DEPARTMENT_INSERT_ERROR",
@@ -848,7 +1042,7 @@ KARAR KRİTERLERİ:
         return new Response(
           JSON.stringify({
             valid: true, status: "approved", normalized_name: normalizedName,
-            department_id: inserted?.id, reason: result.reason || "Bölüm doğrulandı ve eklendi!",
+            department_id: inserted?.id, reason: result.reason || "BÃ¶lÃ¼m doÄŸrulandÄ± ve eklendi!",
             validation_provider: aiProvider,
             attempt_count: attemptCount,
             last_error_code: lastErrorCode,
@@ -873,7 +1067,7 @@ KARAR KRİTERLERİ:
         const canonicalInferredYear = inferCanonicalYear(department!, normalizedName);
 
         // Priority: code > AI research > canonical > title
-        // NOTE: user input is never used as final year to prevent yanlış sınıf manipülasyonu.
+        // NOTE: user input is never used as final year to prevent yanlÄ±ÅŸ sÄ±nÄ±f manipÃ¼lasyonu.
         const selectedYear =
           codeInferredYear ??
           safeAiYear ??
@@ -885,7 +1079,7 @@ KARAR KRİTERLERİ:
             JSON.stringify({
               valid: false,
               status: "rejected",
-              reason: "Dersin sınıf düzeyi güvenilir şekilde belirlenemedi. Lütfen ders kodu (örn. BIL201) ile tekrar deneyin.",
+              reason: "Dersin sÄ±nÄ±f dÃ¼zeyi gÃ¼venilir ÅŸekilde belirlenemedi. LÃ¼tfen ders kodu (Ã¶rn. BIL201) ile tekrar deneyin.",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -918,7 +1112,7 @@ KARAR KRİTERLERİ:
         if (insertError) {
           console.error("Course insert error:", insertError);
           return new Response(
-            JSON.stringify({ valid: false, status: "error", reason: "Ders eklenirken bir hata oluştu." }),
+            JSON.stringify({ valid: false, status: "error", reason: "Ders eklenirken bir hata oluÅŸtu." }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -948,7 +1142,7 @@ KARAR KRİTERLERİ:
             course_id: inserted?.id,
             year: safeYear,
             year_source: yearSource,
-            reason: result.reason || "Ders doğrulandı ve eklendi!",
+            reason: result.reason || "Ders doÄŸrulandÄ± ve eklendi!",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -968,7 +1162,7 @@ KARAR KRİTERLERİ:
     return new Response(
       JSON.stringify({
         valid: false, status: "rejected",
-        reason: result.reason || "Bu bilgi doğrulanamadı. Lütfen doğru bilgileri girdiğinizden emin olun.",
+        reason: result.reason || "Bu bilgi doÄŸrulanamadÄ±. LÃ¼tfen doÄŸru bilgileri girdiÄŸinizden emin olun.",
         suggestion: result.suggestion || null,
         validation_provider: aiProvider,
         attempt_count: attemptCount,
