@@ -308,6 +308,49 @@ export default function AuthPage() {
   useEffect(() => {
     let cancelled = false;
 
+    const buildDomainProbes = (fullDomain: string): string[] => {
+      const probes: string[] = [];
+      let probe = fullDomain.trim().toLowerCase();
+      while (probe && probe.includes(".")) {
+        probes.push(probe);
+        const dot = probe.indexOf(".");
+        if (dot === -1) break;
+        probe = probe.substring(dot + 1);
+      }
+      return [...new Set(probes)];
+    };
+
+    const resolveUniversityFallback = async (fullDomain: string) => {
+      const probes = buildDomainProbes(fullDomain);
+      if (probes.length === 0) return null;
+
+      const { data: domainRows, error: domainError } = await supabase
+        .from("university_email_domains")
+        .select("domain, university_id")
+        .in("domain", probes);
+
+      if (domainError || !domainRows || domainRows.length === 0) return null;
+
+      const bestDomainMatch = [...domainRows]
+        .sort((a: any, b: any) => String(b.domain || "").length - String(a.domain || "").length)[0];
+
+      if (!bestDomainMatch?.university_id) return null;
+
+      const { data: uniRow, error: uniError } = await supabase
+        .from("universities")
+        .select("id, name, country")
+        .eq("id", bestDomainMatch.university_id)
+        .in("country", ["TR", "KKTC"])
+        .maybeSingle();
+
+      if (uniError || !uniRow?.name) return null;
+
+      return {
+        found: true,
+        university_name: uniRow.name,
+      };
+    };
+
     if (!isSignUp || !email.trim()) {
       setDetectedUniversity(null);
       setUniversity("");
@@ -349,13 +392,25 @@ export default function AuthPage() {
       if (cancelled) return;
 
       if (error) {
+        const fallbackResolved = await resolveUniversityFallback(domain);
+        if (cancelled) return;
+        if (fallbackResolved?.found && fallbackResolved?.university_name) {
+          setDetectedUniversity(fallbackResolved.university_name);
+          setUniversity(fallbackResolved.university_name);
+          setDepartment("");
+          setEmailError("");
+          setRequestedUniversityName("");
+          setRequestNote("");
+          return;
+        }
+
         setDetectedUniversity(null);
         setUniversity("");
         setEmailError("Üniversite alanı çözümlenemedi. Lütfen tekrar deneyin.");
         return;
       }
 
-      const resolved = Array.isArray(data) ? data[0] : null;
+      const resolved = Array.isArray(data) ? data[0] : (data && typeof data === "object" ? data : null);
       if (resolved?.found && resolved?.university_name) {
         setDetectedUniversity(resolved.university_name);
         setUniversity(resolved.university_name);
