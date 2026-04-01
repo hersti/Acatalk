@@ -1184,7 +1184,7 @@ KARAR KRİTERLERİ:
 
   } catch (error) {
     console.error("Validation error:", error);
-    return new Response(JSON.stringify({ error: "Validation failed" }), {
+    return new Response(JSON.stringify({ error: "Doğrulama sırasında beklenmeyen bir hata oluştu." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
