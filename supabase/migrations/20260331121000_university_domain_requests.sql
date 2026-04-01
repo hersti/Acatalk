@@ -1,4 +1,4 @@
-﻿-- Unknown university/domain request queue (admin-approved only)
+-- Unknown university/domain request queue (admin-approved only)
 
 CREATE TABLE IF NOT EXISTS public.university_domain_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

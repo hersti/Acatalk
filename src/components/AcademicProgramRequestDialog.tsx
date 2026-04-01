@@ -67,22 +67,22 @@ export default function AcademicProgramRequestDialog({
     const { error } = await supabase.from("academic_program_requests" as any).insert(payload as any);
     if (error) throw error;
 
-    return { ok: true, reason: "Talebiniz admin onayýna gönderildi." };
+    return { ok: true, reason: "Talebiniz admin onayÄ±na gÃ¶nderildi." };
   };
 
   const handleSubmit = async () => {
     if (!defaultUniversityId || !defaultUniversityName) {
-      toast.error("Üniversite bilgisi bulunamadý. Lütfen tekrar deneyin.");
+      toast.error("Ãœniversite bilgisi bulunamadÄ±. LÃ¼tfen tekrar deneyin.");
       return;
     }
 
     if (!programName.trim()) {
-      toast.error("Program/Bölüm adý zorunludur.");
+      toast.error("Program/BÃ¶lÃ¼m adÄ± zorunludur.");
       return;
     }
 
     if (context === "signup" && !requesterEmail?.trim()) {
-      toast.error("Signup baðlamýnda e-posta bilgisi gerekli.");
+      toast.error("Signup baÄŸlamÄ±nda e-posta bilgisi gerekli.");
       return;
     }
 
@@ -109,8 +109,8 @@ export default function AcademicProgramRequestDialog({
 
       const result = rpcMissing ? await submitFallback() : (data as any);
       if (!result?.ok) {
-        setResultMessage(result?.reason || "Talep gönderilemedi.");
-        toast.error(result?.reason || "Talep gönderilemedi.");
+        setResultMessage(result?.reason || "Talep gÃ¶nderilemedi.");
+        toast.error(result?.reason || "Talep gÃ¶nderilemedi.");
         return;
       }
 
@@ -120,12 +120,12 @@ export default function AcademicProgramRequestDialog({
         return;
       }
 
-      setResultMessage(result?.reason || "Talebiniz admin onayýna gönderildi.");
-      toast.success(result?.reason || "Talebiniz admin onayýna gönderildi.");
+      setResultMessage(result?.reason || "Talebiniz admin onayÄ±na gÃ¶nderildi.");
+      toast.success(result?.reason || "Talebiniz admin onayÄ±na gÃ¶nderildi.");
       onSubmitted?.();
       setTimeout(() => onOpenChange(false), 600);
     } catch (err: any) {
-      const message = err?.message || "Talep gönderilirken bir hata oluþtu.";
+      const message = err?.message || "Talep gÃ¶nderilirken bir hata oluÅŸtu.";
       setResultMessage(message);
       toast.error(message);
     } finally {
@@ -137,24 +137,24 @@ export default function AcademicProgramRequestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Program/Bölüm Talebi</DialogTitle>
+          <DialogTitle>Program/BÃ¶lÃ¼m Talebi</DialogTitle>
           <DialogDescription className="text-xs">
-            Bu form AI doðrulamasý olmadan admin onayýna gider. Onay sonrasý katalogda herkese açýlýr.
+            Bu form AI doÄŸrulamasÄ± olmadan admin onayÄ±na gider. Onay sonrasÄ± katalogda herkese aÃ§Ä±lÄ±r.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Üniversite</Label>
+            <Label className="text-xs font-semibold">Ãœniversite</Label>
             <Input value={defaultUniversityName || ""} disabled className="h-9 text-sm bg-secondary/50" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Program/Bölüm Adý <span className="text-destructive">*</span></Label>
+            <Label className="text-xs font-semibold">Program/BÃ¶lÃ¼m AdÄ± <span className="text-destructive">*</span></Label>
             <Input
               value={programName}
               onChange={(e) => setProgramName(e.target.value)}
-              placeholder="Örn: Bilgisayar Mühendisliði"
+              placeholder="Ã–rn: Bilgisayar MÃ¼hendisliÄŸi"
               maxLength={200}
               className="h-9 text-sm"
             />
@@ -169,13 +169,13 @@ export default function AcademicProgramRequestDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="lisans">Lisans</SelectItem>
-                  <SelectItem value="onlisans">Önlisans</SelectItem>
+                  <SelectItem value="onlisans">Ã–nlisans</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Fakülte/Yüksekokul</Label>
+              <Label className="text-xs font-semibold">FakÃ¼lte/YÃ¼ksekokul</Label>
               <Input
                 value={unitName}
                 onChange={(e) => setUnitName(e.target.value)}
@@ -191,7 +191,7 @@ export default function AcademicProgramRequestDialog({
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Eklemek istediðiniz açýklama"
+              placeholder="Eklemek istediÄŸiniz aÃ§Ä±klama"
               rows={2}
               maxLength={500}
               className="text-sm"
@@ -206,12 +206,12 @@ export default function AcademicProgramRequestDialog({
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Gönderiliyor...
+                GÃ¶nderiliyor...
               </>
             ) : (
               <>
                 <Send className="h-4 w-4 mr-2" />
-                Talep Gönder
+                Talep GÃ¶nder
               </>
             )}
           </Button>

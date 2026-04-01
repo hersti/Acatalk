@@ -20,6 +20,33 @@ export type AcademicProgramRow = {
   program_years: number;
 };
 
+function normalizeUniversityType(type: string | null | undefined): "devlet" | "vakif" | null {
+  const normalized = String(type || "").trim().toLocaleLowerCase("tr-TR");
+  if (!normalized) return null;
+  if (normalized === "devlet") return "devlet";
+  if (normalized === "vakif" || normalized === "vakÄ±f") return "vakif";
+  return null;
+}
+
+export function getUniversityTypeLabel(type: string | null | undefined): string {
+  const normalized = normalizeUniversityType(type);
+  if (normalized === "devlet") return "Devlet";
+  if (normalized === "vakif") return "VakÄ±f";
+  return "TÃ¼r bilgisi yok";
+}
+
+export function formatUniversityMetaLabel({
+  city,
+  type,
+}: {
+  city: string | null | undefined;
+  type: string | null | undefined;
+}): string {
+  const cityLabel = String(city || "").trim();
+  const typeLabel = getUniversityTypeLabel(type);
+  return cityLabel ? `${cityLabel} Â· ${typeLabel}` : typeLabel;
+}
+
 export function normalizeProgramLevel(value: string | null | undefined): ProgramLevel {
   const normalized = String(value || "").trim().toLocaleLowerCase("tr-TR");
   return normalized === "onlisans" ? "onlisans" : "lisans";
@@ -34,13 +61,13 @@ export function inferProgramYears(programName: string, level?: ProgramLevel | nu
     .replace(/\s+/g, " ")
     .trim();
 
-  if (lower.includes("týp")) return 6;
+  if (lower.includes("tÄ±p")) return 6;
 
   if (
     lower.includes("eczac") ||
-    lower.includes("diþ hekim") ||
+    lower.includes("diÅŸ hekim") ||
     lower.includes("veteriner") ||
-    lower.includes("mimarlýk")
+    lower.includes("mimarlÄ±k")
   ) {
     return 5;
   }
@@ -51,10 +78,10 @@ export function inferProgramYears(programName: string, level?: ProgramLevel | nu
 export function buildYearOptions(maxYears: number): Array<{ value: string; label: string }> {
   const safeMax = Math.min(6, Math.max(2, Math.trunc(maxYears || 4)));
   return [
-    { value: "0", label: "Hazýrlýk" },
+    { value: "0", label: "HazÄ±rlÄ±k" },
     ...Array.from({ length: safeMax }, (_, index) => ({
       value: String(index + 1),
-      label: `${index + 1}. Sýnýf`,
+      label: `${index + 1}. SÄ±nÄ±f`,
     })),
   ];
 }

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +26,7 @@ import { buildCourseSelectLabel, normalizeCourseCode } from "@/lib/course-code";
 import {
   fetchAcademicProgramsForUniversity,
   fetchUniversitiesCatalog,
+  formatUniversityMetaLabel,
   type AcademicProgramRow,
   type UniversityCatalogRow,
 } from "@/lib/academic-catalog";
@@ -33,13 +34,13 @@ import {
 type ContentType = Database["public"]["Enums"]["content_type"];
 type PostWithProfile = Tables<"posts"> & { profiles: Tables<"profiles"> | null; course_name?: string };
 
-const ALL_YEARS = ["TÃ¼mÃ¼", "HazÄ±rlÄ±k", "1. SÄ±nÄ±f", "2. SÄ±nÄ±f", "3. SÄ±nÄ±f", "4. SÄ±nÄ±f", "5. SÄ±nÄ±f", "6. SÄ±nÄ±f"];
+const ALL_YEARS = ["Tümü", "Hazırlık", "1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf"];
 
 const CONTENT_TYPES = [
-  { value: "all", label: "TÃ¼mÃ¼" },
+  { value: "all", label: "Tümü" },
   { value: "notes", label: "Notlar" },
-  { value: "past_exams", label: "Ã‡Ä±kmÄ±ÅŸ Sorular" },
-  { value: "discussion", label: "TartÄ±ÅŸmalar" },
+  { value: "past_exams", label: "Çıkmış Sorular" },
+  { value: "discussion", label: "Tartışmalar" },
   { value: "kaynaklar", label: "Kaynaklar" },
 ];
 
@@ -51,12 +52,12 @@ const typeBadgeClass: Record<string, string> = {
 };
 const typeLabels: Record<string, string> = {
   notes: "Not",
-  past_exams: "SÄ±nav",
-  discussion: "TartÄ±ÅŸma",
+  past_exams: "Sınav",
+  discussion: "Tartışma",
   kaynaklar: "Kaynak",
 };
 
-/* â”€â”€â”€ Stat Card (same style as admin panel) â”€â”€â”€ */
+/* ─── Stat Card (same style as admin panel) ─── */
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
   return (
     <Card className="p-4">
@@ -90,9 +91,9 @@ export default function Index() {
   const [topContributors, setTopContributors] = useState<Tables<"profiles">[]>([]);
 
   const [browseUniversity, setBrowseUniversity] = useState("");
-  const [selectedDept, setSelectedDept] = useState("TÃ¼mÃ¼");
-  const [selectedYear, setSelectedYear] = useState("TÃ¼mÃ¼");
-  const [selectedCourse, setSelectedCourse] = useState("TÃ¼mÃ¼");
+  const [selectedDept, setSelectedDept] = useState("Tümü");
+  const [selectedYear, setSelectedYear] = useState("Tümü");
+  const [selectedCourse, setSelectedCourse] = useState("Tümü");
   const [selectedContentType, setSelectedContentType] = useState("all");
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [searchResults, setSearchResults] = useState<PostWithProfile[]>([]);
@@ -111,9 +112,7 @@ export default function Index() {
 
   const universityOptions = catalogUniversities.map((u) => ({
     label: u.name,
-    sublabel: u.city
-      ? `${u.city} Â· ${u.type === "devlet" ? "Devlet" : u.type === "vakif" ? "VakÄ±f" : "Ãœniversite"}`
-      : "TÃ¼rkiye",
+    sublabel: formatUniversityMetaLabel({ city: u.city, type: u.type }),
     group: "",
   }));
 
@@ -122,15 +121,15 @@ export default function Index() {
         const courseDepts = [...new Set(courses.map((c: any) => c.department))];
         const canonicalDepts = browsePrograms.map((p) => p.program_name);
         const allDepts = [...new Set([...canonicalDepts, ...courseDepts])].sort((a, b) => a.localeCompare(b, "tr"));
-        return ["TÃ¼mÃ¼", ...allDepts];
+        return ["Tümü", ...allDepts];
       })()
-    : ["TÃ¼mÃ¼"];
+    : ["Tümü"];
 
   const filteredYears = (() => {
-    if (selectedDept === "TÃ¼mÃ¼") return ALL_YEARS;
+    if (selectedDept === "Tümü") return ALL_YEARS;
     const canonical = browsePrograms.find((p) => p.program_name === selectedDept);
     const maxYears = canonical?.program_years || 4;
-    return ["TÃ¼mÃ¼", "HazÄ±rlÄ±k", ...Array.from({ length: maxYears }, (_, i) => `${i + 1}. SÄ±nÄ±f`)];
+    return ["Tümü", "Hazırlık", ...Array.from({ length: maxYears }, (_, i) => `${i + 1}. Sınıf`)];
   })();
 
   const loadCatalogUniversities = async () => {
@@ -190,9 +189,9 @@ export default function Index() {
       localStorage.setItem("browse-university", browseUniversity);
     }
 
-    setSelectedDept("TÃ¼mÃ¼");
-    setSelectedCourse("TÃ¼mÃ¼");
-    setSelectedYear("TÃ¼mÃ¼");
+    setSelectedDept("Tümü");
+    setSelectedCourse("Tümü");
+    setSelectedYear("Tümü");
     fetchCourses();
 
     const loadPrograms = async () => {
@@ -216,8 +215,8 @@ export default function Index() {
   }, [browseUniversity]);
 
   useEffect(() => {
-    if (selectedYear !== "TÃ¼mÃ¼" && !filteredYears.includes(selectedYear)) {
-      setSelectedYear("TÃ¼mÃ¼");
+    if (selectedYear !== "Tümü" && !filteredYears.includes(selectedYear)) {
+      setSelectedYear("Tümü");
     }
   }, [selectedDept, filteredYears]);
   const fetchStats = async () => {
@@ -337,8 +336,8 @@ export default function Index() {
 
     if (posts.length === 0 && courses.length === 0 && users.length === 0) {
       toast({
-        title: "SonuÃ§ bulunamadÄ±",
-        description: `"${query}" iÃ§in eÅŸleÅŸen sonuÃ§ bulunamadÄ±.`,
+        title: "Sonuç bulunamadı",
+        description: `"${query}" için eşleşen sonuç bulunamadı.`,
       });
     }
   };
@@ -363,11 +362,11 @@ export default function Index() {
   };
 
   const filteredCourses = courses.filter((c) => {
-    if (selectedDept !== "TÃ¼mÃ¼") {
+    if (selectedDept !== "Tümü") {
       if (c.department !== selectedDept) return false;
     }
-    if (selectedYear !== "TÃ¼mÃ¼") {
-      if (selectedYear === "HazÄ±rlÄ±k") {
+    if (selectedYear !== "Tümü") {
+      if (selectedYear === "Hazırlık") {
         if (c.year !== 0) return false;
       } else {
         const yearNum = parseInt(selectedYear);
@@ -392,7 +391,7 @@ export default function Index() {
     return true;
   });
 
-  const courseOptions = ["TÃ¼mÃ¼", ...filteredCourses.map((c: any) => c.name)];
+  const courseOptions = ["Tümü", ...filteredCourses.map((c: any) => c.name)];
 
   const canAddContent = user && userUniversity && browseUniversity === userUniversity;
   const isViewingOtherUniversity = browseUniversity && userUniversity && browseUniversity !== userUniversity;
@@ -415,10 +414,10 @@ export default function Index() {
                   </p>
                 )}
                 <h1 className="font-heading text-3xl sm:text-4xl font-bold text-foreground leading-tight tracking-tight">
-                  Akademik bilgiye ulaÅŸmanÄ±n en kolay yolu
+                  Akademik bilgiye ulaşmanın en kolay yolu
                 </h1>
                 <p className="text-base text-muted-foreground mt-3 leading-relaxed">
-                  Ders notlarÄ±, Ã§Ä±kmÄ±ÅŸ sorular ve tartÄ±ÅŸmalarla akademik baÅŸarÄ±nÄ± artÄ±r.
+                  Ders notları, çıkmış sorular ve tartışmalarla akademik başarını artır.
                 </p>
 
                 <form onSubmit={handleLocalSearch} className="mt-6 max-w-sm">
@@ -434,7 +433,7 @@ export default function Index() {
                   </div>
                 </form>
                 {!canAddContent && user && !isViewingOtherUniversity && (
-                  <p className="text-xs text-muted-foreground mt-4">Ä°Ã§erik eklemek iÃ§in Ã¼niversitenizi seÃ§in.</p>
+                  <p className="text-xs text-muted-foreground mt-4">İçerik eklemek için üniversitenizi seçin.</p>
                 )}
               </div>
 
@@ -451,7 +450,7 @@ export default function Index() {
                     }}
                   />
                   <p className="text-[11px] text-muted-foreground mt-1.5 text-center leading-tight">
-                    Not, sÄ±nav, kaynak veya<br />tartÄ±ÅŸma paylaÅŸ
+                    Not, sınav, kaynak veya<br />tartışma paylaş
                   </p>
                 </div>
               )}
@@ -476,8 +475,8 @@ export default function Index() {
             {/* Stats Row - Admin Panel Style */}
             <div className="grid grid-cols-3 gap-3 mt-6">
               <StatCard icon={BookOpen} label="Toplam Ders" value={stats.courses} color="text-primary" />
-              <StatCard icon={FileText} label="Toplam Ä°Ã§erik" value={stats.posts} color="text-emerald-500" />
-              <StatCard icon={Users} label="Toplam Ãœye" value={stats.users} color="text-amber-500" />
+              <StatCard icon={FileText} label="Toplam İçerik" value={stats.posts} color="text-emerald-500" />
+              <StatCard icon={Users} label="Toplam Üye" value={stats.users} color="text-amber-500" />
             </div>
           </div>
         </div>
@@ -492,11 +491,11 @@ export default function Index() {
                   <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Filter className="h-3.5 w-3.5 text-primary" />
                   </div>
-                  <span className="text-sm font-semibold text-foreground">Ãœniversite & Filtreler</span>
+                  <span className="text-sm font-semibold text-foreground">Üniversite & Filtreler</span>
                   {isViewingOtherUniversity && (
                     <Badge variant="secondary" className="ml-auto text-[10px] gap-1">
                       <Building2 className="h-3 w-3" />
-                      GÃ¶rÃ¼ntÃ¼leme
+                      Görüntüleme
                     </Badge>
                   )}
                   {userUniversity && browseUniversity !== userUniversity && (
@@ -507,14 +506,14 @@ export default function Index() {
                       }}
                       className="text-xs text-primary font-medium hover:underline ml-auto"
                     >
-                      Kendi Ãœniversitem
+                      Kendi Üniversitem
                     </button>
                   )}
                 </div>
                 <SearchableSelect
-                  value={browseUniversity || "TÃ¼m Ãœniversiteler"}
+                  value={browseUniversity || "Tüm Üniversiteler"}
                   onValueChange={(val) => {
-                    if (val === "TÃ¼m Ãœniversiteler") {
+                    if (val === "Tüm Üniversiteler") {
                       setBrowseUniversity("");
                       localStorage.removeItem("browse-university");
                     } else {
@@ -522,36 +521,36 @@ export default function Index() {
                       localStorage.setItem("browse-university", val);
                     }
                   }}
-                  placeholder="Ãœniversite seÃ§in..."
-                  searchPlaceholder="Ãœniversite veya ÅŸehir ara..."
+                  placeholder="Üniversite seçin..."
+                  searchPlaceholder="Üniversite veya şehir ara..."
                   options={[
-                    { label: "TÃ¼m Ãœniversiteler", sublabel: "TÃ¼m Ã¼niversitelerin derslerini gÃ¶rÃ¼ntÃ¼le" },
+                    { label: "Tüm Üniversiteler", sublabel: "Tüm üniversitelerin derslerini görüntüle" },
                     ...universityOptions,
                   ]}
                 />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                   <Select value={selectedDept} onValueChange={setSelectedDept}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedDept !== "TÃ¼mÃ¼" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="BÃ¶lÃ¼m" /></SelectTrigger>
+                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedDept !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Bölüm" /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {browseDepartments.map((d) => <SelectItem key={d} value={d}>{d === "TÃ¼mÃ¼" ? "TÃ¼m BÃ¶lÃ¼mler" : d}</SelectItem>)}
+                      {browseDepartments.map((d) => <SelectItem key={d} value={d}>{d === "Tümü" ? "Tüm Bölümler" : d}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedYear !== "TÃ¼mÃ¼" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="SÄ±nÄ±f" /></SelectTrigger>
-                    <SelectContent>{filteredYears.map((y) => <SelectItem key={y} value={y}>{y === "TÃ¼mÃ¼" ? "TÃ¼m SÄ±nÄ±flar" : y}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedYear !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Sınıf" /></SelectTrigger>
+                    <SelectContent>{filteredYears.map((y) => <SelectItem key={y} value={y}>{y === "Tümü" ? "Tüm Sınıflar" : y}</SelectItem>)}</SelectContent>
                   </Select>
                   <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedCourse !== "TÃ¼mÃ¼" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Ders" /></SelectTrigger>
-                    <SelectContent>{courseOptions.map((c) => <SelectItem key={c} value={c}>{c === "TÃ¼mÃ¼" ? "TÃ¼m Dersler" : c}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedCourse !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Ders" /></SelectTrigger>
+                    <SelectContent>{courseOptions.map((c) => <SelectItem key={c} value={c}>{c === "Tümü" ? "Tüm Dersler" : c}</SelectItem>)}</SelectContent>
                   </Select>
                   <Select value={selectedContentType} onValueChange={setSelectedContentType}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedContentType !== "all" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="TÃ¼r" /></SelectTrigger>
-                    <SelectContent>{CONTENT_TYPES.map((ct) => <SelectItem key={ct.value} value={ct.value}>{ct.value === "all" ? "TÃ¼m TÃ¼rler" : ct.label}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedContentType !== "all" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Tür" /></SelectTrigger>
+                    <SelectContent>{CONTENT_TYPES.map((ct) => <SelectItem key={ct.value} value={ct.value}>{ct.value === "all" ? "Tüm Türler" : ct.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                {(selectedDept !== "TÃ¼mÃ¼" || selectedYear !== "TÃ¼mÃ¼" || selectedCourse !== "TÃ¼mÃ¼" || selectedContentType !== "all") && (
+                {(selectedDept !== "Tümü" || selectedYear !== "Tümü" || selectedCourse !== "Tümü" || selectedContentType !== "all") && (
                   <button
-                    onClick={() => { setSelectedDept("TÃ¼mÃ¼"); setSelectedYear("TÃ¼mÃ¼"); setSelectedCourse("TÃ¼mÃ¼"); setSelectedContentType("all"); }}
+                    onClick={() => { setSelectedDept("Tümü"); setSelectedYear("Tümü"); setSelectedCourse("Tümü"); setSelectedContentType("all"); }}
                     className="mt-2.5 text-xs text-primary font-medium hover:underline"
                   >
                     Filtreleri Temizle
@@ -564,7 +563,7 @@ export default function Index() {
                 <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-accent/5 border border-accent/20">
                   <Lock className="h-3.5 w-3.5 text-accent shrink-0" />
                   <p className="text-xs text-accent">
-                    <strong>{browseUniversity}</strong> iÃ§eriklerini gÃ¶rÃ¼ntÃ¼lÃ¼yorsunuz. Ä°Ã§erik eklemek iÃ§in kendi Ã¼niversitenizi seÃ§in.
+                    <strong>{browseUniversity}</strong> içeriklerini görüntülüyorsunuz. İçerik eklemek için kendi üniversitenizi seçin.
                   </p>
                 </div>
               )}
@@ -577,7 +576,7 @@ export default function Index() {
                       <Search className="h-3.5 w-3.5 text-primary" />
                     </div>
                     <h2 className="font-heading text-sm font-bold text-foreground">
-                      {searching ? "AranÄ±yor..." : "Arama SonuÃ§larÄ±"}
+                      {searching ? "Aranıyor..." : "Arama Sonuçları"}
                     </h2>
                   </div>
 
@@ -590,7 +589,7 @@ export default function Index() {
                             <Card className="p-3.5 rounded-lg hover:border-primary/20 hover-lift cursor-pointer">
                               <p className="text-sm font-semibold">{c.name}</p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {[normalizeCourseCode(c.code), c.department, c.university].filter(Boolean).join(" Â· ")}
+                                {[normalizeCourseCode(c.code), c.department, c.university].filter(Boolean).join(" · ")}
                               </p>
                             </Card>
                           </Link>
@@ -601,7 +600,7 @@ export default function Index() {
 
                   {searchUserResults.length > 0 && (
                     <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5"><Trophy className="h-3 w-3" /> KullanÄ±cÄ±lar ({searchUserResults.length})</h3>
+                      <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5"><Trophy className="h-3 w-3" /> Kullanıcılar ({searchUserResults.length})</h3>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {searchUserResults.map((u) => (
                           <Link key={u.id} to={`/user/${u.user_id}`}>
@@ -611,7 +610,7 @@ export default function Index() {
                               </Avatar>
                               <div>
                                 <p className="text-sm font-semibold">{u.username || "Anonim"}</p>
-                                <p className="text-[11px] text-muted-foreground">{u.university || ""} Â· {u.reputation_points ?? 0} puan</p>
+                                <p className="text-[11px] text-muted-foreground">{u.university || ""} · {u.reputation_points ?? 0} puan</p>
                               </div>
                             </Card>
                           </Link>
@@ -622,7 +621,7 @@ export default function Index() {
 
                   {searchResults.length > 0 && (
                     <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5"><FileText className="h-3 w-3" /> Ä°Ã§erikler ({searchResults.length})</h3>
+                      <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5"><FileText className="h-3 w-3" /> İçerikler ({searchResults.length})</h3>
                       <div className="space-y-1">{searchResults.map((post) => <DiscoveryPostItem key={post.id} post={post} />)}</div>
                     </div>
                   )}
@@ -630,9 +629,9 @@ export default function Index() {
                   {!searching && searchResults.length === 0 && searchCourseResults.length === 0 && searchUserResults.length === 0 && (
                     <div className="text-center py-10 rounded-lg bg-muted/30">
                       <Search className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-                      <p className="text-sm font-semibold text-foreground mb-1">SonuÃ§ bulunamadÄ±</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">Sonuç bulunamadı</p>
                       <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                        "{searchQuery || localSearch}" iÃ§in eÅŸleÅŸen sonuÃ§ bulunamadÄ±.
+                        "{searchQuery || localSearch}" için eşleşen sonuç bulunamadı.
                       </p>
                     </div>
                   )}
@@ -649,29 +648,29 @@ export default function Index() {
                     <h2 className="font-heading text-base font-bold">Dersler</h2>
                   </div>
                   <Badge variant="secondary" className="text-[10px] font-semibold">
-                    {filteredCourses.filter((c: any) => selectedCourse === "TÃ¼mÃ¼" || c.name === selectedCourse).length} ders
+                    {filteredCourses.filter((c: any) => selectedCourse === "Tümü" || c.name === selectedCourse).length} ders
                   </Badge>
                 </div>
 
                 {!browseUniversity && filteredCourses.length === 0 && (
                   <div className="text-center py-10 rounded-lg bg-muted/30">
                     <GraduationCap className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-foreground mb-1">HenÃ¼z ders bulunamadÄ±</p>
-                    <p className="text-xs text-muted-foreground">Filtreleri deÄŸiÅŸtirmeyi veya bir Ã¼niversite seÃ§meyi deneyin.</p>
+                    <p className="text-sm font-semibold text-foreground mb-1">Henüz ders bulunamadı</p>
+                    <p className="text-xs text-muted-foreground">Filtreleri değiştirmeyi veya bir üniversite seçmeyi deneyin.</p>
                   </div>
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   {filteredCourses
-                    .filter((c: any) => selectedCourse === "TÃ¼mÃ¼" || c.name === selectedCourse)
+                    .filter((c: any) => selectedCourse === "Tümü" || c.name === selectedCourse)
                     .map((course: any) => (
                       <CourseCard key={course.id} course={course} postCounts={postCounts[course.id]} />
                     ))}
                 </div>
 
-                {filteredCourses.filter((c: any) => selectedCourse === "TÃ¼mÃ¼" || c.name === selectedCourse).length === 0 && courses.length > 0 && (
+                {filteredCourses.filter((c: any) => selectedCourse === "Tümü" || c.name === selectedCourse).length === 0 && courses.length > 0 && (
                   <div className="text-center py-10 rounded-lg bg-muted/30">
-                    <p className="text-muted-foreground text-sm">Bu filtrelere uygun ders bulunamadÄ±.</p>
+                    <p className="text-muted-foreground text-sm">Bu filtrelere uygun ders bulunamadı.</p>
                   </div>
                 )}
               </div>
@@ -685,9 +684,9 @@ export default function Index() {
                   <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
                     <Trophy className="h-3 w-3 text-amber-500" />
                   </div>
-                  <h3 className="font-heading text-sm font-bold flex-1">KatkÄ±da Bulunanlar</h3>
+                  <h3 className="font-heading text-sm font-bold flex-1">Katkıda Bulunanlar</h3>
                   <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
-                    TÃ¼mÃ¼ <ArrowRight className="h-3 w-3" />
+                    Tümü <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
                 <div className="p-4 space-y-3">
@@ -704,7 +703,7 @@ export default function Index() {
                       </div>
                       <span className="text-xs font-semibold text-muted-foreground">{p.reputation_points ?? 0}</span>
                     </Link>
-                  )) : (<p className="text-xs text-muted-foreground py-4 text-center">HenÃ¼z katkÄ± saÄŸlayan yok.</p>)}
+                  )) : (<p className="text-xs text-muted-foreground py-4 text-center">Henüz katkı sağlayan yok.</p>)}
                 </div>
               </Card>
 
@@ -716,8 +715,8 @@ export default function Index() {
                   </div>
                 ) : (
                   <>
-                    <DiscoverySection icon={MessageSquare} title="Aktif TartÄ±ÅŸmalar" posts={activeDiscussions} showComments emptyText="HenÃ¼z tartÄ±ÅŸma yok." color="text-discussion" />
-                    <DiscoverySection icon={Clock} title="Son Eklenenler" posts={recentNotes} emptyText="HenÃ¼z not eklenmemiÅŸ." color="text-notes" />
+                    <DiscoverySection icon={MessageSquare} title="Aktif Tartışmalar" posts={activeDiscussions} showComments emptyText="Henüz tartışma yok." color="text-discussion" />
+                    <DiscoverySection icon={Clock} title="Son Eklenenler" posts={recentNotes} emptyText="Henüz not eklenmemiş." color="text-notes" />
                   </>
                 )
               )}
@@ -800,9 +799,9 @@ function HomepageCreateButton({
   }));
 
   const CONTENT_TYPE_OPTIONS = [
-    { value: "notes" as ContentType, label: "Not YÃ¼kle", icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { value: "past_exams" as ContentType, label: "Ã‡Ä±kmÄ±ÅŸ Soru", icon: Hash, color: "text-orange-500", bg: "bg-orange-500/10" },
-    { value: "discussion" as ContentType, label: "TartÄ±ÅŸma AÃ§", icon: MessageSquare, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { value: "notes" as ContentType, label: "Not Yükle", icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { value: "past_exams" as ContentType, label: "Çıkmış Soru", icon: Hash, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { value: "discussion" as ContentType, label: "Tartışma Aç", icon: MessageSquare, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { value: "kaynaklar" as ContentType, label: "Kaynak Ekle", icon: Layers, color: "text-purple-500", bg: "bg-purple-500/10" },
   ];
 
@@ -854,7 +853,7 @@ function HomepageCreateButton({
           style={{ boxShadow: 'var(--shadow-warm)' }}
         >
           <Plus className={`h-5 w-5 transition-transform ${dropupOpen ? "rotate-45" : ""}`} />
-          Ä°Ã§erik Ekle
+          İçerik Ekle
         </Button>
 
         {dropupOpen && (
@@ -888,18 +887,18 @@ function HomepageCreateButton({
                   <selectedConfig.icon className={`h-3.5 w-3.5 ${selectedConfig.color}`} />
                 </div>
               )}
-              {selectedConfig?.label || "Ä°Ã§erik OluÅŸtur"}
+              {selectedConfig?.label || "İçerik Oluştur"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">1. BÃ¶lÃ¼m SeÃ§in</Label>
+              <Label className="text-xs font-semibold">1. Bölüm Seçin</Label>
               <SearchableSelect
                 value={department}
                 onValueChange={(v) => { setDepartment(v); setCourseId(""); }}
-                placeholder="BÃ¶lÃ¼m seÃ§in..."
-                searchPlaceholder="BÃ¶lÃ¼m ara..."
+                placeholder="Bölüm seçin..."
+                searchPlaceholder="Bölüm ara..."
                 options={departments.map((d) => ({ label: d }))}
               />
               <button
@@ -908,7 +907,7 @@ function HomepageCreateButton({
                 disabled={!universityId}
                 onClick={() => setMissingDeptOpen(true)}
               >
-                BÃ¶lÃ¼mÃ¼mÃ¼ bulamadÄ±m
+                Bölümümü bulamadım
               </button>
 
               <AcademicProgramRequestDialog
@@ -925,14 +924,14 @@ function HomepageCreateButton({
             </div>
 
             <div className="space-y-1.5">
-              <Label className={`text-xs font-semibold ${!department ? "text-muted-foreground" : ""}`}>2. Ders SeÃ§in</Label>
+              <Label className={`text-xs font-semibold ${!department ? "text-muted-foreground" : ""}`}>2. Ders Seçin</Label>
               <SearchableSelect
                 value={selectedCourseLabel}
                 onValueChange={(label) => {
                   const course = filteredCourses.find((c: any) => buildCourseSelectLabel(c) === label);
                   setCourseId(course?.id || "");
                 }}
-                placeholder={department ? "Ders seÃ§in..." : "Ã–nce bÃ¶lÃ¼m seÃ§in"}
+                placeholder={department ? "Ders seçin..." : "Önce bölüm seçin"}
                 searchPlaceholder="Ders ara..."
                 options={courseSelectOptions}
                 disabled={!department}
@@ -943,7 +942,7 @@ function HomepageCreateButton({
                   className="text-xs text-primary hover:underline cursor-pointer"
                   onClick={() => setMissingCourseOpen(true)}
                 >
-                  Dersimi bulamadÄ±m
+                  Dersimi bulamadım
                 </button>
               )}
 

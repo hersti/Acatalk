@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import XLSX from "xlsx";
@@ -236,7 +236,7 @@ async function main() {
   for (const [normalized, entry] of incomingUniversityMap.entries()) {
     const existing = existingUniversityByNorm.get(normalized);
     const resolvedName = existing?.name || titleCaseTr(entry.rawName);
-    const resolvedType = entry.mappedType || existing?.type || null;
+    const resolvedType = entry.mappedType || normalizeType(existing?.type) || null;
     const resolvedCountry = existing?.country || "TR";
 
     universityUpserts.push({
@@ -356,6 +356,10 @@ async function main() {
   console.log(`- universities upserted: ${universityUpserts.length}`);
   console.log(`- academic_programs upserted: ${academicPrograms.length}`);
   console.log(`- legacy departments upserted: ${legacyDepartments.length}`);
+
+  console.log("Running catalog integrity check...");
+  const { runCatalogIntegrityCheck } = await import("./check-catalog-integrity.mjs");
+  await runCatalogIntegrityCheck();
 }
 
 main().catch((error) => {

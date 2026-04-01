@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -11,6 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import BadgeDisplay from "@/components/BadgeDisplay";
 import { Trophy, Medal, Award, Search, Crown, Flame, TrendingUp, Users, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  fetchUniversitiesCatalog,
+  formatUniversityMetaLabel,
+  type UniversityCatalogRow,
+} from "@/lib/academic-catalog";
 
 interface LeaderUser {
   id: string;
@@ -44,7 +49,26 @@ export default function LeaderboardPage() {
   const [search, setSearch] = useState("");
   const [uniFilter, setUniFilter] = useState("all");
   const [universities, setUniversities] = useState<string[]>([]);
+  const [universityCatalog, setUniversityCatalog] = useState<UniversityCatalogRow[]>([]);
   const [badgeMap, setBadgeMap] = useState<Map<string, any[]>>(new Map());
+
+  const universityCatalogByName = useMemo(() => {
+    const map = new Map<string, UniversityCatalogRow>();
+    for (const row of universityCatalog) {
+      if (row?.name) map.set(row.name, row);
+    }
+    return map;
+  }, [universityCatalog]);
+
+  const getUniversityMetaLabel = (universityName: string | null | undefined) => {
+    const name = String(universityName || "").trim();
+    if (!name) return "Tür bilgisi yok";
+    const row = universityCatalogByName.get(name);
+    return formatUniversityMetaLabel({
+      city: row?.city || null,
+      type: row?.type || null,
+    });
+  };
 
   useEffect(() => {
     fetchLeaderboard();
@@ -52,9 +76,14 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboard = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("profiles").select("id, user_id, username, university, department, reputation_points, avatar_url")
-      .order("reputation_points", { ascending: false }).limit(100);
+    const [{ data }, catalogRows] = await Promise.all([
+      supabase
+        .from("profiles").select("id, user_id, username, university, department, reputation_points, avatar_url")
+        .order("reputation_points", { ascending: false }).limit(100),
+      fetchUniversitiesCatalog().catch(() => [] as UniversityCatalogRow[]),
+    ]);
+
+    setUniversityCatalog(catalogRows);
 
     if (data) {
       setUsers(data as LeaderUser[]);
@@ -160,13 +189,13 @@ export default function LeaderboardPage() {
               <SelectTrigger className="w-[180px] h-9 text-sm">
                 <SelectValue placeholder="Üniversite" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm Üniversiteler</SelectItem>
-                {universities.map(u => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectContent>
+                  <SelectItem value="all">Tüm Üniversiteler</SelectItem>
+                  {universities.map(u => (
+                  <SelectItem key={u} value={u}>{`${u} (${getUniversityMetaLabel(u)})`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             <Badge variant="secondary" className="text-[10px] shrink-0 self-center">{filtered.length} sonuç</Badge>
           </div>
         </Card>
@@ -228,7 +257,9 @@ export default function LeaderboardPage() {
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground truncate">
-                      {[u.university, u.department].filter(Boolean).join(" · ") || "—"}
+                      {u.university
+                        ? `${u.university} (${getUniversityMetaLabel(u.university)})${u.department ? ` · ${u.department}` : ""}`
+                        : (u.department || "—")}
                     </p>
                   </div>
                   <div className="text-right shrink-0">

@@ -1,4 +1,4 @@
-﻿-- RPCs for DB-driven university domain resolution and admin approval flow
+-- RPCs for DB-driven university domain resolution and admin approval flow
 
 CREATE OR REPLACE FUNCTION public.normalize_email_domain(p_email text)
 RETURNS text

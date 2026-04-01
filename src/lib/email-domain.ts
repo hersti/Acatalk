@@ -11,13 +11,13 @@ function normalizeDomain(domain: string): string {
     .split(".")
     .map((part) => punycodeMap[part] || part)
     .join(".")
-    .replace(/ü/g, "u")
-    .replace(/ö/g, "o")
-    .replace(/þ/g, "s")
-    .replace(/ç/g, "c")
-    .replace(/ð/g, "g")
-    .replace(/ý/g, "i")
-    .replace(/i·/g, "i");
+    .replace(/Ã¼/g, "u")
+    .replace(/Ã¶/g, "o")
+    .replace(/ÅŸ/g, "s")
+    .replace(/Ã§/g, "c")
+    .replace(/ÄŸ/g, "g")
+    .replace(/Ä±/g, "i")
+    .replace(/iÂ·/g, "i");
 }
 
 export function extractEmailDomain(email: string): string {

@@ -29,12 +29,12 @@ type ValidationStatus = "idle" | "validating" | "approved" | "pending_review" | 
 
 const STATUS_CONFIG: Record<ValidationStatus, { icon: typeof Loader2; label: string; color: string }> = {
   idle: { icon: Plus, label: "", color: "" },
-  validating: { icon: Loader2, label: "Doðrulanýyor...", color: "text-primary" },
-  approved: { icon: CheckCircle, label: "Onaylandý!", color: "text-success" },
-  pending_review: { icon: Clock, label: "Admin incelemesine gönderildi", color: "text-warning" },
-  rejected: { icon: XCircle, label: "Doðrulanamadý", color: "text-destructive" },
+  validating: { icon: Loader2, label: "DoÄŸrulanÄ±yor...", color: "text-primary" },
+  approved: { icon: CheckCircle, label: "OnaylandÄ±!", color: "text-success" },
+  pending_review: { icon: Clock, label: "Admin incelemesine gÃ¶nderildi", color: "text-warning" },
+  rejected: { icon: XCircle, label: "DoÄŸrulanamadÄ±", color: "text-destructive" },
   duplicate: { icon: XCircle, label: "Bu zaten mevcut", color: "text-warning" },
-  error: { icon: XCircle, label: "Bir hata oluþtu", color: "text-destructive" },
+  error: { icon: XCircle, label: "Bir hata oluÅŸtu", color: "text-destructive" },
 };
 
 export default function SuggestAcademicDialog({
@@ -94,7 +94,7 @@ export default function SuggestAcademicDialog({
 
   const departmentOptions = programRows.map((row) => ({
     label: row.program_name,
-    sublabel: row.unit_name || (row.program_level === "onlisans" ? "Önlisans" : "Lisans"),
+    sublabel: row.unit_name || (row.program_level === "onlisans" ? "Ã–nlisans" : "Lisans"),
   }));
 
   const selectedProgram = programRows.find((row) => row.program_name === department) || null;
@@ -125,33 +125,33 @@ export default function SuggestAcademicDialog({
 
     if (type !== "course") {
       setStatus("error");
-      setStatusMessage("Bu dialog artýk sadece ders önerileri için kullanýlabilir.");
+      setStatusMessage("Bu dialog artÄ±k sadece ders Ã¶nerileri iÃ§in kullanÄ±labilir.");
       return;
     }
 
     if (!university.trim()) {
-      toast.error("Üniversite seçimi zorunludur.");
+      toast.error("Ãœniversite seÃ§imi zorunludur.");
       return;
     }
     if (!department.trim()) {
-      toast.error("Bölüm seçimi zorunludur.");
+      toast.error("BÃ¶lÃ¼m seÃ§imi zorunludur.");
       return;
     }
     if (!courseName.trim()) {
-      toast.error("Ders adý zorunludur.");
+      toast.error("Ders adÄ± zorunludur.");
       return;
     }
     if (!classYear) {
-      toast.error("Sýnýf seçimi zorunludur.");
+      toast.error("SÄ±nÄ±f seÃ§imi zorunludur.");
       return;
     }
 
     setStatus("validating");
-    setStatusMessage("Ders doðrulanýyor...");
+    setStatusMessage("Ders doÄŸrulanÄ±yor...");
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 250));
-      setStatusMessage("AI doðrulama ve müfredat kontrolü yapýlýyor...");
+      setStatusMessage("AI doÄŸrulama ve mÃ¼fredat kontrolÃ¼ yapÄ±lÄ±yor...");
 
       const { data, error } = await supabase.functions.invoke("validate-academic", {
         body: {
@@ -171,8 +171,8 @@ export default function SuggestAcademicDialog({
 
       if (result.status === "approved") {
         setStatus("approved");
-        setStatusMessage(result.reason || "Ders doðrulandý ve eklendi.");
-        toast.success("Ders doðrulandý ve eklendi.");
+        setStatusMessage(result.reason || "Ders doÄŸrulandÄ± ve eklendi.");
+        toast.success("Ders doÄŸrulandÄ± ve eklendi.");
         onApproved?.({ normalized_name: result.normalized_name, course_id: result.course_id, department_id: result.department_id });
         setTimeout(() => {
           setOpen(false);
@@ -183,8 +183,8 @@ export default function SuggestAcademicDialog({
 
       if (result.status === "pending_review") {
         setStatus("pending_review");
-        setStatusMessage(result.reason || "Ders önerisi admin incelemesine alýndý.");
-        toast.info(result.reason || "Ders önerisi admin incelemesine alýndý.");
+        setStatusMessage(result.reason || "Ders Ã¶nerisi admin incelemesine alÄ±ndÄ±.");
+        toast.info(result.reason || "Ders Ã¶nerisi admin incelemesine alÄ±ndÄ±.");
         return;
       }
 
@@ -197,16 +197,16 @@ export default function SuggestAcademicDialog({
 
       if (result.status === "rejected") {
         setStatus("rejected");
-        setStatusMessage(result.reason || "Bu ders doðrulanamadý.");
+        setStatusMessage(result.reason || "Bu ders doÄŸrulanamadÄ±.");
         return;
       }
 
       setStatus("error");
-      setStatusMessage(result.reason || result.error || "Bilinmeyen bir hata oluþtu.");
+      setStatusMessage(result.reason || result.error || "Bilinmeyen bir hata oluÅŸtu.");
     } catch (err: any) {
       console.error("Course validation error:", err);
       setStatus("error");
-      setStatusMessage(err?.message || "Doðrulama sýrasýnda bir hata oluþtu.");
+      setStatusMessage(err?.message || "DoÄŸrulama sÄ±rasÄ±nda bir hata oluÅŸtu.");
     }
   };
 
@@ -222,7 +222,7 @@ export default function SuggestAcademicDialog({
           {trigger || (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" />
-              Ders Öner
+              Ders Ã–ner
             </Button>
           )}
         </DialogTrigger>
@@ -234,17 +234,17 @@ export default function SuggestAcademicDialog({
         <DialogHeader>
           <DialogTitle className="font-heading flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
-            Eksik Ders Öner
+            Eksik Ders Ã–ner
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Bu akýþ AI destekli ders doðrulamasý için korunur. Bölüm/program talepleri ayrý request kuyruðuna gider.
+            Bu akÄ±ÅŸ AI destekli ders doÄŸrulamasÄ± iÃ§in korunur. BÃ¶lÃ¼m/program talepleri ayrÄ± request kuyruÄŸuna gider.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {!defaultUniversity && (
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Üniversite</Label>
+              <Label className="text-xs font-semibold">Ãœniversite</Label>
               <Input
                 value={university}
                 onChange={(e) => {
@@ -252,22 +252,22 @@ export default function SuggestAcademicDialog({
                   setDepartment("");
                   setClassYear("");
                 }}
-                placeholder="Üniversite adý"
+                placeholder="Ãœniversite adÄ±"
                 className="h-9 text-sm"
               />
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Bölüm</Label>
+            <Label className="text-xs font-semibold">BÃ¶lÃ¼m</Label>
             <SearchableSelect
               value={department}
               onValueChange={(value) => {
                 setDepartment(value);
                 setClassYear("");
               }}
-              placeholder={university ? "Bölüm seçin" : "Önce üniversite seçin"}
-              searchPlaceholder="Bölüm ara..."
+              placeholder={university ? "BÃ¶lÃ¼m seÃ§in" : "Ã–nce Ã¼niversite seÃ§in"}
+              searchPlaceholder="BÃ¶lÃ¼m ara..."
               options={departmentOptions}
               disabled={!university}
               allowCustom
@@ -275,11 +275,11 @@ export default function SuggestAcademicDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Ders Adý</Label>
+            <Label className="text-xs font-semibold">Ders AdÄ±</Label>
             <Input
               value={courseName}
               onChange={(e) => setCourseName(e.target.value)}
-              placeholder="Örn: Veri Yapýlarý ve Algoritmalar"
+              placeholder="Ã–rn: Veri YapÄ±larÄ± ve Algoritmalar"
               maxLength={200}
               className="h-9 text-sm"
             />
@@ -291,17 +291,17 @@ export default function SuggestAcademicDialog({
               <Input
                 value={courseCode}
                 onChange={(e) => setCourseCode(normalizeCourseCode(e.target.value))}
-                placeholder="Örn: BIL301"
+                placeholder="Ã–rn: BIL301"
                 maxLength={20}
                 className="h-9 text-sm"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Sýnýf</Label>
+              <Label className="text-xs font-semibold">SÄ±nÄ±f</Label>
               <Select value={classYear} onValueChange={setClassYear}>
                 <SelectTrigger className="h-9 text-sm" disabled={!department}>
-                  <SelectValue placeholder={department ? `0-${maxClassYear} arasý seçin` : "Önce bölüm seçin"} />
+                  <SelectValue placeholder={department ? `0-${maxClassYear} arasÄ± seÃ§in` : "Ã–nce bÃ¶lÃ¼m seÃ§in"} />
                 </SelectTrigger>
                 <SelectContent>
                   {classYearOptions.map((option) => (
@@ -315,7 +315,7 @@ export default function SuggestAcademicDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Açýklama (opsiyonel)</Label>
+            <Label className="text-xs font-semibold">AÃ§Ä±klama (opsiyonel)</Label>
             <Textarea
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
@@ -343,12 +343,12 @@ export default function SuggestAcademicDialog({
                 className="flex-1 h-9"
                 disabled={!university.trim() || !department.trim() || !courseName.trim() || !classYear}
               >
-                Gönder ve Doðrula
+                GÃ¶nder ve DoÄŸrula
               </Button>
             ) : status === "validating" ? (
               <Button disabled className="flex-1 h-9">
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Doðrulanýyor...
+                DoÄŸrulanÄ±yor...
               </Button>
             ) : (
               <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="flex-1 h-9">
