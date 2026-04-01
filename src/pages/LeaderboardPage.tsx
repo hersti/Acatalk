@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getSortedUniversities } from "@/data/turkish-universities";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
@@ -59,9 +58,8 @@ export default function LeaderboardPage() {
 
     if (data) {
       setUsers(data as LeaderUser[]);
-      const staticUnis = getSortedUniversities().map(u => u.name);
       const dbUnis = data.map(u => u.university).filter(Boolean) as string[];
-      const allUnis = [...new Set([...staticUnis, ...dbUnis])].sort((a, b) => a.localeCompare(b, "tr"));
+      const allUnis = [...new Set(dbUnis)].sort((a, b) => a.localeCompare(b, "tr"));
       setUniversities(allUnis);
 
       const userIds = data.slice(0, 20).map(u => u.user_id);

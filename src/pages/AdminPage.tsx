@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+﻿import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,11 +26,9 @@ import {
   VolumeX, UserX, CircleAlert, RefreshCw, Download, Clock,
   Mail, Activity, TrendingUp, Hash, Filter, MoreHorizontal,
 } from "lucide-react";
-import { getDepartmentsForUniversity } from "@/data/turkish-universities";
-
 const PAGE_SIZE = 25;
 
-// ─── Helper Components ───
+// â”€â”€â”€ Helper Components â”€â”€â”€
 function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
     <div className="relative">
@@ -45,7 +43,7 @@ function PaginationControls({ page, setPage, total }: { page: number; setPage: (
   if (tp <= 1) return null;
   return (
     <div className="flex items-center justify-between pt-3 px-4 pb-3">
-      <span className="text-xs text-muted-foreground">{total} sonuç · Sayfa {page + 1}/{tp}</span>
+      <span className="text-xs text-muted-foreground">{total} sonuÃ§ Â· Sayfa {page + 1}/{tp}</span>
       <div className="flex gap-1">
         <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(page - 1)}>
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -75,18 +73,18 @@ function StatCard({ icon: Icon, label, value, color, onClick }: { icon: any; lab
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     pending: { label: "Bekliyor", variant: "destructive" },
-    reviewed: { label: "İncelendi", variant: "secondary" },
-    resolved: { label: "Çözüldü", variant: "default" },
+    reviewed: { label: "Ä°ncelendi", variant: "secondary" },
+    resolved: { label: "Ã‡Ã¶zÃ¼ldÃ¼", variant: "default" },
     dismissed: { label: "Reddedildi", variant: "outline" },
-    open: { label: "Açık", variant: "destructive" },
-    replied: { label: "Yanıtlandı", variant: "default" },
-    closed: { label: "Kapatıldı", variant: "secondary" },
-    approved: { label: "Onaylandı", variant: "default" },
+    open: { label: "AÃ§Ä±k", variant: "destructive" },
+    replied: { label: "YanÄ±tlandÄ±", variant: "default" },
+    closed: { label: "KapatÄ±ldÄ±", variant: "secondary" },
+    approved: { label: "OnaylandÄ±", variant: "default" },
     rejected: { label: "Reddedildi", variant: "destructive" },
-    flagged: { label: "İşaretli", variant: "destructive" },
+    flagged: { label: "Ä°ÅŸaretli", variant: "destructive" },
     blocked: { label: "Engellendi", variant: "destructive" },
-    false_positive: { label: "Yanlış Alarm", variant: "secondary" },
-    under_review: { label: "İnceleniyor", variant: "outline" },
+    false_positive: { label: "YanlÄ±ÅŸ Alarm", variant: "secondary" },
+    under_review: { label: "Ä°nceleniyor", variant: "outline" },
   };
   const s = map[status] || { label: status, variant: "outline" as const };
   return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
@@ -95,8 +93,8 @@ function StatusBadge({ status }: { status: string }) {
 function UserStatusBadges({ user: u }: { user: any }) {
   return (
     <div className="flex gap-1 flex-wrap">
-      {u.is_suspended && <Badge variant="destructive" className="text-[9px]">Askıda</Badge>}
-      {u.is_muted && <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-300">Susturulmuş</Badge>}
+      {u.is_suspended && <Badge variant="destructive" className="text-[9px]">AskÄ±da</Badge>}
+      {u.is_muted && <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-300">SusturulmuÅŸ</Badge>}
       {(u.moderation_score || 0) > 0 && !u.is_muted && !u.is_suspended && (
         <Badge variant="outline" className="text-[9px] text-amber-600">{u.moderation_score} puan</Badge>
       )}
@@ -107,18 +105,18 @@ function UserStatusBadges({ user: u }: { user: any }) {
   );
 }
 
-// ─── NAV ───
+// â”€â”€â”€ NAV â”€â”€â”€
 const NAV_ITEMS = [
-  { key: "stats", label: "Genel Bakış", icon: BarChart3 },
-  { key: "users", label: "Kullanıcılar", icon: Users },
+  { key: "stats", label: "Genel BakÄ±ÅŸ", icon: BarChart3 },
+  { key: "users", label: "KullanÄ±cÄ±lar", icon: Users },
   { key: "moderation", label: "Moderasyon", icon: ShieldCheck },
-  { key: "suggestions", label: "Öneriler", icon: GraduationCap },
+  { key: "suggestions", label: "Ã–neriler", icon: GraduationCap },
   { key: "support", label: "Destek", icon: CircleAlert },
   { key: "courses", label: "Dersler", icon: BookOpen },
-  { key: "posts", label: "Gönderiler", icon: FileText },
+  { key: "posts", label: "GÃ¶nderiler", icon: FileText },
   { key: "comments", label: "Yorumlar", icon: MessageSquare },
   { key: "reports", label: "Raporlar", icon: Flag },
-  { key: "security", label: "Güvenlik", icon: ShieldAlert },
+  { key: "security", label: "GÃ¼venlik", icon: ShieldAlert },
 ];
 
 export default function AdminPage() {
@@ -137,6 +135,7 @@ export default function AdminPage() {
   const [moderationQueue, setModerationQueue] = useState<any[]>([]);
   const [moderationLogs, setModerationLogs] = useState<any[]>([]);
   const [academicSuggestions, setAcademicSuggestions] = useState<any[]>([]);
+  const [academicProgramRequests, setAcademicProgramRequests] = useState<any[]>([]);
   const [domainRequests, setDomainRequests] = useState<any[]>([]);
   const [universitiesCatalog, setUniversitiesCatalog] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
@@ -201,6 +200,7 @@ export default function AdminPage() {
         modQueueRes,
         modLogsRes,
         suggestionsRes,
+        programRequestsRes,
         deptsRes,
         ticketsRes,
         domainRequestsRes,
@@ -216,6 +216,7 @@ export default function AdminPage() {
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("moderation_logs").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("academic_suggestions").select("*").order("created_at", { ascending: false }).limit(500) as any,
+        supabase.from("academic_program_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
         supabase.from("departments").select("*") as any,
         supabase.from("support_tickets").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("university_domain_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
@@ -231,6 +232,7 @@ export default function AdminPage() {
       setModerationQueue(modQueueRes.data || []);
       setModerationLogs(modLogsRes.data || []);
       setAcademicSuggestions(((suggestionsRes.data || []) as any[]).filter((s) => s.type !== "department"));
+      setAcademicProgramRequests((programRequestsRes.data || []) as any[]);
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
       setDomainRequests((domainRequestsRes.data || []) as any[]);
@@ -245,7 +247,7 @@ export default function AdminPage() {
     if (isAdmin) fetchAll();
   }, [isAdmin, fetchAll]);
 
-  // ─── Helpers ───
+  // â”€â”€â”€ Helpers â”€â”€â”€
   const getUserRole = useCallback((userId: string) => {
     const r = roles.find((r: any) => r.user_id === userId);
     return r?.role || "user";
@@ -258,12 +260,12 @@ export default function AdminPage() {
 
   const getCourseName = useCallback((courseId: string) => {
     const c = courses.find((c: any) => c.id === courseId);
-    return c ? `${c.code || ""} ${c.name}`.trim() : "—";
+    return c ? `${c.code || ""} ${c.name}`.trim() : "â€”";
   }, [courses]);
 
   const paginate = <T,>(items: T[], page: number): T[] => items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  // ─── Stats ───
+  // â”€â”€â”€ Stats â”€â”€â”€
   const stats = useMemo(() => {
     const universities = new Set([
       ...universitiesCatalog.map((u: any) => u.name).filter(Boolean),
@@ -283,6 +285,7 @@ export default function AdminPage() {
     const pendingMod = moderationQueue.filter((m: any) => m.status === "flagged").length;
     const pendingSuggestions =
       academicSuggestions.filter((s: any) => s.status === "pending").length +
+      academicProgramRequests.filter((r: any) => r.status === "pending").length +
       domainRequests.filter((r: any) => r.status === "pending").length;
     const openTickets = supportTickets.filter((t: any) => t.status === "open").length;
 
@@ -300,7 +303,7 @@ export default function AdminPage() {
       .slice(0, 5)
       .map(([id, count]) => {
         const c = courses.find((c: any) => c.id === id);
-        return { name: c?.name || "—", code: c?.code || "", count };
+        return { name: c?.name || "â€”", code: c?.code || "", count };
       });
 
     const userPostCounts: Record<string, number> = {};
@@ -319,9 +322,9 @@ export default function AdminPage() {
       mutedUsers, suspendedUsers, flaggedUsers, pendingReports, pendingMod, pendingSuggestions,
       openTickets, totalReports: reports.length, contentCounts, topCourses, topUsers,
     };
-  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, domainRequests, supportTickets, universitiesCatalog]);
+  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, academicProgramRequests, domainRequests, supportTickets, universitiesCatalog]);
 
-  // ─── Filtered data ───
+  // â”€â”€â”€ Filtered data â”€â”€â”€
   const filteredUsers = useMemo(() => {
     let result = users;
     if (userStatusFilter === "muted") result = result.filter((u: any) => u.is_muted);
@@ -409,6 +412,11 @@ export default function AdminPage() {
     return academicSuggestions.filter((s: any) => s.status === suggestionFilter);
   }, [academicSuggestions, suggestionFilter]);
 
+  const filteredAcademicProgramRequests = useMemo(() => {
+    if (suggestionFilter === "all") return academicProgramRequests;
+    return academicProgramRequests.filter((r: any) => r.status === suggestionFilter);
+  }, [academicProgramRequests, suggestionFilter]);
+
   const filteredDomainRequests = useMemo(() => {
     if (domainRequestFilter === "all") return domainRequests;
     return domainRequests.filter((r: any) => r.status === domainRequestFilter);
@@ -464,11 +472,12 @@ export default function AdminPage() {
     return result;
   }, [securityLogs, securityLogFilter, securitySearch, getUsername]);
 
-  // ─── Badge counts ───
+  // â”€â”€â”€ Badge counts â”€â”€â”€
   const pendingReportsCount = reports.filter((r: any) => r.status === "pending").length;
   const pendingModCount = moderationQueue.filter((m: any) => m.status === "flagged").length;
   const pendingSuggestionsCount =
     academicSuggestions.filter((s: any) => s.status === "pending").length +
+    academicProgramRequests.filter((r: any) => r.status === "pending").length +
     domainRequests.filter((r: any) => r.status === "pending").length;
   const openTicketsCount = supportTickets.filter((t: any) => t.status === "open").length;
   const isMissingFunctionError = (error: any) =>
@@ -476,9 +485,9 @@ export default function AdminPage() {
     ((error.code === "PGRST202" || error.code === "42883") ||
       String(error.message || "").includes("Could not find the function"));
 
-  // ─── Action Handlers ───
+  // â”€â”€â”€ Action Handlers â”€â”€â”€
   const handleDeletePost = async (postId: string) => {
-    if (!confirm("Bu gönderiyi silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu gÃ¶nderiyi silmek istediÄŸinizden emin misiniz?")) return;
     const { data: postComments } = await supabase.from("comments").select("id").eq("post_id", postId);
     if (postComments && postComments.length > 0) {
       await supabase.from("comment_likes").delete().in("comment_id", postComments.map((c: any) => c.id));
@@ -489,11 +498,11 @@ export default function AdminPage() {
     await supabase.from("post_downloads").delete().eq("post_id", postId);
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) toast.error("Silinemedi: " + error.message);
-    else { toast.success("Gönderi silindi"); fetchAll(true); }
+    else { toast.success("GÃ¶nderi silindi"); fetchAll(true); }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu yorumu silmek istediÄŸinizden emin misiniz?")) return;
     const { data: childComments } = await supabase.from("comments").select("id").eq("parent_id", commentId);
     const allIds = [commentId, ...(childComments?.map((c: any) => c.id) || [])];
     await supabase.from("comment_likes").delete().in("comment_id", allIds);
@@ -504,7 +513,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm("Bu dersi silmek istediğinizden emin misiniz? İlişkili tüm gönderiler de silinir.")) return;
+    if (!confirm("Bu dersi silmek istediÄŸinizden emin misiniz? Ä°liÅŸkili tÃ¼m gÃ¶nderiler de silinir.")) return;
     const relatedPosts = posts.filter((p: any) => p.course_id === courseId);
     if (relatedPosts.length > 0) {
       const postIds = relatedPosts.map((p: any) => p.id);
@@ -529,8 +538,8 @@ export default function AdminPage() {
     const updateData: any = { status, updated_at: new Date().toISOString() };
     if (adminNote !== undefined) updateData.admin_note = adminNote;
     const { error } = await supabase.from("reports").update(updateData).eq("id", reportId);
-    if (error) toast.error("Güncellenemedi");
-    else { toast.success("Rapor güncellendi"); fetchAll(true); }
+    if (error) toast.error("GÃ¼ncellenemedi");
+    else { toast.success("Rapor gÃ¼ncellendi"); fetchAll(true); }
   };
 
   const handleDeleteReportedContent = async (report: any, note: string) => {
@@ -551,15 +560,15 @@ export default function AdminPage() {
       await supabase.from("comments").delete().eq("parent_id", report.target_id);
       await supabase.from("comments").delete().eq("id", report.target_id);
     }
-    await handleUpdateReport(report.id, "resolved", note || "İçerik silindi.");
-    toast.success("İçerik silindi ve rapor çözüldü");
+    await handleUpdateReport(report.id, "resolved", note || "Ä°Ã§erik silindi.");
+    toast.success("Ä°Ã§erik silindi ve rapor Ã§Ã¶zÃ¼ldÃ¼");
   };
 
   const handleMarkReportAbuse = async (report: any, note: string) => {
-    await handleUpdateReport(report.id, "dismissed", note || "Asılsız rapor.");
-    await supabase.rpc("increment_moderation_score", { p_user_id: report.reporter_id, p_points: 3, p_reason: "Asılsız rapor bildirimi" });
-    await supabase.from("moderation_logs").insert({ user_id: report.reporter_id, action: "false_report_warning", admin_id: user?.id, reason: note || "Asılsız rapor" } as any);
-    toast.success("Rapor asılsız olarak işaretlendi");
+    await handleUpdateReport(report.id, "dismissed", note || "AsÄ±lsÄ±z rapor.");
+    await supabase.rpc("increment_moderation_score", { p_user_id: report.reporter_id, p_points: 3, p_reason: "AsÄ±lsÄ±z rapor bildirimi" });
+    await supabase.from("moderation_logs").insert({ user_id: report.reporter_id, action: "false_report_warning", admin_id: user?.id, reason: note || "AsÄ±lsÄ±z rapor" } as any);
+    toast.success("Rapor asÄ±lsÄ±z olarak iÅŸaretlendi");
   };
 
   const getReportTargetUserId = (report: any) => {
@@ -576,18 +585,18 @@ export default function AdminPage() {
 
   const handleWarnReportedUser = async (report: any, note: string) => {
     const targetUserId = getReportTargetUserId(report);
-    await supabase.rpc("increment_moderation_score", { p_user_id: targetUserId, p_points: 2, p_reason: note || "Rapor sonucu uyarı" });
-    await handleUpdateReport(report.id, "resolved", note || "Kullanıcı uyarıldı.");
-    toast.success("Kullanıcı uyarıldı");
+    await supabase.rpc("increment_moderation_score", { p_user_id: targetUserId, p_points: 2, p_reason: note || "Rapor sonucu uyarÄ±" });
+    await handleUpdateReport(report.id, "resolved", note || "KullanÄ±cÄ± uyarÄ±ldÄ±.");
+    toast.success("KullanÄ±cÄ± uyarÄ±ldÄ±");
   };
 
   const handleMuteUser = async (userId: string) => {
     const { error } = await supabase.from("profiles").update({
       is_muted: true, muted_until: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
     } as any).eq("user_id", userId);
-    if (error) { toast.error("Susturma başarısız"); return; }
-    await supabase.from("moderation_logs").insert({ user_id: userId, action: "mute", admin_id: user?.id, reason: "Admin tarafından susturuldu" } as any);
-    toast.success("Kullanıcı susturuldu (6 saat)");
+    if (error) { toast.error("Susturma baÅŸarÄ±sÄ±z"); return; }
+    await supabase.from("moderation_logs").insert({ user_id: userId, action: "mute", admin_id: user?.id, reason: "Admin tarafÄ±ndan susturuldu" } as any);
+    toast.success("KullanÄ±cÄ± susturuldu (6 saat)");
     fetchAll(true);
   };
 
@@ -595,44 +604,44 @@ export default function AdminPage() {
     const { error } = await supabase.from("profiles").update({
       is_suspended: true, suspended_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     } as any).eq("user_id", userId);
-    if (error) { toast.error("Askıya alma başarısız"); return; }
-    await supabase.from("moderation_logs").insert({ user_id: userId, action: "suspend", admin_id: user?.id, reason: "Admin tarafından askıya alındı" } as any);
-    toast.success("Kullanıcı askıya alındı (7 gün)");
+    if (error) { toast.error("AskÄ±ya alma baÅŸarÄ±sÄ±z"); return; }
+    await supabase.from("moderation_logs").insert({ user_id: userId, action: "suspend", admin_id: user?.id, reason: "Admin tarafÄ±ndan askÄ±ya alÄ±ndÄ±" } as any);
+    toast.success("KullanÄ±cÄ± askÄ±ya alÄ±ndÄ± (7 gÃ¼n)");
     fetchAll(true);
   };
 
   const handleUnmuteUser = async (userId: string) => {
     await supabase.from("profiles").update({ is_muted: false, muted_until: null } as any).eq("user_id", userId);
-    await supabase.from("moderation_logs").insert({ user_id: userId, action: "unmute", admin_id: user?.id, reason: "Admin tarafından susturma kaldırıldı" } as any);
-    toast.success("Susturma kaldırıldı");
+    await supabase.from("moderation_logs").insert({ user_id: userId, action: "unmute", admin_id: user?.id, reason: "Admin tarafÄ±ndan susturma kaldÄ±rÄ±ldÄ±" } as any);
+    toast.success("Susturma kaldÄ±rÄ±ldÄ±");
     fetchAll(true);
   };
 
   const handleUnsuspendUser = async (userId: string) => {
     await supabase.from("profiles").update({ is_suspended: false, suspended_until: null } as any).eq("user_id", userId);
-    await supabase.from("moderation_logs").insert({ user_id: userId, action: "unsuspend", admin_id: user?.id, reason: "Admin tarafından askı kaldırıldı" } as any);
-    toast.success("Askı kaldırıldı");
+    await supabase.from("moderation_logs").insert({ user_id: userId, action: "unsuspend", admin_id: user?.id, reason: "Admin tarafÄ±ndan askÄ± kaldÄ±rÄ±ldÄ±" } as any);
+    toast.success("AskÄ± kaldÄ±rÄ±ldÄ±");
     fetchAll(true);
   };
 
   const handleClearScore = async (userId: string) => {
     await supabase.from("profiles").update({ moderation_score: 0, is_muted: false, muted_until: null, is_suspended: false, suspended_until: null } as any).eq("user_id", userId);
-    await supabase.from("moderation_logs").insert({ user_id: userId, action: "clear_warning", admin_id: user?.id, reason: "Admin tarafından skor sıfırlandı" } as any);
-    toast.success("Moderasyon skoru sıfırlandı");
+    await supabase.from("moderation_logs").insert({ user_id: userId, action: "clear_warning", admin_id: user?.id, reason: "Admin tarafÄ±ndan skor sÄ±fÄ±rlandÄ±" } as any);
+    toast.success("Moderasyon skoru sÄ±fÄ±rlandÄ±");
     fetchAll(true);
   };
 
   const handleToggleAdmin = async (userId: string) => {
     const currentRole = getUserRole(userId);
-    if (userId === user?.id) { toast.error("Kendi admin rolünüzü kaldıramazsınız"); return; }
+    if (userId === user?.id) { toast.error("Kendi admin rolÃ¼nÃ¼zÃ¼ kaldÄ±ramazsÄ±nÄ±z"); return; }
     if (currentRole === "admin") {
-      if (!confirm("Bu kullanıcının admin rolünü kaldırmak istediğinizden emin misiniz?")) return;
+      if (!confirm("Bu kullanÄ±cÄ±nÄ±n admin rolÃ¼nÃ¼ kaldÄ±rmak istediÄŸinizden emin misiniz?")) return;
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
-      if (error) toast.error("Rol kaldırılamadı"); else { toast.success("Admin rolü kaldırıldı"); fetchAll(true); }
+      if (error) toast.error("Rol kaldÄ±rÄ±lamadÄ±"); else { toast.success("Admin rolÃ¼ kaldÄ±rÄ±ldÄ±"); fetchAll(true); }
     } else {
-      if (!confirm("Bu kullanıcıya admin rolü vermek istediğinizden emin misiniz?")) return;
+      if (!confirm("Bu kullanÄ±cÄ±ya admin rolÃ¼ vermek istediÄŸinizden emin misiniz?")) return;
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-      if (error) toast.error("Rol verilemedi"); else { toast.success("Admin rolü verildi"); fetchAll(true); }
+      if (error) toast.error("Rol verilemedi"); else { toast.success("Admin rolÃ¼ verildi"); fetchAll(true); }
     }
   };
 
@@ -640,30 +649,30 @@ export default function AdminPage() {
     const { error } = await supabase.from("moderation_queue").update({
       status: action, admin_action: action, admin_note: note || null, reviewed_by: user?.id, reviewed_at: new Date().toISOString(),
     } as any).eq("id", itemId);
-    if (error) toast.error("İşlem başarısız");
-    else { toast.success("Moderasyon işlemi uygulandı"); fetchAll(true); }
+    if (error) toast.error("Ä°ÅŸlem baÅŸarÄ±sÄ±z");
+    else { toast.success("Moderasyon iÅŸlemi uygulandÄ±"); fetchAll(true); }
   };
 
   const handleMuteReportedUser = async (report: any, note: string) => {
     const targetUserId = getReportTargetUserId(report);
     await handleMuteUser(targetUserId);
-    await handleUpdateReport(report.id, "resolved", note || "Kullanıcı susturuldu.");
+    await handleUpdateReport(report.id, "resolved", note || "KullanÄ±cÄ± susturuldu.");
   };
 
   const handleSuspendReportedUser = async (report: any, note: string) => {
     const targetUserId = getReportTargetUserId(report);
     await handleSuspendUser(targetUserId);
-    await handleUpdateReport(report.id, "resolved", note || "Kullanıcı askıya alındı.");
+    await handleUpdateReport(report.id, "resolved", note || "KullanÄ±cÄ± askÄ±ya alÄ±ndÄ±.");
   };
 
   const handleRemoveAvatar = async (report: any, note: string) => {
     await supabase.from("profiles").update({ avatar_url: null } as any).eq("user_id", report.target_id);
-    await supabase.from("moderation_logs").insert({ user_id: report.target_id, action: "avatar_removed", admin_id: user?.id, reason: note || "Avatar kaldırıldı" } as any);
-    await handleUpdateReport(report.id, "resolved", note || "Avatar kaldırıldı.");
-    toast.success("Avatar kaldırıldı");
+    await supabase.from("moderation_logs").insert({ user_id: report.target_id, action: "avatar_removed", admin_id: user?.id, reason: note || "Avatar kaldÄ±rÄ±ldÄ±" } as any);
+    await handleUpdateReport(report.id, "resolved", note || "Avatar kaldÄ±rÄ±ldÄ±.");
+    toast.success("Avatar kaldÄ±rÄ±ldÄ±");
   };
 
-  // ─── Suggestion Handlers ───
+  // â”€â”€â”€ Suggestion Handlers â”€â”€â”€
   const handleApproveSuggestion = async (suggestion: any) => {
     if (suggestion.type === "department") {
       toast.error("Bolum onerileri admin kuyrugunda islenmez.");
@@ -675,10 +684,10 @@ export default function AdminPage() {
       const newDept = (suggestion.department || "").trim() || null;
       const newYear = suggestion.class_year ? parseInt(suggestion.class_year) : null;
       const { error: rpcError } = await supabase.rpc("admin_update_academic_info", { p_target_user_id: targetUserId, p_university: newUni, p_department: newDept, p_class_year: newYear });
-      if (rpcError) { toast.error("Güncellenemedi: " + rpcError.message); return; }
-      await supabase.from("notifications").insert({ user_id: targetUserId, type: "system", title: "Akademik bilgi değişiklik talebiniz onaylandı", message: `Yeni: ${newUni || "—"} / ${newDept || "—"} / ${newYear !== null ? (newYear === 0 ? "Hazırlık" : newYear + ". Sınıf") : "—"}`, link: "/settings" });
-      await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString(), admin_note: "Akademik bilgiler güncellendi" } as any).eq("id", suggestion.id);
-      toast.success("Akademik bilgi değişikliği onaylandı!"); fetchAll(true); return;
+      if (rpcError) { toast.error("GÃ¼ncellenemedi: " + rpcError.message); return; }
+      await supabase.from("notifications").insert({ user_id: targetUserId, type: "system", title: "Akademik bilgi deÄŸiÅŸiklik talebiniz onaylandÄ±", message: `Yeni: ${newUni || "â€”"} / ${newDept || "â€”"} / ${newYear !== null ? (newYear === 0 ? "HazÄ±rlÄ±k" : newYear + ". SÄ±nÄ±f") : "â€”"}`, link: "/settings" });
+      await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString(), admin_note: "Akademik bilgiler gÃ¼ncellendi" } as any).eq("id", suggestion.id);
+      toast.success("Akademik bilgi deÄŸiÅŸikliÄŸi onaylandÄ±!"); fetchAll(true); return;
     }
     if (suggestion.type === "course" && suggestion.course_name) {
       const deptName = (suggestion.department || "").trim();
@@ -688,10 +697,10 @@ export default function AdminPage() {
       const insertRes = await supabase.from("courses").insert({ name: suggestion.normalized_name || suggestion.course_name, code: suggestion.course_code || null, university: suggestion.university, department: suggestion.department, year: suggestion.class_year ? parseInt(suggestion.class_year) : 1 } as any).select("id").maybeSingle();
       if (insertRes.error) { toast.error("Ders eklenemedi: " + insertRes.error.message); return; }
       await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString(), inserted_id: (insertRes.data as any)?.id ?? null } as any).eq("id", suggestion.id);
-      toast.success("Ders onaylandı!"); fetchAll(true); return;
+      toast.success("Ders onaylandÄ±!"); fetchAll(true); return;
     }
     await supabase.from("academic_suggestions").update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString() } as any).eq("id", suggestion.id);
-    toast.success("Öneri onaylandı!"); fetchAll(true);
+    toast.success("Ã–neri onaylandÄ±!"); fetchAll(true);
   };
 
   const handleRejectSuggestion = async (suggestion: any, note?: string) => {
@@ -718,10 +727,111 @@ export default function AdminPage() {
         await supabase.from("courses").delete().eq("id", suggestion.inserted_id);
       }
     }
-    await supabase.from("academic_suggestions").update({ status: "rejected", admin_note: note || "Admin tarafından reddedildi", reviewed_by: user?.id, reviewed_at: new Date().toISOString() } as any).eq("id", suggestion.id);
-    toast.success("Öneri reddedildi"); fetchAll(true);
+    await supabase.from("academic_suggestions").update({ status: "rejected", admin_note: note || "Admin tarafÄ±ndan reddedildi", reviewed_by: user?.id, reviewed_at: new Date().toISOString() } as any).eq("id", suggestion.id);
+    toast.success("Ã–neri reddedildi"); fetchAll(true);
   };
 
+  const handleApproveAcademicProgramRequest = async (request: any) => {
+    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+      p_request_id: request.id,
+      p_action: "approved",
+    } as any);
+
+    if (!error && data?.ok) {
+      toast.success("Program talebi onaylandÄ± ve canonical kataloÄŸa iÅŸlendi.");
+      fetchAll(true);
+      return;
+    }
+
+    if (error && !isMissingFunctionError(error)) {
+      toast.error("Talep iÅŸlenemedi: " + error.message);
+      return;
+    }
+
+    const finalProgramName = (request.requested_program_name || "").trim();
+    const finalProgramLevel = (request.requested_program_level || "lisans").trim();
+    const finalUnitName = (request.requested_unit_name || "").trim() || null;
+    const finalProgramYears = finalProgramLevel === "onlisans" ? 2 : 4;
+
+    const { data: upsertedProgram, error: upsertErr } = await supabase.from("academic_programs" as any).upsert({
+      university_id: request.university_id,
+      university_name: request.university_name,
+      program_name: finalProgramName,
+      unit_name: finalUnitName,
+      unit_type: finalUnitName?.toLocaleLowerCase("tr-TR").includes("fakÃ¼lte") ? "fakulte" : "diger",
+      program_level: finalProgramLevel,
+      program_years: finalProgramYears,
+      source: "request",
+      is_active: true,
+      created_by: user?.id || null,
+    }, { onConflict: "university_id,program_name_normalized,program_level" }).select("id").maybeSingle();
+
+    if (upsertErr) {
+      toast.error("Program kataloÄŸa iÅŸlenemedi: " + upsertErr.message);
+      return;
+    }
+
+    await supabase.from("departments" as any).upsert({
+      university: request.university_name,
+      name: finalProgramName,
+      faculty: finalUnitName,
+      program_years: finalProgramYears,
+      created_by: user?.id || null,
+    }, { onConflict: "university,name_normalized" });
+
+    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+      status: "approved",
+      admin_program_name: finalProgramName,
+      admin_program_level: finalProgramLevel,
+      admin_unit_name: finalUnitName,
+      admin_program_years: finalProgramYears,
+      inserted_program_id: upsertedProgram?.id || null,
+      reviewed_by: user?.id || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", request.id);
+
+    if (updateErr) {
+      toast.error("Talep gÃ¼ncellenemedi: " + updateErr.message);
+      return;
+    }
+
+    toast.success("Program talebi onaylandÄ±.");
+    fetchAll(true);
+  };
+
+  const handleRejectAcademicProgramRequest = async (request: any) => {
+    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+      p_request_id: request.id,
+      p_action: "rejected",
+      p_admin_note: "Admin tarafÄ±ndan reddedildi",
+    } as any);
+
+    if (!error && data?.ok) {
+      toast.success("Program talebi reddedildi.");
+      fetchAll(true);
+      return;
+    }
+
+    if (error && !isMissingFunctionError(error)) {
+      toast.error("Talep reddedilemedi: " + error.message);
+      return;
+    }
+
+    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+      status: "rejected",
+      admin_note: "Admin tarafÄ±ndan reddedildi",
+      reviewed_by: user?.id || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", request.id);
+
+    if (updateErr) {
+      toast.error("Talep reddedilemedi: " + updateErr.message);
+      return;
+    }
+
+    toast.success("Program talebi reddedildi.");
+    fetchAll(true);
+  };
   const handleApproveDomainRequest = async (request: any) => {
     const draft = getDomainDraft(request);
     const universityName = (draft.university_name || "").trim();
@@ -805,7 +915,7 @@ export default function AdminPage() {
       })
       .eq("id", request.id);
     if (reqErr) {
-      toast.error("Talep güncellenemedi: " + reqErr.message);
+      toast.error("Talep gÃ¼ncellenemedi: " + reqErr.message);
       return;
     }
 
@@ -853,20 +963,20 @@ export default function AdminPage() {
     if (!reply.trim()) return;
     const ticket = supportTickets.find((t: any) => t.id === ticketId);
     const { error } = await supabase.from("support_tickets").update({ admin_reply: reply.trim(), status: "replied", replied_by: user?.id, replied_at: new Date().toISOString() } as any).eq("id", ticketId);
-    if (error) { toast.error("Yanıt gönderilemedi"); return; }
+    if (error) { toast.error("YanÄ±t gÃ¶nderilemedi"); return; }
     if (ticket) {
-      await supabase.from("notifications").insert({ user_id: ticket.user_id, type: "system", title: "Destek talebinize yanıt verildi", message: `"${(ticket.subject || "").substring(0, 50)}" konulu talebinize yanıt verildi.`, link: "/settings" });
+      await supabase.from("notifications").insert({ user_id: ticket.user_id, type: "system", title: "Destek talebinize yanÄ±t verildi", message: `"${(ticket.subject || "").substring(0, 50)}" konulu talebinize yanÄ±t verildi.`, link: "/settings" });
     }
-    toast.success("Yanıt gönderildi"); fetchAll(true);
+    toast.success("YanÄ±t gÃ¶nderildi"); fetchAll(true);
   };
 
   const handleCloseTicket = async (ticketId: string) => {
     const { error } = await supabase.from("support_tickets").update({ status: "closed" } as any).eq("id", ticketId);
-    if (error) toast.error("Kapatılamadı");
-    else { toast.success("Talep kapatıldı"); fetchAll(true); }
+    if (error) toast.error("KapatÄ±lamadÄ±");
+    else { toast.success("Talep kapatÄ±ldÄ±"); fetchAll(true); }
   };
 
-  // ─── Universities list ───
+  // â”€â”€â”€ Universities list â”€â”€â”€
   const allUniversities = useMemo(() => {
     return [...new Set([
       ...universitiesCatalog.map((u: any) => u.name).filter(Boolean),
@@ -894,8 +1004,8 @@ export default function AdminPage() {
               <Shield className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-heading text-xl font-extrabold">Yönetici Paneli</h1>
-              <p className="text-xs text-muted-foreground">Platform yönetimi ve moderasyon merkezi</p>
+              <h1 className="font-heading text-xl font-extrabold">YÃ¶netici Paneli</h1>
+              <p className="text-xs text-muted-foreground">Platform yÃ¶netimi ve moderasyon merkezi</p>
             </div>
           </div>
           <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => fetchAll(true)} disabled={refreshing}>
@@ -918,7 +1028,7 @@ export default function AdminPage() {
           )}
           {stats.pendingSuggestions > 0 && (
             <Badge className="cursor-pointer text-xs py-1 px-2.5 bg-amber-500/10 text-amber-600 border border-amber-300" onClick={() => { setActiveTab("suggestions"); setSuggestionFilter("pending"); }}>
-              <GraduationCap className="h-3 w-3 mr-1" /> {stats.pendingSuggestions} öneri bekliyor
+              <GraduationCap className="h-3 w-3 mr-1" /> {stats.pendingSuggestions} Ã¶neri bekliyor
             </Badge>
           )}
           {stats.openTickets > 0 && (
@@ -928,12 +1038,12 @@ export default function AdminPage() {
           )}
           {stats.suspendedUsers > 0 && (
             <Badge variant="outline" className="cursor-pointer text-xs py-1 px-2.5 text-destructive" onClick={() => { setActiveTab("users"); setUserStatusFilter("suspended"); }}>
-              <Ban className="h-3 w-3 mr-1" /> {stats.suspendedUsers} askıda
+              <Ban className="h-3 w-3 mr-1" /> {stats.suspendedUsers} askÄ±da
             </Badge>
           )}
           {stats.mutedUsers > 0 && (
             <Badge variant="outline" className="cursor-pointer text-xs py-1 px-2.5 text-amber-600" onClick={() => { setActiveTab("users"); setUserStatusFilter("muted"); }}>
-              <VolumeX className="h-3 w-3 mr-1" /> {stats.mutedUsers} susturulmuş
+              <VolumeX className="h-3 w-3 mr-1" /> {stats.mutedUsers} susturulmuÅŸ
             </Badge>
           )}
         </div>
@@ -973,15 +1083,15 @@ export default function AdminPage() {
               </div>
             ) : (
               <>
-                {/* ═══ STATS ═══ */}
+                {/* â•â•â• STATS â•â•â• */}
                 {activeTab === "stats" && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      <StatCard icon={Users} label="Toplam Kullanıcı" value={stats.totalUsers} color="text-primary" onClick={() => setActiveTab("users")} />
-                      <StatCard icon={Building2} label="Üniversite" value={stats.totalUniversities} color="text-green-600" />
-                      <StatCard icon={GraduationCap} label="Bölüm" value={stats.totalDepartments} color="text-blue-600" />
+                      <StatCard icon={Users} label="Toplam KullanÄ±cÄ±" value={stats.totalUsers} color="text-primary" onClick={() => setActiveTab("users")} />
+                      <StatCard icon={Building2} label="Ãœniversite" value={stats.totalUniversities} color="text-green-600" />
+                      <StatCard icon={GraduationCap} label="BÃ¶lÃ¼m" value={stats.totalDepartments} color="text-blue-600" />
                       <StatCard icon={BookOpen} label="Ders" value={stats.totalCourses} color="text-purple-600" onClick={() => setActiveTab("courses")} />
-                      <StatCard icon={FileText} label="Toplam Gönderi" value={stats.totalPosts} color="text-foreground" onClick={() => setActiveTab("posts")} />
+                      <StatCard icon={FileText} label="Toplam GÃ¶nderi" value={stats.totalPosts} color="text-foreground" onClick={() => setActiveTab("posts")} />
                       <StatCard icon={MessageSquare} label="Toplam Yorum" value={stats.totalComments} color="text-indigo-500" onClick={() => setActiveTab("comments")} />
                       <StatCard icon={Flag} label="Bekleyen Rapor" value={stats.pendingReports} color="text-destructive" onClick={() => { setActiveTab("reports"); setReportStatusFilter("pending"); }} />
                       <StatCard icon={ShieldAlert} label="Moderasyon" value={stats.pendingMod} color="text-amber-500" onClick={() => { setActiveTab("moderation"); setModQueueFilter("flagged"); }} />
@@ -994,11 +1104,11 @@ export default function AdminPage() {
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.past_exams}</p>
-                        <p className="text-[11px] text-muted-foreground">Çıkmış Soru</p>
+                        <p className="text-[11px] text-muted-foreground">Ã‡Ä±kmÄ±ÅŸ Soru</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.discussion}</p>
-                        <p className="text-[11px] text-muted-foreground">Tartışma</p>
+                        <p className="text-[11px] text-muted-foreground">TartÄ±ÅŸma</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.kaynaklar}</p>
@@ -1009,27 +1119,27 @@ export default function AdminPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card className="p-4">
                         <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> En Aktif Dersler</h3>
-                        {stats.topCourses.length === 0 ? <p className="text-xs text-muted-foreground">Henüz veri yok.</p> : (
+                        {stats.topCourses.length === 0 ? <p className="text-xs text-muted-foreground">HenÃ¼z veri yok.</p> : (
                           <div className="space-y-2">
                             {stats.topCourses.map((c, i) => (
                               <div key={i} className="flex items-center justify-between">
                                 <span className="text-sm truncate">{c.code && <span className="text-muted-foreground mr-1">{c.code}</span>}{c.name}</span>
-                                <Badge variant="secondary" className="text-[10px]">{c.count} gönderi</Badge>
+                                <Badge variant="secondary" className="text-[10px]">{c.count} gÃ¶nderi</Badge>
                               </div>
                             ))}
                           </div>
                         )}
                       </Card>
                       <Card className="p-4">
-                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Star className="h-4 w-4 text-primary" /> En Aktif Kullanıcılar</h3>
-                        {stats.topUsers.length === 0 ? <p className="text-xs text-muted-foreground">Henüz veri yok.</p> : (
+                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Star className="h-4 w-4 text-primary" /> En Aktif KullanÄ±cÄ±lar</h3>
+                        {stats.topUsers.length === 0 ? <p className="text-xs text-muted-foreground">HenÃ¼z veri yok.</p> : (
                           <div className="space-y-2">
                             {stats.topUsers.map((u, i) => (
                               <div key={i} className="flex items-center justify-between">
                                 <span className="text-sm">{u.name}</span>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="text-[10px]">{u.rep} puan</Badge>
-                                  <Badge variant="secondary" className="text-[10px]">{u.count} gönderi</Badge>
+                                  <Badge variant="secondary" className="text-[10px]">{u.count} gÃ¶nderi</Badge>
                                 </div>
                               </div>
                             ))}
@@ -1040,7 +1150,7 @@ export default function AdminPage() {
 
                     {/* User status overview */}
                     <Card className="p-4">
-                      <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> Kullanıcı Durumları</h3>
+                      <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> KullanÄ±cÄ± DurumlarÄ±</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("active"); }}>
                           <p className="text-lg font-extrabold text-green-600">{stats.totalUsers - stats.mutedUsers - stats.suspendedUsers}</p>
@@ -1048,45 +1158,45 @@ export default function AdminPage() {
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("muted"); }}>
                           <p className="text-lg font-extrabold text-amber-500">{stats.mutedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Susturulmuş</p>
+                          <p className="text-[11px] text-muted-foreground">SusturulmuÅŸ</p>
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("suspended"); }}>
                           <p className="text-lg font-extrabold text-destructive">{stats.suspendedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Askıda</p>
+                          <p className="text-[11px] text-muted-foreground">AskÄ±da</p>
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("flagged"); }}>
                           <p className="text-lg font-extrabold text-amber-600">{stats.flaggedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Uyarılı</p>
+                          <p className="text-[11px] text-muted-foreground">UyarÄ±lÄ±</p>
                         </div>
                       </div>
                     </Card>
                   </div>
                 )}
 
-                {/* ═══ USERS ═══ */}
+                {/* â•â•â• USERS â•â•â• */}
                 {activeTab === "users" && (
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <SearchBar value={userSearch} onChange={(v) => { setUserSearch(v); setUserPage(0); }} placeholder="Kullanıcı ara (isim, üniversite, bölüm, ID)..." />
+                        <SearchBar value={userSearch} onChange={(v) => { setUserSearch(v); setUserPage(0); }} placeholder="KullanÄ±cÄ± ara (isim, Ã¼niversite, bÃ¶lÃ¼m, ID)..." />
                       </div>
                       <div className="flex gap-2">
                         <Select value={userStatusFilter} onValueChange={(v) => { setUserStatusFilter(v); setUserPage(0); }}>
                           <SelectTrigger className="w-36 h-9 text-xs"><SelectValue placeholder="Durum" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Tüm Durumlar</SelectItem>
+                            <SelectItem value="all">TÃ¼m Durumlar</SelectItem>
                             <SelectItem value="active">Aktif</SelectItem>
-                            <SelectItem value="muted">Susturulmuş</SelectItem>
-                            <SelectItem value="suspended">Askıda</SelectItem>
-                            <SelectItem value="flagged">Uyarılı</SelectItem>
+                            <SelectItem value="muted">SusturulmuÅŸ</SelectItem>
+                            <SelectItem value="suspended">AskÄ±da</SelectItem>
+                            <SelectItem value="flagged">UyarÄ±lÄ±</SelectItem>
                           </SelectContent>
                         </Select>
                         <Select value={userRoleFilter} onValueChange={(v) => { setUserRoleFilter(v); setUserPage(0); }}>
                           <SelectTrigger className="w-28 h-9 text-xs"><SelectValue placeholder="Rol" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Tüm Roller</SelectItem>
+                            <SelectItem value="all">TÃ¼m Roller</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="user">Kullanıcı</SelectItem>
+                            <SelectItem value="user">KullanÄ±cÄ±</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1096,13 +1206,13 @@ export default function AdminPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs">Kullanıcı</TableHead>
-                              <TableHead className="text-xs hidden sm:table-cell">Üniversite</TableHead>
-                              <TableHead className="text-xs hidden md:table-cell">Bölüm</TableHead>
+                              <TableHead className="text-xs">KullanÄ±cÄ±</TableHead>
+                              <TableHead className="text-xs hidden sm:table-cell">Ãœniversite</TableHead>
+                              <TableHead className="text-xs hidden md:table-cell">BÃ¶lÃ¼m</TableHead>
                               <TableHead className="text-xs">Durum</TableHead>
                               <TableHead className="text-xs">Rol</TableHead>
                               <TableHead className="text-xs text-right">Puan</TableHead>
-                              <TableHead className="text-xs text-right">İşlem</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlem</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1124,8 +1234,8 @@ export default function AdminPage() {
                                     </div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{u.university || "—"}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{u.department || "—"}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{u.university || "â€”"}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{u.department || "â€”"}</TableCell>
                                 <TableCell><UserStatusBadges user={u} /></TableCell>
                                 <TableCell>
                                   <Badge variant={getUserRole(u.user_id) === "admin" ? "destructive" : "outline"} className="text-[10px]">
@@ -1136,12 +1246,12 @@ export default function AdminPage() {
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-0.5">
                                     {u.is_muted && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-amber-600" onClick={() => handleUnmuteUser(u.user_id)} title="Susturmayı Kaldır">
+                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-amber-600" onClick={() => handleUnmuteUser(u.user_id)} title="SusturmayÄ± KaldÄ±r">
                                         <VolumeX className="h-3 w-3" />
                                       </Button>
                                     )}
                                     {u.is_suspended && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-destructive" onClick={() => handleUnsuspendUser(u.user_id)} title="Askıyı Kaldır">
+                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-destructive" onClick={() => handleUnsuspendUser(u.user_id)} title="AskÄ±yÄ± KaldÄ±r">
                                         <Ban className="h-3 w-3" />
                                       </Button>
                                     )}
@@ -1150,19 +1260,19 @@ export default function AdminPage() {
                                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-500" onClick={() => handleMuteUser(u.user_id)} title="Sustur">
                                           <VolumeX className="h-3 w-3" />
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleSuspendUser(u.user_id)} title="Askıya Al">
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleSuspendUser(u.user_id)} title="AskÄ±ya Al">
                                           <Ban className="h-3 w-3" />
                                         </Button>
                                       </>
                                     )}
                                     {(u.moderation_score || 0) > 0 && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-primary" onClick={() => handleClearScore(u.user_id)} title="Skoru Sıfırla">
+                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-primary" onClick={() => handleClearScore(u.user_id)} title="Skoru SÄ±fÄ±rla">
                                         <RefreshCw className="h-3 w-3" />
                                       </Button>
                                     )}
                                     {u.user_id !== user?.id && (
                                       <Button variant="ghost" size="sm" className={`h-7 w-7 p-0 ${getUserRole(u.user_id) === "admin" ? "text-destructive" : "text-primary"}`}
-                                        onClick={() => handleToggleAdmin(u.user_id)} title={getUserRole(u.user_id) === "admin" ? "Admin kaldır" : "Admin yap"}>
+                                        onClick={() => handleToggleAdmin(u.user_id)} title={getUserRole(u.user_id) === "admin" ? "Admin kaldÄ±r" : "Admin yap"}>
                                         {getUserRole(u.user_id) === "admin" ? <XCircle className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
                                       </Button>
                                     )}
@@ -1172,7 +1282,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredUsers.length === 0 && (
-                              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Kullanıcı bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">KullanÄ±cÄ± bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1182,21 +1292,21 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ MODERATION ═══ */}
+                {/* â•â•â• MODERATION â•â•â• */}
                 {activeTab === "moderation" && (
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <SearchBar value={modSearch} onChange={(v) => { setModSearch(v); setModQueuePage(0); }} placeholder="Moderasyon ara (içerik, ihlal, kullanıcı)..." />
+                        <SearchBar value={modSearch} onChange={(v) => { setModSearch(v); setModQueuePage(0); }} placeholder="Moderasyon ara (iÃ§erik, ihlal, kullanÄ±cÄ±)..." />
                       </div>
                       <Select value={modQueueFilter} onValueChange={(v) => { setModQueueFilter(v); setModQueuePage(0); }}>
                         <SelectTrigger className="w-36 h-9 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
-                          <SelectItem value="flagged">İşaretli</SelectItem>
+                          <SelectItem value="all">TÃ¼mÃ¼</SelectItem>
+                          <SelectItem value="flagged">Ä°ÅŸaretli</SelectItem>
                           <SelectItem value="blocked">Engellenen</SelectItem>
                           <SelectItem value="approved">Onaylanan</SelectItem>
-                          <SelectItem value="false_positive">Yanlış Alarm</SelectItem>
+                          <SelectItem value="false_positive">YanlÄ±ÅŸ Alarm</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1206,20 +1316,20 @@ export default function AdminPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs">İçerik</TableHead>
-                              <TableHead className="text-xs">Tür</TableHead>
-                              <TableHead className="text-xs">İhlal</TableHead>
-                              <TableHead className="text-xs">Şiddet</TableHead>
+                              <TableHead className="text-xs">Ä°Ã§erik</TableHead>
+                              <TableHead className="text-xs">TÃ¼r</TableHead>
+                              <TableHead className="text-xs">Ä°hlal</TableHead>
+                              <TableHead className="text-xs">Åiddet</TableHead>
                               <TableHead className="text-xs">Durum</TableHead>
-                              <TableHead className="text-xs hidden sm:table-cell">Kullanıcı</TableHead>
-                              <TableHead className="text-xs text-right">İşlem</TableHead>
+                              <TableHead className="text-xs hidden sm:table-cell">KullanÄ±cÄ±</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlem</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginate(filteredModQueue, modQueuePage).map((item: any) => (
                               <TableRow key={item.id}>
                                 <TableCell className="py-2">
-                                  <p className="text-xs line-clamp-2 max-w-[200px]">{item.content_text || (item.content_url ? "🖼️ Görsel" : "—")}</p>
+                                  <p className="text-xs line-clamp-2 max-w-[200px]">{item.content_text || (item.content_url ? "ğŸ–¼ï¸ GÃ¶rsel" : "â€”")}</p>
                                 </TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{item.content_type}</Badge></TableCell>
                                 <TableCell><Badge variant="secondary" className="text-[10px]">{item.violation_type}</Badge></TableCell>
@@ -1236,13 +1346,13 @@ export default function AdminPage() {
                                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary" onClick={() => handleModAction(item.id, "approved")} title="Onayla">
                                         <CheckCircle className="h-3.5 w-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleModAction(item.id, "false_positive")} title="Yanlış Alarm">
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleModAction(item.id, "false_positive")} title="YanlÄ±ÅŸ Alarm">
                                         <XCircle className="h-3.5 w-3.5" />
                                       </Button>
                                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-500" onClick={() => handleMuteUser(item.user_id)} title="Sustur">
                                         <VolumeX className="h-3.5 w-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleSuspendUser(item.user_id)} title="Askıya Al">
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleSuspendUser(item.user_id)} title="AskÄ±ya Al">
                                         <Ban className="h-3.5 w-3.5" />
                                       </Button>
                                     </div>
@@ -1251,7 +1361,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredModQueue.length === 0 && (
-                              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Moderasyon kuyruğu boş.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Moderasyon kuyruÄŸu boÅŸ.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1260,15 +1370,15 @@ export default function AdminPage() {
                     </Card>
 
                     {/* Mod Logs */}
-                    <h3 className="text-sm font-bold pt-2">Moderasyon Geçmişi</h3>
+                    <h3 className="text-sm font-bold pt-2">Moderasyon GeÃ§miÅŸi</h3>
                     <Card className="overflow-hidden">
                       <ScrollArea className="max-h-[300px]">
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead className="text-xs">Tarih</TableHead>
-                              <TableHead className="text-xs">İşlem</TableHead>
-                              <TableHead className="text-xs">Kullanıcı</TableHead>
+                              <TableHead className="text-xs">Ä°ÅŸlem</TableHead>
+                              <TableHead className="text-xs">KullanÄ±cÄ±</TableHead>
                               <TableHead className="text-xs">Neden</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1284,11 +1394,11 @@ export default function AdminPage() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs">{getUsername(log.user_id)}</TableCell>
-                                <TableCell className="text-[10px] text-muted-foreground max-w-[200px] truncate">{log.reason || "—"}</TableCell>
+                                <TableCell className="text-[10px] text-muted-foreground max-w-[200px] truncate">{log.reason || "â€”"}</TableCell>
                               </TableRow>
                             ))}
                             {moderationLogs.length === 0 && (
-                              <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">Moderasyon geçmişi boş.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">Moderasyon geÃ§miÅŸi boÅŸ.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1298,41 +1408,41 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ SUGGESTIONS ═══ */}
+                {/* â•â•â• SUGGESTIONS â•â•â• */}
                 {activeTab === "suggestions" && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Select value={suggestionFilter} onValueChange={setSuggestionFilter}>
                         <SelectTrigger className="w-40 h-9 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="all">TÃ¼mÃ¼</SelectItem>
                           <SelectItem value="pending">Bekleyen</SelectItem>
                           <SelectItem value="approved">Onaylanan</SelectItem>
                           <SelectItem value="rejected">Reddedilen</SelectItem>
                         </SelectContent>
                       </Select>
-                      <span className="text-xs text-muted-foreground">{filteredSuggestions.length} öneri</span>
+                      <span className="text-xs text-muted-foreground">{filteredSuggestions.length + filteredAcademicProgramRequests.length} Ã¶ÄŸe</span>
                     </div>
-                    {filteredSuggestions.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Öneri bulunamadı.</Card>}
+                    {filteredSuggestions.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Ã–neri bulunamadÄ±.</Card>}
                     {filteredSuggestions.map((s: any) => (
                       <Card key={s.id} className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px]">{s.type === "department" ? "Bölüm" : s.type === "info_change" ? "Bilgi Değişikliği" : s.type === "university" ? "Üniversite" : "Ders"}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{s.type === "department" ? "BÃ¶lÃ¼m" : s.type === "info_change" ? "Bilgi DeÄŸiÅŸikliÄŸi" : s.type === "university" ? "Ãœniversite" : "Ders"}</Badge>
                             <StatusBadge status={s.status} />
                           </div>
                           <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true, locale: tr })}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div><p className="text-[10px] text-muted-foreground">Üniversite</p><p className="font-medium">{s.university}</p></div>
-                          {s.department && <div><p className="text-[10px] text-muted-foreground">Bölüm</p><p className="font-medium">{s.department}</p></div>}
+                          <div><p className="text-[10px] text-muted-foreground">Ãœniversite</p><p className="font-medium">{s.university}</p></div>
+                          {s.department && <div><p className="text-[10px] text-muted-foreground">BÃ¶lÃ¼m</p><p className="font-medium">{s.department}</p></div>}
                           {s.course_name && <div><p className="text-[10px] text-muted-foreground">Ders</p><p className="font-medium">{s.course_name}</p></div>}
                           {s.course_code && <div><p className="text-[10px] text-muted-foreground">Kod</p><p className="font-medium">{s.course_code}</p></div>}
-                          {s.class_year && <div><p className="text-[10px] text-muted-foreground">Sınıf</p><p className="font-medium">{s.class_year === "0" || s.class_year === 0 ? "Hazırlık" : `${s.class_year}. Sınıf`}</p></div>}
-                          <div><p className="text-[10px] text-muted-foreground">Öneren</p><p className="font-medium">{getUsername(s.user_id)}</p></div>
+                          {s.class_year && <div><p className="text-[10px] text-muted-foreground">SÄ±nÄ±f</p><p className="font-medium">{s.class_year === "0" || s.class_year === 0 ? "HazÄ±rlÄ±k" : `${s.class_year}. SÄ±nÄ±f`}</p></div>}
+                          <div><p className="text-[10px] text-muted-foreground">Ã–neren</p><p className="font-medium">{getUsername(s.user_id)}</p></div>
                         </div>
-                        {s.ai_reason && <p className="text-xs text-muted-foreground bg-secondary/50 p-2 rounded">AI: {s.ai_reason} (güven: {Math.round((s.ai_confidence || 0) * 100)}%)</p>}
-                        {s.explanation && <p className="text-xs text-muted-foreground">Açıklama: {s.explanation}</p>}
+                        {s.ai_reason && <p className="text-xs text-muted-foreground bg-secondary/50 p-2 rounded">AI: {s.ai_reason} (gÃ¼ven: {Math.round((s.ai_confidence || 0) * 100)}%)</p>}
+                        {s.explanation && <p className="text-xs text-muted-foreground">AÃ§Ä±klama: {s.explanation}</p>}
                         {s.admin_note && <p className="text-xs text-muted-foreground bg-primary/5 p-2 rounded">Admin notu: {s.admin_note}</p>}
                         {s.status === "pending" && (
                           <div className="flex gap-2 pt-1">
@@ -1346,6 +1456,72 @@ export default function AdminPage() {
                         )}
                       </Card>
                     ))}
+
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center gap-2 py-2">
+                        <h3 className="text-sm font-bold">BÃ¶lÃ¼m/Program Request Talepleri</h3>
+                        <span className="text-xs text-muted-foreground">{filteredAcademicProgramRequests.length} talep</span>
+                      </div>
+
+                      {filteredAcademicProgramRequests.length === 0 && (
+                        <Card className="p-6 text-center text-sm text-muted-foreground">Program talebi bulunamadÄ±.</Card>
+                      )}
+
+                      {filteredAcademicProgramRequests.map((r: any) => (
+                        <Card key={r.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px]">Program Talebi</Badge>
+                              <StatusBadge status={r.status} />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Ãœniversite</p>
+                              <p className="font-medium">{r.university_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Program</p>
+                              <p className="font-medium">{r.requested_program_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Seviye</p>
+                              <p className="font-medium">{r.requested_program_level === "onlisans" ? "Ã–nlisans" : "Lisans"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">FakÃ¼lte/YÃ¼ksekokul</p>
+                              <p className="font-medium">{r.requested_unit_name || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Kaynak</p>
+                              <p className="font-medium">{r.request_context === "signup" ? "Signup" : "Ä°Ã§erik Ekle"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Talep Eden</p>
+                              <p className="font-medium">{r.requester_user_id ? getUsername(r.requester_user_id) : (r.requester_email || "Anonim")}</p>
+                            </div>
+                          </div>
+
+                          {r.request_note && <p className="text-xs text-muted-foreground">Not: {r.request_note}</p>}
+                          {r.admin_note && <p className="text-xs text-muted-foreground bg-primary/5 p-2 rounded">Admin notu: {r.admin_note}</p>}
+
+                          {r.status === "pending" && (
+                            <div className="flex gap-2 pt-1">
+                              <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => handleApproveAcademicProgramRequest(r)}>
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Onayla ve KataloÄŸa Ä°ÅŸle
+                              </Button>
+                              <Button size="sm" variant="destructive" className="flex-1 h-8 text-xs" onClick={() => handleRejectAcademicProgramRequest(r)}>
+                                <XCircle className="h-3.5 w-3.5 mr-1" /> Reddet
+                              </Button>
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
 
                     <div className="pt-2 border-t">
                       <div className="flex items-center gap-2 py-2">
@@ -1490,26 +1666,26 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ SUPPORT ═══ */}
+                {/* â•â•â• SUPPORT â•â•â• */}
                 {activeTab === "support" && (() => {
                   const openTickets = supportTickets.filter((t: any) => t.status === "open");
                   const closedTickets = supportTickets.filter((t: any) => t.status !== "open");
                   return (
                     <div className="space-y-4">
-                      <h3 className="text-sm font-bold">Açık Destek Talepleri ({openTickets.length})</h3>
-                      {openTickets.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Açık destek talebi yok.</Card>}
+                      <h3 className="text-sm font-bold">AÃ§Ä±k Destek Talepleri ({openTickets.length})</h3>
+                      {openTickets.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">AÃ§Ä±k destek talebi yok.</Card>}
                       {openTickets.map((t: any) => (
                         <SupportTicketCard key={t.id} ticket={t} getUsername={getUsername} onReply={handleReplyTicket} onClose={handleCloseTicket} />
                       ))}
                       {closedTickets.length > 0 && (
                         <>
-                          <h3 className="text-sm font-bold pt-4">Geçmiş Talepler ({closedTickets.length})</h3>
+                          <h3 className="text-sm font-bold pt-4">GeÃ§miÅŸ Talepler ({closedTickets.length})</h3>
                           <Card className="overflow-hidden">
                             <ScrollArea className="max-h-[300px]">
                               <Table>
                                 <TableHeader><TableRow>
                                   <TableHead className="text-xs">Konu</TableHead>
-                                  <TableHead className="text-xs">Kullanıcı</TableHead>
+                                  <TableHead className="text-xs">KullanÄ±cÄ±</TableHead>
                                   <TableHead className="text-xs">Durum</TableHead>
                                   <TableHead className="text-xs hidden sm:table-cell">Tarih</TableHead>
                                 </TableRow></TableHeader>
@@ -1532,17 +1708,17 @@ export default function AdminPage() {
                   );
                 })()}
 
-                {/* ═══ COURSES ═══ */}
+                {/* â•â•â• COURSES â•â•â• */}
                 {activeTab === "courses" && (
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <SearchBar value={courseSearch} onChange={(v) => { setCourseSearch(v); setCoursePage(0); }} placeholder="Ders ara (ad, kod, bölüm)..." />
+                        <SearchBar value={courseSearch} onChange={(v) => { setCourseSearch(v); setCoursePage(0); }} placeholder="Ders ara (ad, kod, bÃ¶lÃ¼m)..." />
                       </div>
                       <Select value={courseUniFilter} onValueChange={(v) => { setCourseUniFilter(v); setCoursePage(0); }}>
-                        <SelectTrigger className="w-48 h-9 text-xs"><SelectValue placeholder="Üniversite" /></SelectTrigger>
+                        <SelectTrigger className="w-48 h-9 text-xs"><SelectValue placeholder="Ãœniversite" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tüm Üniversiteler</SelectItem>
+                          <SelectItem value="all">TÃ¼m Ãœniversiteler</SelectItem>
                           {allUniversities.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -1554,10 +1730,10 @@ export default function AdminPage() {
                           <TableHeader>
                             <TableRow>
                               <TableHead className="text-xs">Ders</TableHead>
-                              <TableHead className="text-xs hidden sm:table-cell">Üniversite</TableHead>
-                              <TableHead className="text-xs hidden md:table-cell">Bölüm</TableHead>
-                              <TableHead className="text-xs">Sınıf</TableHead>
-                              <TableHead className="text-xs text-right">İşlemler</TableHead>
+                              <TableHead className="text-xs hidden sm:table-cell">Ãœniversite</TableHead>
+                              <TableHead className="text-xs hidden md:table-cell">BÃ¶lÃ¼m</TableHead>
+                              <TableHead className="text-xs">SÄ±nÄ±f</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlemler</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1569,7 +1745,7 @@ export default function AdminPage() {
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{c.university}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{c.department}</TableCell>
-                                <TableCell><Badge variant="secondary" className="text-[10px]">{c.year === 0 ? "Hazırlık" : `${c.year}. Sınıf`}</Badge></TableCell>
+                                <TableCell><Badge variant="secondary" className="text-[10px]">{c.year === 0 ? "HazÄ±rlÄ±k" : `${c.year}. SÄ±nÄ±f`}</Badge></TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">
                                     <CourseFormDialog course={c} universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
@@ -1581,7 +1757,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredCourses.length === 0 && (
-                              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Ders bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Ders bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1591,20 +1767,20 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ POSTS ═══ */}
+                {/* â•â•â• POSTS â•â•â• */}
                 {activeTab === "posts" && (
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <SearchBar value={postSearch} onChange={(v) => { setPostSearch(v); setPostPage(0); }} placeholder="Gönderi ara (başlık, içerik)..." />
+                        <SearchBar value={postSearch} onChange={(v) => { setPostSearch(v); setPostPage(0); }} placeholder="GÃ¶nderi ara (baÅŸlÄ±k, iÃ§erik)..." />
                       </div>
                       <Select value={postTypeFilter} onValueChange={(v) => { setPostTypeFilter(v); setPostPage(0); }}>
-                        <SelectTrigger className="w-32 h-9 text-xs"><SelectValue placeholder="Tür" /></SelectTrigger>
+                        <SelectTrigger className="w-32 h-9 text-xs"><SelectValue placeholder="TÃ¼r" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="all">TÃ¼mÃ¼</SelectItem>
                           <SelectItem value="notes">Notlar</SelectItem>
-                          <SelectItem value="past_exams">Çıkmış</SelectItem>
-                          <SelectItem value="discussion">Tartışma</SelectItem>
+                          <SelectItem value="past_exams">Ã‡Ä±kmÄ±ÅŸ</SelectItem>
+                          <SelectItem value="discussion">TartÄ±ÅŸma</SelectItem>
                           <SelectItem value="kaynaklar">Kaynak</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1614,12 +1790,12 @@ export default function AdminPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs">Başlık</TableHead>
-                              <TableHead className="text-xs">Tür</TableHead>
+                              <TableHead className="text-xs">BaÅŸlÄ±k</TableHead>
+                              <TableHead className="text-xs">TÃ¼r</TableHead>
                               <TableHead className="text-xs hidden sm:table-cell">Yazar</TableHead>
                               <TableHead className="text-xs hidden md:table-cell">Ders</TableHead>
                               <TableHead className="text-xs hidden lg:table-cell">Tarih</TableHead>
-                              <TableHead className="text-xs text-right">İşlem</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlem</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1630,7 +1806,7 @@ export default function AdminPage() {
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className="text-[10px]">
-                                    {({ notes: "Not", past_exams: "Çıkmış", discussion: "Tartışma", kaynaklar: "Kaynak" } as any)[p.content_type] || p.content_type}
+                                    {({ notes: "Not", past_exams: "Ã‡Ä±kmÄ±ÅŸ", discussion: "TartÄ±ÅŸma", kaynaklar: "Kaynak" } as any)[p.content_type] || p.content_type}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{p.is_anonymous ? "Anonim" : getUsername(p.user_id)}</TableCell>
@@ -1651,7 +1827,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredPosts.length === 0 && (
-                              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">Gönderi bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">GÃ¶nderi bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1661,20 +1837,20 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ COMMENTS ═══ */}
+                {/* â•â•â• COMMENTS â•â•â• */}
                 {activeTab === "comments" && (
                   <div className="space-y-3">
-                    <SearchBar value={commentSearch} onChange={(v) => { setCommentSearch(v); setCommentPage(0); }} placeholder="Yorum ara (içerik)..." />
+                    <SearchBar value={commentSearch} onChange={(v) => { setCommentSearch(v); setCommentPage(0); }} placeholder="Yorum ara (iÃ§erik)..." />
                     <Card className="overflow-hidden">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs">İçerik</TableHead>
+                              <TableHead className="text-xs">Ä°Ã§erik</TableHead>
                               <TableHead className="text-xs hidden sm:table-cell">Yazar</TableHead>
-                              <TableHead className="text-xs hidden md:table-cell">Beğeni</TableHead>
+                              <TableHead className="text-xs hidden md:table-cell">BeÄŸeni</TableHead>
                               <TableHead className="text-xs hidden lg:table-cell">Tarih</TableHead>
-                              <TableHead className="text-xs text-right">İşlem</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlem</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1694,7 +1870,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredComments.length === 0 && (
-                              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Yorum bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Yorum bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1704,7 +1880,7 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ REPORTS ═══ */}
+                {/* â•â•â• REPORTS â•â•â• */}
                 {activeTab === "reports" && (
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -1714,9 +1890,9 @@ export default function AdminPage() {
                       <Select value={reportStatusFilter} onValueChange={(v) => { setReportStatusFilter(v); setReportPage(0); }}>
                         <SelectTrigger className="w-32 h-9 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="all">TÃ¼mÃ¼</SelectItem>
                           <SelectItem value="pending">Bekleyen</SelectItem>
-                          <SelectItem value="resolved">Çözülen</SelectItem>
+                          <SelectItem value="resolved">Ã‡Ã¶zÃ¼len</SelectItem>
                           <SelectItem value="dismissed">Reddedilen</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1726,12 +1902,12 @@ export default function AdminPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="text-xs">Tür</TableHead>
+                              <TableHead className="text-xs">TÃ¼r</TableHead>
                               <TableHead className="text-xs">Sebep</TableHead>
                               <TableHead className="text-xs">Durum</TableHead>
                               <TableHead className="text-xs hidden sm:table-cell">Bildiren</TableHead>
                               <TableHead className="text-xs hidden md:table-cell">Tarih</TableHead>
-                              <TableHead className="text-xs text-right">İşlem</TableHead>
+                              <TableHead className="text-xs text-right">Ä°ÅŸlem</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1764,7 +1940,7 @@ export default function AdminPage() {
                               </TableRow>
                             ))}
                             {filteredReports.length === 0 && (
-                              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">Rapor bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">Rapor bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1774,18 +1950,18 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ═══ SECURITY ═══ */}
+                {/* â•â•â• SECURITY â•â•â• */}
                 {activeTab === "security" && (
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <SearchBar value={securitySearch} onChange={(v) => { setSecuritySearch(v); setSecurityPage(0); }} placeholder="Güvenlik logu ara (olay, kullanıcı)..." />
+                        <SearchBar value={securitySearch} onChange={(v) => { setSecuritySearch(v); setSecurityPage(0); }} placeholder="GÃ¼venlik logu ara (olay, kullanÄ±cÄ±)..." />
                       </div>
                       <Select value={securityLogFilter} onValueChange={(v) => { setSecurityLogFilter(v); setSecurityPage(0); }}>
                         <SelectTrigger className="w-40 h-9 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {securityEventTypes.map((t) => (
-                            <SelectItem key={t} value={t}>{t === "all" ? "Tüm olaylar" : t}</SelectItem>
+                            <SelectItem key={t} value={t}>{t === "all" ? "TÃ¼m olaylar" : t}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1797,7 +1973,7 @@ export default function AdminPage() {
                             <TableRow>
                               <TableHead className="text-xs">Tarih</TableHead>
                               <TableHead className="text-xs">Olay</TableHead>
-                              <TableHead className="text-xs">Kullanıcı</TableHead>
+                              <TableHead className="text-xs">KullanÄ±cÄ±</TableHead>
                               <TableHead className="text-xs">Detay</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1814,17 +1990,17 @@ export default function AdminPage() {
                                       {log.event_type}
                                     </Badge>
                                   </TableCell>
-                                  <TableCell className="text-xs">{getUsername(log.user_id) || meta.email || "—"}</TableCell>
+                                  <TableCell className="text-xs">{getUsername(log.user_id) || meta.email || "â€”"}</TableCell>
                                   <TableCell className="text-[10px] text-muted-foreground max-w-[200px] truncate">
                                     {meta.device ? `${meta.device.browser}/${meta.device.os}` : ""}
-                                    {meta.reason ? ` — ${meta.reason}` : ""}
+                                    {meta.reason ? ` â€” ${meta.reason}` : ""}
                                     {meta.method ? ` (${meta.method})` : ""}
                                   </TableCell>
                                 </TableRow>
                               );
                             })}
                             {filteredSecurityLogs.length === 0 && (
-                              <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">Güvenlik logu bulunamadı.</TableCell></TableRow>
+                              <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">GÃ¼venlik logu bulunamadÄ±.</TableCell></TableRow>
                             )}
                           </TableBody>
                         </Table>
@@ -1842,7 +2018,7 @@ export default function AdminPage() {
   );
 }
 
-/* ═══ Report Action Dialog ═══ */
+/* â•â•â• Report Action Dialog â•â•â• */
 function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onMarkAbuse, onWarnUser, onMuteUser, onSuspendUser, onRemoveAvatar }: {
   report: any;
   onResolve: (note: string) => void;
@@ -1861,38 +2037,38 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-7 text-[10px] px-2">İşlem Yap</Button>
+        <Button size="sm" variant="outline" className="h-7 text-[10px] px-2">Ä°ÅŸlem Yap</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
-        <DialogHeader><DialogTitle className="text-sm font-bold">Rapor İşlemi</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="text-sm font-bold">Rapor Ä°ÅŸlemi</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Moderasyon Notu</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Neden bu işlemi yaptığınızı yazın..." rows={2} maxLength={500} className="text-sm" />
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Neden bu iÅŸlemi yaptÄ±ÄŸÄ±nÄ±zÄ± yazÄ±n..." rows={2} maxLength={500} className="text-sm" />
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Rapor İşlemleri</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Rapor Ä°ÅŸlemleri</p>
             <div className="flex flex-col gap-1.5">
-              <Button size="sm" className="w-full gap-1.5 text-xs" onClick={() => act(onResolve)}><CheckCircle className="h-3.5 w-3.5" /> Çözüldü</Button>
+              <Button size="sm" className="w-full gap-1.5 text-xs" onClick={() => act(onResolve)}><CheckCircle className="h-3.5 w-3.5" /> Ã‡Ã¶zÃ¼ldÃ¼</Button>
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={() => act(onDismiss)}><XCircle className="h-3.5 w-3.5" /> Reddet</Button>
-              <Button size="sm" variant="secondary" className="w-full gap-1.5 text-xs" onClick={() => act(onMarkAbuse)}><AlertTriangle className="h-3.5 w-3.5" /> Asılsız (Bildireni Uyar)</Button>
+              <Button size="sm" variant="secondary" className="w-full gap-1.5 text-xs" onClick={() => act(onMarkAbuse)}><AlertTriangle className="h-3.5 w-3.5" /> AsÄ±lsÄ±z (Bildireni Uyar)</Button>
             </div>
           </div>
           <div className="space-y-1 border-t pt-2">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">İçerik İşlemleri</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Ä°Ã§erik Ä°ÅŸlemleri</p>
             <div className="flex flex-col gap-1.5">
-              <Button size="sm" variant="destructive" className="w-full gap-1.5 text-xs" onClick={() => act(onDeleteContent)}><Trash2 className="h-3.5 w-3.5" /> İçeriği Sil</Button>
+              <Button size="sm" variant="destructive" className="w-full gap-1.5 text-xs" onClick={() => act(onDeleteContent)}><Trash2 className="h-3.5 w-3.5" /> Ä°Ã§eriÄŸi Sil</Button>
               {(report.target_type === "user" || report.target_type === "avatar") && (
-                <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs border-destructive text-destructive" onClick={() => act(onRemoveAvatar)}><UserX className="h-3.5 w-3.5" /> Avatarı Kaldır</Button>
+                <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs border-destructive text-destructive" onClick={() => act(onRemoveAvatar)}><UserX className="h-3.5 w-3.5" /> AvatarÄ± KaldÄ±r</Button>
               )}
             </div>
           </div>
           <div className="space-y-1 border-t pt-2">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Kullanıcı İşlemleri</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase">KullanÄ±cÄ± Ä°ÅŸlemleri</p>
             <div className="flex flex-col gap-1.5">
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={() => act(onWarnUser)}><CircleAlert className="h-3.5 w-3.5" /> Uyar</Button>
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs text-amber-600 border-amber-300" onClick={() => act(onMuteUser)}><VolumeX className="h-3.5 w-3.5" /> Sustur (6 saat)</Button>
-              <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs text-destructive border-destructive" onClick={() => act(onSuspendUser)}><Ban className="h-3.5 w-3.5" /> Askıya Al (7 gün)</Button>
+              <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs text-destructive border-destructive" onClick={() => act(onSuspendUser)}><Ban className="h-3.5 w-3.5" /> AskÄ±ya Al (7 gÃ¼n)</Button>
             </div>
           </div>
         </div>
@@ -1901,7 +2077,7 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
   );
 }
 
-/* ═══ User Detail Dialog ═══ */
+/* â•â•â• User Detail Dialog â•â•â• */
 function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }: { user: any; role: string; postCount: number; commentCount: number; onDeleted?: () => void }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1912,7 +2088,7 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
     try {
       const { error } = await supabase.functions.invoke("admin-delete-user", { body: { target_user_id: u.user_id } });
       if (error) { toast.error("Silinemedi: " + error.message); }
-      else { toast.success("Kullanıcı silindi."); setOpen(false); setConfirmDelete(false); onDeleted?.(); }
+      else { toast.success("KullanÄ±cÄ± silindi."); setOpen(false); setConfirmDelete(false); onDeleted?.(); }
     } catch (err: any) { toast.error("Hata: " + (err.message || "Bilinmeyen")); }
     finally { setDeleting(false); }
   };
@@ -1935,30 +2111,30 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Üniversite</p><p className="font-medium">{u.university || "—"}</p></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Bölüm</p><p className="font-medium">{u.department || "—"}</p></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Sınıf</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "Hazırlık" : `${u.class_year}. Sınıf`) : "—"}</p></div>
+            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Ãœniversite</p><p className="font-medium">{u.university || "â€”"}</p></div>
+            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">BÃ¶lÃ¼m</p><p className="font-medium">{u.department || "â€”"}</p></div>
+            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">SÄ±nÄ±f</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "HazÄ±rlÄ±k" : `${u.class_year}. SÄ±nÄ±f`) : "â€”"}</p></div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Rol</p><Badge variant={role === "admin" ? "destructive" : "outline"} className="text-[10px]">{role}</Badge></div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Mod Skoru</p><p className="font-medium">{u.moderation_score || 0}</p></div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Durum</p><UserStatusBadges user={u} /></div>
           </div>
-          {u.bio && <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Hakkında</p><p className="text-sm text-muted-foreground">{u.bio}</p></div>}
+          {u.bio && <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">HakkÄ±nda</p><p className="text-sm text-muted-foreground">{u.bio}</p></div>}
           <div className="grid grid-cols-3 gap-2 pt-2 border-t">
             <div className="text-center"><p className="text-lg font-extrabold">{u.reputation_points ?? 0}</p><p className="text-[10px] text-muted-foreground"><Star className="h-2.5 w-2.5 inline mr-0.5" />Puan</p></div>
-            <div className="text-center"><p className="text-lg font-extrabold">{postCount}</p><p className="text-[10px] text-muted-foreground"><FileText className="h-2.5 w-2.5 inline mr-0.5" />Gönderi</p></div>
+            <div className="text-center"><p className="text-lg font-extrabold">{postCount}</p><p className="text-[10px] text-muted-foreground"><FileText className="h-2.5 w-2.5 inline mr-0.5" />GÃ¶nderi</p></div>
             <div className="text-center"><p className="text-lg font-extrabold">{commentCount}</p><p className="text-[10px] text-muted-foreground"><MessageSquare className="h-2.5 w-2.5 inline mr-0.5" />Yorum</p></div>
           </div>
-          <div className="text-[11px] text-muted-foreground">Kayıt: {formatDistanceToNow(new Date(u.created_at), { addSuffix: true, locale: tr })}</div>
-          <Button variant="outline" size="sm" className="w-full text-xs" asChild><Link to={`/user/${u.user_id}`}>Profili Görüntüle</Link></Button>
+          <div className="text-[11px] text-muted-foreground">KayÄ±t: {formatDistanceToNow(new Date(u.created_at), { addSuffix: true, locale: tr })}</div>
+          <Button variant="outline" size="sm" className="w-full text-xs" asChild><Link to={`/user/${u.user_id}`}>Profili GÃ¶rÃ¼ntÃ¼le</Link></Button>
           {role !== "admin" && (
             <div className="border-t pt-3">
               {!confirmDelete ? (
-                <Button variant="destructive" size="sm" className="w-full text-xs gap-1.5" onClick={() => setConfirmDelete(true)}><UserX className="h-3.5 w-3.5" /> Kullanıcıyı Sil</Button>
+                <Button variant="destructive" size="sm" className="w-full text-xs gap-1.5" onClick={() => setConfirmDelete(true)}><UserX className="h-3.5 w-3.5" /> KullanÄ±cÄ±yÄ± Sil</Button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs text-destructive font-medium text-center">Bu işlem geri alınamaz!</p>
+                  <p className="text-xs text-destructive font-medium text-center">Bu iÅŸlem geri alÄ±namaz!</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>İptal</Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>Ä°ptal</Button>
                     <Button variant="destructive" size="sm" className="flex-1 text-xs" onClick={handleDeleteUser} disabled={deleting}>{deleting ? "Siliniyor..." : "Onayla"}</Button>
                   </div>
                 </div>
@@ -1971,7 +2147,7 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
   );
 }
 
-/* ═══ Course Form Dialog ═══ */
+/* â•â•â• Course Form Dialog â•â•â• */
 function CourseFormDialog({
   course,
   universities,
@@ -1990,7 +2166,7 @@ function CourseFormDialog({
   const [name, setName] = useState(course?.name || "");
   const [code, setCode] = useState(course?.code || "");
   const [description, setDescription] = useState(course?.description || "");
-  const [university, setUniversity] = useState(course?.university || "Ege Üniversitesi");
+  const [university, setUniversity] = useState(course?.university || "Ege Ãœniversitesi");
   const [department, setDepartment] = useState(course?.department || "");
   const [year, setYear] = useState<number>(course?.year || 1);
   const [customUni, setCustomUni] = useState("");
@@ -2005,9 +2181,7 @@ function CourseFormDialog({
       .map((d: any) => d.name);
     const existingDepts = courses.filter((c: any) => c.university === selectedUniversity && c.department).map((c: any) => c.department);
     const merged = [...new Set([...dbDepts, ...existingDepts])];
-    if (merged.length > 0) return merged.sort((a, b) => a.localeCompare(b, "tr"));
-    const staticDepts = getDepartmentsForUniversity(selectedUniversity);
-    return [...new Set(staticDepts)].sort((a, b) => a.localeCompare(b, "tr"));
+    return merged.sort((a, b) => a.localeCompare(b, "tr"));
   }, [selectedUniversity, courses, departmentsCatalog]);
 
   useEffect(() => {
@@ -2020,15 +2194,15 @@ function CourseFormDialog({
     if (!name.trim()) return;
     const finalUni = selectedUniversity;
     const finalDept = customDept.trim() || department;
-    if (!finalUni) { toast.error("Üniversite seçin"); return; }
-    if (!finalDept) { toast.error("Bölüm seçin"); return; }
+    if (!finalUni) { toast.error("Ãœniversite seÃ§in"); return; }
+    if (!finalDept) { toast.error("BÃ¶lÃ¼m seÃ§in"); return; }
     setLoading(true);
     const payload = { name: name.trim(), code: code.trim() || null, description: description.trim() || null, university: finalUni, department: finalDept, year };
     let error;
     if (course) ({ error } = await supabase.from("courses").update(payload).eq("id", course.id));
     else ({ error } = await supabase.from("courses").insert(payload));
     if (error) toast.error(error.message);
-    else { toast.success(course ? "Güncellendi" : "Eklendi"); setOpen(false); if (!course) { setName(""); setCode(""); setDescription(""); setCustomUni(""); setCustomDept(""); } onSaved(); }
+    else { toast.success(course ? "GÃ¼ncellendi" : "Eklendi"); setOpen(false); if (!course) { setName(""); setCode(""); setDescription(""); setCustomUni(""); setCustomDept(""); } onSaved(); }
     setLoading(false);
   };
 
@@ -2039,32 +2213,32 @@ function CourseFormDialog({
           : <Button size="sm" className="gap-1.5 h-9 text-xs"><Plus className="h-4 w-4" /> Ders Ekle</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle className="font-heading">{course ? "Ders Düzenle" : "Yeni Ders"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="font-heading">{course ? "Ders DÃ¼zenle" : "Yeni Ders"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Üniversite</Label>
+              <Label className="text-xs font-semibold">Ãœniversite</Label>
               <Select value={university} onValueChange={setUniversity}>
                 <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>{allUnis.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
               </Select>
-              <Input placeholder="Veya yeni üniversite..." value={customUni} onChange={(e) => setCustomUni(e.target.value)} className="h-8 text-xs" />
+              <Input placeholder="Veya yeni Ã¼niversite..." value={customUni} onChange={(e) => setCustomUni(e.target.value)} className="h-8 text-xs" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Bölüm</Label>
+              <Label className="text-xs font-semibold">BÃ¶lÃ¼m</Label>
               <Select value={department} onValueChange={setDepartment}>
-                <SelectTrigger className="text-xs h-9"><SelectValue placeholder="Bölüm seçin" /></SelectTrigger>
+                <SelectTrigger className="text-xs h-9"><SelectValue placeholder="BÃ¶lÃ¼m seÃ§in" /></SelectTrigger>
                 <SelectContent>{departmentsForUniversity.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
-              <Input placeholder="Veya yeni bölüm..." value={customDept} onChange={(e) => setCustomDept(e.target.value)} className="h-8 text-xs" />
+              <Input placeholder="Veya yeni bÃ¶lÃ¼m..." value={customDept} onChange={(e) => setCustomDept(e.target.value)} className="h-8 text-xs" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Sınıf</Label>
+              <Label className="text-xs font-semibold">SÄ±nÄ±f</Label>
               <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
                 <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>{[0, 1, 2, 3, 4, 5, 6].map((y) => <SelectItem key={y} value={String(y)}>{y === 0 ? "Hazırlık" : `${y}. Sınıf`}</SelectItem>)}</SelectContent>
+                <SelectContent>{[0, 1, 2, 3, 4, 5, 6].map((y) => <SelectItem key={y} value={String(y)}>{y === 0 ? "HazÄ±rlÄ±k" : `${y}. SÄ±nÄ±f`}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
@@ -2073,21 +2247,21 @@ function CourseFormDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Ders Adı</Label>
+            <Label className="text-xs font-semibold">Ders AdÄ±</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Fizik I" required maxLength={100} className="h-9 text-xs" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Açıklama</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ders açıklaması..." rows={2} maxLength={500} className="text-xs" />
+            <Label className="text-xs font-semibold">AÃ§Ä±klama</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ders aÃ§Ä±klamasÄ±..." rows={2} maxLength={500} className="text-xs" />
           </div>
-          <Button type="submit" className="w-full" disabled={loading || !name.trim()}>{loading ? "Kaydediliyor..." : course ? "Güncelle" : "Ekle"}</Button>
+          <Button type="submit" className="w-full" disabled={loading || !name.trim()}>{loading ? "Kaydediliyor..." : course ? "GÃ¼ncelle" : "Ekle"}</Button>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-/* ═══ Support Ticket Card ═══ */
+/* â•â•â• Support Ticket Card â•â•â• */
 function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: any; getUsername: (id: string) => string; onReply: (id: string, reply: string) => void; onClose: (id: string) => void }) {
   const [reply, setReply] = useState("");
   return (
@@ -2095,18 +2269,19 @@ function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: 
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold">{ticket.subject}</p>
-          <p className="text-[10px] text-muted-foreground">{getUsername(ticket.user_id)} · {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: tr })}</p>
+          <p className="text-[10px] text-muted-foreground">{getUsername(ticket.user_id)} Â· {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: tr })}</p>
         </div>
-        <Badge variant="destructive" className="text-[10px]">Açık</Badge>
+        <Badge variant="destructive" className="text-[10px]">AÃ§Ä±k</Badge>
       </div>
       <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">{ticket.message}</p>
       <div className="space-y-2">
-        <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Yanıtınızı yazın..." rows={2} className="text-sm" maxLength={2000} />
+        <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="YanÄ±tÄ±nÄ±zÄ± yazÄ±n..." rows={2} className="text-sm" maxLength={2000} />
         <div className="flex gap-2">
-          <Button size="sm" className="flex-1 h-8 text-xs" disabled={!reply.trim()} onClick={() => { onReply(ticket.id, reply); setReply(""); }}>Yanıtla</Button>
+          <Button size="sm" className="flex-1 h-8 text-xs" disabled={!reply.trim()} onClick={() => { onReply(ticket.id, reply); setReply(""); }}>YanÄ±tla</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onClose(ticket.id)}>Kapat</Button>
         </div>
       </div>
     </Card>
   );
 }
+

@@ -8,15 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Loader2, CheckCircle, XCircle, Clock, GraduationCap, BookOpen } from "lucide-react";
+import { Plus, Loader2, CheckCircle, XCircle, Clock, BookOpen } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { getSortedUniversities, getDepartmentsForUniversity, ONLISANS_PROGRAMS } from "@/data/turkish-universities";
+import { buildYearOptions, fetchAcademicProgramsForUniversity, type AcademicProgramRow } from "@/lib/academic-catalog";
 import { normalizeCourseCode, normalizeCourseCodeOrNull } from "@/lib/course-code";
 
-type SuggestionType = "department" | "course";
+type SuggestionType = "course";
 
 interface SuggestAcademicDialogProps {
-  type: SuggestionType;
+  type?: SuggestionType;
   university?: string;
   department?: string;
   onApproved?: (data: { normalized_name: string; course_id?: string; department_id?: string }) => void;
@@ -29,48 +29,16 @@ type ValidationStatus = "idle" | "validating" | "approved" | "pending_review" | 
 
 const STATUS_CONFIG: Record<ValidationStatus, { icon: typeof Loader2; label: string; color: string }> = {
   idle: { icon: Plus, label: "", color: "" },
-  validating: { icon: Loader2, label: "DoÄŸrulanÄ±yor...", color: "text-primary" },
-  approved: { icon: CheckCircle, label: "OnaylandÄ±!", color: "text-success" },
-  pending_review: { icon: Clock, label: "Admin incelemesine gÃ¶nderildi", color: "text-warning" },
-  rejected: { icon: XCircle, label: "DoÄŸrulanamadÄ±", color: "text-destructive" },
+  validating: { icon: Loader2, label: "Doðrulanýyor...", color: "text-primary" },
+  approved: { icon: CheckCircle, label: "Onaylandý!", color: "text-success" },
+  pending_review: { icon: Clock, label: "Admin incelemesine gönderildi", color: "text-warning" },
+  rejected: { icon: XCircle, label: "Doðrulanamadý", color: "text-destructive" },
   duplicate: { icon: XCircle, label: "Bu zaten mevcut", color: "text-warning" },
-  error: { icon: XCircle, label: "Bir hata oluÅŸtu", color: "text-destructive" },
-};
-
-type DepartmentOption = {
-  name: string;
-  program_years: number | null;
-};
-
-const normalizeDepartmentName = (value: string) => value.toLocaleLowerCase("tr-TR").trim();
-
-const inferProgramYearsFromDepartment = (departmentName: string): number => {
-  const normalized = normalizeDepartmentName(departmentName);
-
-  if (normalized.includes("tÄ±p")) return 6;
-  if (["eczac", "diÅŸ", "veteriner", "mimarlÄ±k"].some((keyword) => normalized.includes(keyword))) return 5;
-  if (
-    normalized.includes("Ã¶nlisans") ||
-    normalized.includes("meslek yÃ¼ksekokulu") ||
-    normalized.includes("myo") ||
-    ONLISANS_PROGRAMS.some((program) => normalizeDepartmentName(program) === normalized)
-  ) {
-    return 2;
-  }
-
-  return 4;
-};
-
-const sanitizeProgramYears = (value: number | null | undefined, fallbackDepartment: string): number => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.min(6, Math.max(2, Math.trunc(value)));
-  }
-
-  return inferProgramYearsFromDepartment(fallbackDepartment);
+  error: { icon: XCircle, label: "Bir hata oluþtu", color: "text-destructive" },
 };
 
 export default function SuggestAcademicDialog({
-  type,
+  type = "course",
   university: defaultUniversity = "",
   department: defaultDepartment = "",
   onApproved,
@@ -92,119 +60,58 @@ export default function SuggestAcademicDialog({
   const [statusMessage, setStatusMessage] = useState("");
 
   const [university, setUniversity] = useState(defaultUniversity);
-  const [faculty, setFaculty] = useState("");
-  const [department, setDepartment] = useState(type === "course" ? defaultDepartment : "");
+  const [department, setDepartment] = useState(defaultDepartment);
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [classYear, setClassYear] = useState("");
   const [explanation, setExplanation] = useState("");
 
-  const [dbUniversities, setDbUniversities] = useState<{ name: string; city: string | null; type: string | null }[]>([]);
-  const staticUniversityOptions = getSortedUniversities().map((u) => ({
-    label: u.name,
-    sublabel: `${u.city} Â· ${u.type === "devlet" ? "Devlet" : "VakÄ±f"}`,
-    group: u.popular ? "â­ PopÃ¼ler" : "",
-  }));
-  const universityOptions = (() => {
-    const staticNames = new Set(staticUniversityOptions.map((u) => u.label));
-    const dbOnly = dbUniversities
-      .filter((u) => !staticNames.has(u.name))
-      .map((u) => ({
-        label: u.name,
-        sublabel: u.city
-          ? `${u.city} Â· ${u.type === "devlet" ? "Devlet" : u.type === "vakÄ±f" ? "VakÄ±f" : "Ãœniversite"}`
-          : "Ãœniversite",
-        group: "",
-      }));
-    return [...staticUniversityOptions, ...dbOnly];
-  })();
-
-  const [dbDepartments, setDbDepartments] = useState<DepartmentOption[]>([]);
+  const [programRows, setProgramRows] = useState<AcademicProgramRow[]>([]);
 
   useEffect(() => {
-    if (!open) return;
-    let isCancelled = false;
+    if (!open || !university) {
+      setProgramRows([]);
+      return;
+    }
 
-    const fetchUniversities = async () => {
-      const { data } = await supabase
-        .from("universities" as any)
-        .select("name, city, type, country")
-        .in("country", ["TR", "KKTC"])
-        .order("name", { ascending: true })
-        .limit(1000);
+    let cancelled = false;
 
-      if (isCancelled) return;
-      setDbUniversities((data || []).map((u: any) => ({
-        name: u.name,
-        city: u.city || null,
-        type: u.type || null,
-      })));
-    };
-
-    fetchUniversities();
-    return () => {
-      isCancelled = true;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || !university || type !== "course") return;
-
-    let isCancelled = false;
-
-    const fetchDbDepts = async () => {
-      const { data, error } = await supabase
-        .from("departments" as any)
-        .select("name, program_years")
-        .eq("university", university)
-        .order("name", { ascending: true });
-
-      if (isCancelled) return;
-      if (error || !data) {
-        setDbDepartments([]);
-        return;
+    const fetchPrograms = async () => {
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(university);
+        if (!cancelled) setProgramRows(rows);
+      } catch {
+        if (!cancelled) setProgramRows([]);
       }
-
-      const mapped = (data as any[])
-        .map((item) => ({ name: String(item.name || "").trim(), program_years: item.program_years ?? null }))
-        .filter((item) => item.name);
-
-      setDbDepartments(mapped);
     };
 
-    fetchDbDepts();
+    void fetchPrograms();
 
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
-  }, [university, type, open]);
+  }, [open, university]);
 
-  const staticDepts = getDepartmentsForUniversity(university);
-  const dbDepartmentNames = dbDepartments.map((d) => d.name);
-  const allDepts = [...new Set([...staticDepts, ...dbDepartmentNames])].sort((a, b) => a.localeCompare(b, "tr"));
-  const departmentOptions = allDepts.map((d) => ({ label: d }));
+  const departmentOptions = programRows.map((row) => ({
+    label: row.program_name,
+    sublabel: row.unit_name || (row.program_level === "onlisans" ? "Önlisans" : "Lisans"),
+  }));
 
-  const selectedDepartmentRecord = dbDepartments.find(
-    (item) => normalizeDepartmentName(item.name) === normalizeDepartmentName(department)
-  );
-  const maxClassYear = sanitizeProgramYears(selectedDepartmentRecord?.program_years ?? null, department || "");
-  const classYearOptions = [
-    { value: "0", label: "HazÄ±rlÄ±k" },
-    ...Array.from({ length: maxClassYear }, (_, index) => ({ value: String(index + 1), label: `${index + 1}. SÄ±nÄ±f` })),
-  ];
+  const selectedProgram = programRows.find((row) => row.program_name === department) || null;
+  const maxClassYear = selectedProgram?.program_years || 4;
+  const classYearOptions = buildYearOptions(maxClassYear);
 
   useEffect(() => {
-    if (type !== "course" || !classYear) return;
-    const currentYear = Number.parseInt(classYear, 10);
-    if (!Number.isNaN(currentYear) && currentYear > maxClassYear) {
+    if (!classYear) return;
+    const year = Number.parseInt(classYear, 10);
+    if (Number.isFinite(year) && year > maxClassYear) {
       setClassYear("");
     }
-  }, [type, classYear, maxClassYear]);
+  }, [classYear, maxClassYear]);
 
   const resetForm = () => {
     setStatus("idle");
     setStatusMessage("");
-    setFaculty("");
     if (!defaultUniversity) setUniversity("");
     if (!defaultDepartment) setDepartment("");
     setCourseName("");
@@ -216,28 +123,43 @@ export default function SuggestAcademicDialog({
   const handleSubmit = async () => {
     if (!user) return;
 
-    // Validation
-    if (!university.trim()) { toast.error("Ãœniversite seÃ§imi zorunludur."); return; }
-    if (type === "department" && !department.trim()) { toast.error("BÃ¶lÃ¼m adÄ± zorunludur."); return; }
-    if (type === "course" && !courseName.trim()) { toast.error("Ders adÄ± zorunludur."); return; }
-    if (type === "course" && !department.trim()) { toast.error("BÃ¶lÃ¼m seÃ§imi zorunludur."); return; }
-    if (type === "course" && !classYear) { toast.error("SÄ±nÄ±f seÃ§imi zorunludur."); return; }
+    if (type !== "course") {
+      setStatus("error");
+      setStatusMessage("Bu dialog artýk sadece ders önerileri için kullanýlabilir.");
+      return;
+    }
+
+    if (!university.trim()) {
+      toast.error("Üniversite seçimi zorunludur.");
+      return;
+    }
+    if (!department.trim()) {
+      toast.error("Bölüm seçimi zorunludur.");
+      return;
+    }
+    if (!courseName.trim()) {
+      toast.error("Ders adý zorunludur.");
+      return;
+    }
+    if (!classYear) {
+      toast.error("Sýnýf seçimi zorunludur.");
+      return;
+    }
 
     setStatus("validating");
-    setStatusMessage(type === "department" ? "BÃ¶lÃ¼m araÅŸtÄ±rÄ±lÄ±yor..." : "Ders araÅŸtÄ±rÄ±lÄ±yor...");
+    setStatusMessage("Ders doðrulanýyor...");
 
     try {
-      await new Promise((r) => setTimeout(r, 400));
-      setStatusMessage("Ä°nternet Ã¼zerinden doÄŸrulama yapÄ±lÄ±yor... Bu iÅŸlem biraz sÃ¼rebilir.");
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      setStatusMessage("AI doðrulama ve müfredat kontrolü yapýlýyor...");
 
       const { data, error } = await supabase.functions.invoke("validate-academic", {
         body: {
-          type,
+          type: "course",
           university: university.trim(),
-          faculty: faculty.trim() || null,
-          department: type === "department" ? department.trim() : department.trim(),
-          course_name: type === "course" ? courseName.trim() : null,
-          course_code: type === "course" ? normalizeCourseCodeOrNull(courseCode) : null,
+          department: department.trim(),
+          course_name: courseName.trim(),
+          course_code: normalizeCourseCodeOrNull(courseCode),
           class_year: classYear || null,
           explanation: explanation.trim() || null,
         },
@@ -249,38 +171,42 @@ export default function SuggestAcademicDialog({
 
       if (result.status === "approved") {
         setStatus("approved");
-        setStatusMessage(result.reason || "OnaylandÄ± ve eklendi!");
-        toast.success(type === "department" ? "BÃ¶lÃ¼m doÄŸrulandÄ±!" : "Ders doÄŸrulandÄ± ve eklendi!");
+        setStatusMessage(result.reason || "Ders doðrulandý ve eklendi.");
+        toast.success("Ders doðrulandý ve eklendi.");
         onApproved?.({ normalized_name: result.normalized_name, course_id: result.course_id, department_id: result.department_id });
-        setTimeout(() => { setOpen(false); resetForm(); }, 2000);
-      } else if (result.status === "pending_review") {
-        if (type === "department") {
-          setStatus("error");
-          setStatusMessage(result.reason || "BÃ¶lÃ¼m doÄŸrulama servisi ÅŸu an kullanÄ±lamÄ±yor. LÃ¼tfen tekrar deneyin.");
-          toast.error("BÃ¶lÃ¼m doÄŸrulama servisi geÃ§ici olarak kullanÄ±lamÄ±yor.");
-        } else {
-          setStatus("pending_review");
-          setStatusMessage(result.reason || "Ã–neriniz admin incelemesine gÃ¶nderildi.");
-          toast.info("Ã–neriniz inceleme kuyruÄŸuna eklendi.");
-        }
-      } else if (result.status === "duplicate") {
-        setStatus("duplicate");
-        setStatusMessage(result.reason || "Bu kayÄ±t zaten mevcut.");
-        toast.warning(result.reason || "Bu kayÄ±t zaten mevcut.");
-      } else if (result.status === "rejected") {
-        setStatus("rejected");
-        setStatusMessage(result.reason || "Bu Ã¶neri doÄŸrulanamadÄ±.");
-        if (result.suggestion) {
-          setStatusMessage((prev) => prev + ` Ã–neri: ${result.suggestion}`);
-        }
-      } else {
-        setStatus("error");
-        setStatusMessage(result.reason || result.error || "Bilinmeyen bir hata oluÅŸtu.");
+        setTimeout(() => {
+          setOpen(false);
+          resetForm();
+        }, 1200);
+        return;
       }
-    } catch (err: any) {
-      console.error("Validation error:", err);
+
+      if (result.status === "pending_review") {
+        setStatus("pending_review");
+        setStatusMessage(result.reason || "Ders önerisi admin incelemesine alýndý.");
+        toast.info(result.reason || "Ders önerisi admin incelemesine alýndý.");
+        return;
+      }
+
+      if (result.status === "duplicate") {
+        setStatus("duplicate");
+        setStatusMessage(result.reason || "Bu ders zaten mevcut.");
+        toast.warning(result.reason || "Bu ders zaten mevcut.");
+        return;
+      }
+
+      if (result.status === "rejected") {
+        setStatus("rejected");
+        setStatusMessage(result.reason || "Bu ders doðrulanamadý.");
+        return;
+      }
+
       setStatus("error");
-      setStatusMessage("DoÄŸrulama sÄ±rasÄ±nda bir hata oluÅŸtu. LÃ¼tfen tekrar deneyin.");
+      setStatusMessage(result.reason || result.error || "Bilinmeyen bir hata oluþtu.");
+    } catch (err: any) {
+      console.error("Course validation error:", err);
+      setStatus("error");
+      setStatusMessage(err?.message || "Doðrulama sýrasýnda bir hata oluþtu.");
     }
   };
 
@@ -288,152 +214,118 @@ export default function SuggestAcademicDialog({
 
   const StatusIcon = STATUS_CONFIG[status].icon;
   const statusColor = STATUS_CONFIG[status].color;
-  const isDepartment = type === "department";
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+    <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) resetForm(); }}>
       {!isControlled && (
         <DialogTrigger asChild>
           {trigger || (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" />
-              {isDepartment ? "BÃ¶lÃ¼m Ã–ner" : "Ders Ã–ner"}
+              Ders Öner
             </Button>
           )}
         </DialogTrigger>
       )}
-      {isControlled && trigger && (
-        <DialogTrigger asChild>
-          {trigger}
-        </DialogTrigger>
-      )}
+
+      {isControlled && trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading flex items-center gap-2">
-            {isDepartment ? <GraduationCap className="h-5 w-5 text-primary" /> : <BookOpen className="h-5 w-5 text-primary" />}
-            {isDepartment ? "Eksik BÃ¶lÃ¼m Ã–ner" : "Eksik Ders Ã–ner"}
+            <BookOpen className="h-5 w-5 text-primary" />
+            Eksik Ders Öner
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {isDepartment
-              ? "Listede olmayan bir bÃ¶lÃ¼mÃ¼ Ã¶nerebilirsiniz. Sistem otomatik olarak doÄŸrulayacaktÄ±r."
-              : "Listede olmayan bir dersi Ã¶nerebilirsiniz. DoÄŸrulama sonrasÄ± otomatik olarak eklenecektir."}
+            Bu akýþ AI destekli ders doðrulamasý için korunur. Bölüm/program talepleri ayrý request kuyruðuna gider.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* University */}
           {!defaultUniversity && (
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Ãœniversite <span className="text-destructive">*</span></Label>
-              <SearchableSelect
+              <Label className="text-xs font-semibold">Üniversite</Label>
+              <Input
                 value={university}
-                onValueChange={(v) => { setUniversity(v); setDepartment(""); setClassYear(""); }}
-                placeholder="Ãœniversite seÃ§in"
-                searchPlaceholder="Ãœniversite ara..."
-                options={universityOptions}
-              />
-            </div>
-          )}
-
-          {/* Faculty (optional) */}
-          {isDepartment && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">FakÃ¼lte (isteÄŸe baÄŸlÄ±)</Label>
-              <Input
-                value={faculty}
-                onChange={(e) => setFaculty(e.target.value)}
-                placeholder="Ã–rn: MÃ¼hendislik FakÃ¼ltesi"
-                maxLength={200}
+                onChange={(e) => {
+                  setUniversity(e.target.value);
+                  setDepartment("");
+                  setClassYear("");
+                }}
+                placeholder="Üniversite adý"
                 className="h-9 text-sm"
               />
             </div>
           )}
 
-          {/* Department name (for department type) */}
-          {isDepartment && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">BÃ¶lÃ¼m AdÄ± <span className="text-destructive">*</span></Label>
-              <Input
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="Ã–rn: Bilgisayar MÃ¼hendisliÄŸi"
-                maxLength={200}
-                className="h-9 text-sm"
-              />
-            </div>
-          )}
-
-          {/* Department select (for course type) */}
-          {!isDepartment && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">BÃ¶lÃ¼m <span className="text-destructive">*</span></Label>
-              <SearchableSelect
-                value={department}
-                onValueChange={(value) => { setDepartment(value); setClassYear(""); }}
-                placeholder="BÃ¶lÃ¼m seÃ§in"
-                searchPlaceholder="BÃ¶lÃ¼m ara..."
-                options={departmentOptions}
-                allowCustom
-                disabled={!university}
-              />
-            </div>
-          )}
-
-          {/* Course fields */}
-          {!isDepartment && (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Ders AdÄ± <span className="text-destructive">*</span></Label>
-                <Input
-                  value={courseName}
-                  onChange={(e) => setCourseName(e.target.value)}
-                  placeholder="Ã–rn: Veri YapÄ±larÄ± ve Algoritmalar"
-                  maxLength={200}
-                  className="h-9 text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Ders Kodu (isteÄŸe baÄŸlÄ±)</Label>
-                  <Input
-                    value={courseCode}
-                    onChange={(e) => setCourseCode(normalizeCourseCode(e.target.value))}
-                    placeholder="Ã–rn: BIL301"
-                    maxLength={20}
-                    className="h-9 text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">SÄ±nÄ±f <span className="text-destructive">*</span></Label>
-                  <Select value={classYear} onValueChange={setClassYear}>
-                    <SelectTrigger className="h-9 text-sm" disabled={!department}>
-                      <SelectValue placeholder={department ? `0-${maxClassYear} arasÄ± seÃ§in` : "Ã–nce bÃ¶lÃ¼m seÃ§in"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classYearOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Explanation */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">AÃ§Ä±klama (isteÄŸe baÄŸlÄ±)</Label>
+            <Label className="text-xs font-semibold">Bölüm</Label>
+            <SearchableSelect
+              value={department}
+              onValueChange={(value) => {
+                setDepartment(value);
+                setClassYear("");
+              }}
+              placeholder={university ? "Bölüm seçin" : "Önce üniversite seçin"}
+              searchPlaceholder="Bölüm ara..."
+              options={departmentOptions}
+              disabled={!university}
+              allowCustom
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Ders Adý</Label>
+            <Input
+              value={courseName}
+              onChange={(e) => setCourseName(e.target.value)}
+              placeholder="Örn: Veri Yapýlarý ve Algoritmalar"
+              maxLength={200}
+              className="h-9 text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Ders Kodu (opsiyonel)</Label>
+              <Input
+                value={courseCode}
+                onChange={(e) => setCourseCode(normalizeCourseCode(e.target.value))}
+                placeholder="Örn: BIL301"
+                maxLength={20}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Sýnýf</Label>
+              <Select value={classYear} onValueChange={setClassYear}>
+                <SelectTrigger className="h-9 text-sm" disabled={!department}>
+                  <SelectValue placeholder={department ? `0-${maxClassYear} arasý seçin` : "Önce bölüm seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {classYearOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Açýklama (opsiyonel)</Label>
             <Textarea
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Ek bilgi veya aÃ§Ä±klama..."
+              placeholder="Ek bilgi"
               rows={2}
               maxLength={500}
               className="text-sm"
             />
           </div>
 
-          {/* Status feedback */}
           {status !== "idle" && (
             <div className={`flex items-start gap-2.5 p-3 rounded-lg bg-secondary/50 border ${statusColor}`}>
               <StatusIcon className={`h-4 w-4 mt-0.5 shrink-0 ${status === "validating" ? "animate-spin" : ""}`} />
@@ -444,26 +336,19 @@ export default function SuggestAcademicDialog({
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2 pt-1">
             {status === "idle" || status === "rejected" || status === "duplicate" || status === "error" ? (
               <Button
                 onClick={handleSubmit}
                 className="flex-1 h-9"
-                disabled={
-                  !university.trim() ||
-                  (isDepartment && !department.trim()) ||
-                  (!isDepartment && !courseName.trim()) ||
-                  (!isDepartment && !department.trim()) ||
-                  (!isDepartment && !classYear)
-                }
+                disabled={!university.trim() || !department.trim() || !courseName.trim() || !classYear}
               >
-                GÃ¶nder ve DoÄŸrula
+                Gönder ve Doðrula
               </Button>
             ) : status === "validating" ? (
               <Button disabled className="flex-1 h-9">
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                DoÄŸrulanÄ±yor...
+                Doðrulanýyor...
               </Button>
             ) : (
               <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="flex-1 h-9">

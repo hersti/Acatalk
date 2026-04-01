@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,10 +8,14 @@ import { isNewDevice, markDeviceAsKnown, getDeviceInfo } from "@/lib/device-fing
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import SearchableSelect from "@/components/SearchableSelect";
+import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
+import { extractEmailDomain } from "@/lib/email-domain";
 import {
-  getDepartmentsForUniversity,
-  extractEmailDomain,
-} from "@/data/turkish-universities";
+  fetchAcademicProgramsForUniversity,
+  inferProgramYears,
+  resolveUniversityByName,
+  type AcademicProgramRow,
+} from "@/lib/academic-catalog";
 import { sanitizeInput } from "@/lib/sanitize";
 import { checkUsernameProfanity } from "@/lib/profanity-filter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,77 +30,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   GraduationCap, Lock, AlertTriangle, Mail, ShieldCheck, Info,
   Eye, EyeOff, CheckCircle2, XCircle, Loader2, User, KeyRound,
-  FileText, Shield, Search, CheckCircle,
+  FileText, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type ValidationStatus = "idle" | "validating" | "approved" | "rejected" | "duplicate" | "error";
-
-/**
- * Determines program duration (in years) based on department name.
- * Turkish university system:
- * - 2 years: MYO / Ön Lisans programs
- * - 4 years: Standard (Engineering, Science, Arts, etc.)
- * - 5 years: Architecture, Pharmacy, Dentistry, Law, Veterinary
- * - 6 years: Medicine
- */
-function getProgramYearsForDepartment(deptName: string): number {
-  const lower = deptName.toLowerCase().replace(/İ/g, "i").replace(/I/g, "ı");
-  
-  // 6-year programs
-  const sixYear = ["tıp", "tıp fakültesi", "genel tıp"];
-  if (sixYear.some(k => lower.includes(k)) && !lower.includes("veteriner") && !lower.includes("diş")) return 6;
-  
-  // 5-year programs
-  const fiveYear = [
-    "eczacılık", "eczacı", "diş hekimliği", "dishekimliği",
-    "mimarlık", "mimar", "veteriner",
-  ];
-  if (fiveYear.some(k => lower.includes(k))) return 5;
-  
-  // 2-year programs (MYO / Ön Lisans)
-  const twoYear = [
-    "meslek yüksekokulu", "myo", "ön lisans", "önlisans",
-    "teknikerlik", "laborant", "odyometri", "anestezi",
-    "ilk ve acil yardım", "tıbbi laboratuvar", "tıbbi görüntüleme",
-    "tıbbi dokümantasyon", "radyoterapi", "diyaliz", "optisyenlik",
-    "ağız ve diş sağlığı", "ameliyathane", "paramedik",
-    "bilgisayar programcılığı", "web tasarım", "grafik tasarım",
-    "muhasebe ve vergi", "bankacılık", "sigortacılık",
-    "lojistik", "dış ticaret", "büro yönetimi",
-    "çocuk gelişimi", "yaşlı bakım", "sivil havacılık",
-    "aşçılık", "turizm ve otel", "pastacılık",
-  ];
-  if (twoYear.some(k => lower.includes(k))) return 2;
-  
-  return 4;
-}
-
-function ValidationFeedback({ status, message }: { status: ValidationStatus; message: string }) {
-  if (status === "idle") return null;
-  const config: Record<ValidationStatus, { icon: any; color: string; bg: string }> = {
-    idle: { icon: null, color: "", bg: "" },
-    validating: { icon: Loader2, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
-    approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10 border-success/20" },
-    rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
-    duplicate: { icon: CheckCircle, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
-    error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
-  };
-  const { icon: Icon, color, bg } = config[status];
-  if (!Icon) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex items-start gap-2 p-3 rounded-lg border text-left ${bg}`}
-    >
-      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${color} ${status === "validating" ? "animate-spin" : ""}`} />
-      <p className={`text-xs ${color}`}>{message}</p>
-    </motion.div>
-  );
-}
-
-/* ─── MFA Sub-form ─── */
+/* â”€â”€â”€ MFA Sub-form â”€â”€â”€ */
 function MfaForm({
   loading, mfaCode, setMfaCode, newDeviceWarning, onSubmit, onBack,
 }: {
@@ -113,15 +51,15 @@ function MfaForm({
                 <Lock className="h-6 w-6 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="font-heading text-xl font-extrabold">İki Faktörlü Doğrulama</CardTitle>
-            <CardDescription className="text-xs">Authenticator uygulamanızdaki 6 haneli kodu girin.</CardDescription>
+            <CardTitle className="font-heading text-xl font-extrabold">Ä°ki FaktÃ¶rlÃ¼ DoÄŸrulama</CardTitle>
+            <CardDescription className="text-xs">Authenticator uygulamanÄ±zdaki 6 haneli kodu girin.</CardDescription>
           </CardHeader>
           <CardContent>
             {newDeviceWarning && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mb-3">
                 <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                 <p className="text-[11px] text-warning-foreground">
-                  Yeni bir cihazdan giriş yapıyorsunuz. Kimliğinizi doğrulayın.
+                  Yeni bir cihazdan giriÅŸ yapÄ±yorsunuz. KimliÄŸinizi doÄŸrulayÄ±n.
                 </p>
               </div>
             )}
@@ -136,11 +74,11 @@ function MfaForm({
                 required
               />
               <Button type="submit" className="w-full h-10 rounded-lg font-semibold" disabled={loading || mfaCode.length !== 6}>
-                {loading ? "Doğrulanıyor..." : "Doğrula"}
+                {loading ? "DoÄŸrulanÄ±yor..." : "DoÄŸrula"}
               </Button>
             </form>
             <div className="mt-3 text-center">
-              <button onClick={onBack} className="text-xs text-muted-foreground hover:underline">Geri dön</button>
+              <button onClick={onBack} className="text-xs text-muted-foreground hover:underline">Geri dÃ¶n</button>
             </div>
           </CardContent>
         </Card>
@@ -149,9 +87,9 @@ function MfaForm({
   );
 }
 
-/* ─── Password Input with toggle ─── */
+/* â”€â”€â”€ Password Input with toggle â”€â”€â”€ */
 function PasswordInput({
-  id, value, onChange, placeholder = "••••••••", required = true, className = "",
+  id, value, onChange, placeholder = "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢", required = true, className = "",
 }: {
   id: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean; className?: string;
 }) {
@@ -173,7 +111,7 @@ function PasswordInput({
         onClick={() => setShow(!show)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
         tabIndex={-1}
-        aria-label={show ? "Şifreyi gizle" : "Şifreyi göster"}
+        aria-label={show ? "Åifreyi gizle" : "Åifreyi gÃ¶ster"}
       >
         {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>
@@ -181,7 +119,7 @@ function PasswordInput({
   );
 }
 
-/* ─── Username availability & profanity hook ─── */
+/* â”€â”€â”€ Username availability & profanity hook â”€â”€â”€ */
 function useUsernameCheck(username: string, isSignUp: boolean) {
   const [status, setStatus] = useState<"idle" | "checking" | "available" | "taken" | "inappropriate">("idle");
 
@@ -219,7 +157,7 @@ function useUsernameCheck(username: string, isSignUp: boolean) {
   return status;
 }
 
-/* ─── Main Component ─── */
+/* â”€â”€â”€ Main Component â”€â”€â”€ */
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -251,6 +189,7 @@ export default function AuthPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Email domain detection
+  const [detectedUniversityId, setDetectedUniversityId] = useState<string | null>(null);
   const [detectedUniversity, setDetectedUniversity] = useState<string | null>(null);
   const [emailDomain, setEmailDomain] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -262,11 +201,8 @@ export default function AuthPage() {
   const [requestResultMsg, setRequestResultMsg] = useState("");
   const [requestSubmitted, setRequestSubmitted] = useState(false);
 
-  // Custom department validation
-  const [showCustomDept, setShowCustomDept] = useState(false);
-  const [customDepartment, setCustomDepartment] = useState("");
-  const [deptValidation, setDeptValidation] = useState<ValidationStatus>("idle");
-  const [deptValidationMsg, setDeptValidationMsg] = useState("");
+  // Missing program request (admin-approved queue)
+  const [showProgramRequestDialog, setShowProgramRequestDialog] = useState(false);
 
   // CAPTCHA
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -281,27 +217,50 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const usernameStatus = useUsernameCheck(username, isSignUp);
 
-  const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+  const [programRows, setProgramRows] = useState<AcademicProgramRow[]>([]);
 
   useEffect(() => {
-    if (!university) { setDbDepartments([]); return; }
-    supabase
-      .from("departments")
-      .select("name")
-      .eq("university", university)
-      .order("name", { ascending: true })
-      .then(({ data }) => {
-        setDbDepartments((data || []).map((d: any) => d.name).filter(Boolean));
-      });
+    let cancelled = false;
+
+    if (!university) {
+      setProgramRows([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fetchPrograms = async () => {
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(university);
+        if (!cancelled) setProgramRows(rows);
+      } catch {
+        if (!cancelled) setProgramRows([]);
+      }
+    };
+
+    void fetchPrograms();
+
+    return () => {
+      cancelled = true;
+    };
   }, [university]);
 
   const departmentOptions = (() => {
-    const staticDepts = getDepartmentsForUniversity(university);
-    const allDepts = [...new Set([...staticDepts, ...dbDepartments])].sort((a, b) =>
+    const allDepts = [...new Set(programRows.map((row) => row.program_name))].sort((a, b) =>
       a.localeCompare(b, "tr")
     );
     return allDepts.map((d) => ({ label: d }));
   })();
+
+  const selectedProgram = programRows.find((row) => row.program_name === department) || null;
+
+  useEffect(() => {
+    if (!department) return;
+    if (programRows.some((row) => row.program_name === department)) return;
+    setDepartment("");
+    setClassYear("");
+    setProgramYears(4);
+  }, [department, programRows]);
 
   // Auto-detect university from email via DB domain mapping (single source of truth)
   useEffect(() => {
@@ -346,11 +305,13 @@ export default function AuthPage() {
 
       return {
         found: true,
+        university_id: uniRow.id,
         university_name: uniRow.name,
       };
     };
 
     if (!isSignUp || !email.trim()) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setEmailDomain("");
@@ -368,6 +329,7 @@ export default function AuthPage() {
     setRequestSubmitted(false);
 
     if (!domain || !domain.includes(".")) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setEmailError("");
@@ -375,9 +337,10 @@ export default function AuthPage() {
     }
 
     if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
-      setEmailError("Sadece Türkiye ve KKTC üniversitelerine ait e-posta adresleriyle kayıt olabilirsiniz.");
+      setEmailError("Sadece TÃ¼rkiye ve KKTC Ã¼niversitelerine ait e-posta adresleriyle kayÄ±t olabilirsiniz.");
       setRequestedUniversityName("");
       setRequestNote("");
       return;
@@ -393,16 +356,20 @@ export default function AuthPage() {
       if (error) {
         const fallbackResolved = await resolveUniversityFallback(domain);
         if (cancelled) return;
-        if (fallbackResolved?.found && fallbackResolved?.university_name) {
+        if (fallbackResolved?.found && fallbackResolved?.university_name && fallbackResolved?.university_id) {
+          setDetectedUniversityId(fallbackResolved.university_id);
           setDetectedUniversity(fallbackResolved.university_name);
           setUniversity(fallbackResolved.university_name);
           setDepartment("");
+          setClassYear("");
+          setProgramYears(4);
           setEmailError("");
           setRequestedUniversityName("");
           setRequestNote("");
           return;
         }
 
+        setDetectedUniversityId(null);
         setDetectedUniversity(null);
         setUniversity("");
         setEmailError("Domain doğrulama servisi şu an yanıt vermiyor. Bu alan için talep oluşturabilirsiniz.");
@@ -411,18 +378,40 @@ export default function AuthPage() {
 
       const resolved = Array.isArray(data) ? data[0] : (data && typeof data === "object" ? data : null);
       if (resolved?.found && resolved?.university_name) {
+        const resolvedUniId =
+          typeof resolved?.university_id === "string" && resolved.university_id
+            ? resolved.university_id
+            : (await resolveUniversityByName(resolved.university_name))?.id || null;
+
+        if (!resolvedUniId) {
+          setDetectedUniversityId(null);
+          setDetectedUniversity(null);
+          setUniversity("");
+          setDepartment("");
+          setClassYear("");
+          setProgramYears(4);
+          setEmailError("Üniversite kaydı çözülemedi. Lütfen daha sonra tekrar deneyin.");
+          return;
+        }
+
+        setDetectedUniversityId(resolvedUniId);
         setDetectedUniversity(resolved.university_name);
         setUniversity(resolved.university_name);
         setDepartment("");
+        setClassYear("");
+        setProgramYears(4);
         setEmailError("");
         setRequestedUniversityName("");
         setRequestNote("");
         return;
       }
 
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setDepartment("");
+      setClassYear("");
+      setProgramYears(4);
       setEmailError("Bu e-posta domaini sistemde kayıtlı değil. Devam etmek için talep oluşturun.");
     };
 
@@ -446,22 +435,22 @@ export default function AuthPage() {
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email: signupEmail });
       if (error) throw error;
-      toast.success("Doğrulama e-postası tekrar gönderildi.");
+      toast.success("DoÄŸrulama e-postasÄ± tekrar gÃ¶nderildi.");
       setResendCooldown(60);
     } catch (err: any) {
-      toast.error(err.message || "E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.");
+      toast.error(err.message || "E-posta gÃ¶nderilemedi. LÃ¼tfen daha sonra tekrar deneyin.");
     } finally {
       setResendLoading(false);
     }
   };
 
-  const handleDepartmentChange = async (val: string) => {
+  const handleDepartmentChange = (val: string) => {
     setDepartment(val);
     setClassYear("");
     setErrors((prev) => ({ ...prev, department: "" }));
-    setDeptValidation("idle");
     if (val) {
-      setProgramYears(getProgramYearsForDepartment(val));
+      const selected = programRows.find((row) => row.program_name === val);
+      setProgramYears(selected?.program_years || inferProgramYears(val, selected?.program_level));
     } else {
       setProgramYears(4);
     }
@@ -501,7 +490,7 @@ export default function AuthPage() {
 
         if (existingPending?.id) {
           setRequestSubmitted(true);
-          setRequestResultMsg("Bu domain için zaten bekleyen bir talep var. Admin incelemesini bekleyin.");
+          setRequestResultMsg("Bu domain iÃ§in zaten bekleyen bir talep var. Admin incelemesini bekleyin.");
           return;
         }
 
@@ -516,82 +505,39 @@ export default function AuthPage() {
         if (insertErr) throw insertErr;
 
         setRequestSubmitted(true);
-        setRequestResultMsg("Talebiniz admin incelemesine gönderildi.");
-        toast.success("Domain talebiniz gönderildi.");
+        setRequestResultMsg("Talebiniz admin incelemesine gÃ¶nderildi.");
+        toast.success("Domain talebiniz gÃ¶nderildi.");
         return;
       }
 
       if (data?.already_known && data?.university_name) {
+        const resolvedUni = await resolveUniversityByName(data.university_name);
+        setDetectedUniversityId(resolvedUni?.id || null);
         setDetectedUniversity(data.university_name);
         setUniversity(data.university_name);
         setDepartment("");
+        setClassYear("");
+        setProgramYears(4);
         setEmailError("");
         setRequestSubmitted(false);
-        setRequestResultMsg("Bu domain bu sırada sisteme eklendi. Kayda devam edebilirsiniz.");
+        setRequestResultMsg("Bu domain bu sÄ±rada sisteme eklendi. Kayda devam edebilirsiniz.");
         return;
       }
 
       if (data?.ok) {
         setRequestSubmitted(true);
-        setRequestResultMsg(data.reason || "Talebiniz admin incelemesine gönderildi.");
-        toast.success("Domain talebiniz gönderildi.");
+        setRequestResultMsg(data.reason || "Talebiniz admin incelemesine gÃ¶nderildi.");
+        toast.success("Domain talebiniz gÃ¶nderildi.");
         return;
       }
 
       setRequestSubmitted(false);
-      setRequestResultMsg(data?.reason || "Talep gönderilemedi.");
+      setRequestResultMsg(data?.reason || "Talep gÃ¶nderilemedi.");
     } catch (err: any) {
       setRequestSubmitted(false);
-      setRequestResultMsg(err?.message || "Talep gönderilirken bir hata oluştu.");
+      setRequestResultMsg(err?.message || "Talep gÃ¶nderilirken bir hata oluÅŸtu.");
     } finally {
       setRequestSending(false);
-    }
-  };
-
-  const validateDepartment = async () => {
-    if (!customDepartment.trim() || !university) return;
-    const applyDepartmentSelection = (name: string) => {
-      const next = name.trim();
-      if (!next) return;
-      setDepartment(next);
-      setClassYear("");
-      setProgramYears(getProgramYearsForDepartment(next));
-      setErrors((prev) => ({ ...prev, department: "" }));
-    };
-    setDeptValidation("validating");
-    setDeptValidationMsg("Bölüm doğrulanıyor...");
-    try {
-      const { data, error } = await supabase.functions.invoke("validate-academic", {
-        body: { type: "department", university, department: customDepartment.trim() },
-      });
-      if (error) throw error;
-      const result = data as any;
-      if (result.status === "approved") {
-        setDeptValidation("approved");
-        setDeptValidationMsg(result.reason || "Bölüm doğrulandı!");
-        applyDepartmentSelection(result.normalized_name || customDepartment.trim());
-        setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1500);
-      } else if (result.status === "duplicate") {
-        setDeptValidation("duplicate");
-        setDeptValidationMsg(result.reason || "Bu bölüm zaten mevcut.");
-        if (result.existing_name) {
-          setTimeout(() => {
-            applyDepartmentSelection(result.existing_name);
-            setShowCustomDept(false);
-            setCustomDepartment("");
-            setDeptValidation("idle");
-          }, 1200);
-        }
-      } else if (result.status === "error") {
-        setDeptValidation("error");
-        setDeptValidationMsg(result.reason || "Doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
-      } else {
-        setDeptValidation("rejected");
-        setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
-      }
-    } catch {
-      setDeptValidation("error");
-      setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
 
@@ -622,10 +568,10 @@ export default function AuthPage() {
       if (verifyError) throw verifyError;
       markDeviceAsKnown();
       await logSecurityEvent("login_success", { method: "password+2fa", device: getDeviceInfo() });
-      toast.success("Tekrar hoşgeldiniz!");
+      toast.success("Tekrar hoÅŸgeldiniz!");
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message || "Doğrulama kodu geçersiz.");
+      toast.error(err.message || "DoÄŸrulama kodu geÃ§ersiz.");
     } finally {
       setLoading(false);
     }
@@ -641,35 +587,35 @@ export default function AuthPage() {
         newErrors.lastName = "Soyad zorunludur.";
       }
       if (!username.trim() || username.trim().length < 3) {
-        newErrors.username = "Kullanıcı adı en az 3 karakter olmalıdır.";
+        newErrors.username = "KullanÄ±cÄ± adÄ± en az 3 karakter olmalÄ±dÄ±r.";
       }
       if (usernameStatus === "taken") {
-        newErrors.username = "Bu kullanıcı adı zaten kullanılıyor.";
+        newErrors.username = "Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor.";
       }
       // Check username for profanity
       const usernameCheck = checkUsernameProfanity(username.trim());
       if (!usernameCheck.safe) {
-        newErrors.username = "Bu kullanıcı adı uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.";
+        newErrors.username = "Bu kullanÄ±cÄ± adÄ± uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor. LÃ¼tfen farklÄ± bir ad seÃ§in.";
       }
       if (!isPasswordStrong(password)) {
-        newErrors.password = "Şifre güvenlik gereksinimlerini karşılamıyor.";
+        newErrors.password = "Åifre gÃ¼venlik gereksinimlerini karÅŸÄ±lamÄ±yor.";
       }
       if (password !== confirmPassword) {
-        newErrors.confirmPassword = "Şifreler eşleşmiyor.";
+        newErrors.confirmPassword = "Åifreler eÅŸleÅŸmiyor.";
       }
       const domain = extractEmailDomain(email);
       if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
-        newErrors.email = "Sadece Türkiye ve KKTC üniversitelerine ait e-posta adresleri ile kayıt olabilirsiniz.";
+        newErrors.email = "Sadece TÃ¼rkiye ve KKTC Ã¼niversitelerine ait e-posta adresleri ile kayÄ±t olabilirsiniz.";
       }
 
       if (!university) {
-        newErrors.university = "Üniversite seçimi zorunludur.";
+        newErrors.university = "Ãœniversite seÃ§imi zorunludur.";
       }
       if (!department) {
-        newErrors.department = "Bölüm seçimi zorunludur.";
+        newErrors.department = "BÃ¶lÃ¼m seÃ§imi zorunludur.";
       }
       if (!acceptTerms) {
-        newErrors.terms = "Kullanım koşullarını kabul etmelisiniz.";
+        newErrors.terms = "KullanÄ±m koÅŸullarÄ±nÄ± kabul etmelisiniz.";
       }
     }
     setErrors(newErrors);
@@ -683,7 +629,7 @@ export default function AuthPage() {
     try {
       const captchaValid = await verifyCaptcha();
       if (!captchaValid) {
-        toast.error("CAPTCHA doğrulaması başarısız. Tekrar deneyin.");
+        toast.error("CAPTCHA doÄŸrulamasÄ± baÅŸarÄ±sÄ±z. Tekrar deneyin.");
         return;
       }
 
@@ -698,7 +644,7 @@ export default function AuthPage() {
         if (deletedCheck && deletedCheck.length > 0) {
           const cooldownEnd = new Date((deletedCheck[0] as any).cooldown_until);
           const hoursLeft = Math.ceil((cooldownEnd.getTime() - Date.now()) / (1000 * 60 * 60));
-          toast.error(`Bu e-posta adresi yakın zamanda silinen bir hesaba aittir. ${hoursLeft > 24 ? Math.ceil(hoursLeft / 24) + " gün" : hoursLeft + " saat"} sonra tekrar kayıt olabilirsiniz.`);
+          toast.error(`Bu e-posta adresi yakÄ±n zamanda silinen bir hesaba aittir. ${hoursLeft > 24 ? Math.ceil(hoursLeft / 24) + " gÃ¼n" : hoursLeft + " saat"} sonra tekrar kayÄ±t olabilirsiniz.`);
           setLoading(false);
           return;
         }
@@ -713,7 +659,7 @@ export default function AuthPage() {
           body: { username: sanitizedUsername },
         });
         if (usernameCheckError || usernameCheckData?.available === false) {
-          toast.error(usernameCheckData?.reason || "Bu kullanıcı adı kullanılamıyor. Lütfen farklı bir kullanıcı adı seçin.");
+          toast.error(usernameCheckData?.reason || "Bu kullanÄ±cÄ± adÄ± kullanÄ±lamÄ±yor. LÃ¼tfen farklÄ± bir kullanÄ±cÄ± adÄ± seÃ§in.");
           setLoading(false);
           return;
         }
@@ -726,7 +672,10 @@ export default function AuthPage() {
           JSON.stringify({
             display_name: displayName || null,
             university: university.trim() || null,
+            university_id: detectedUniversityId || null,
             department: department.trim() || null,
+            academic_program_id: selectedProgram?.id || null,
+            program_level: selectedProgram?.program_level || null,
             class_year: classYear ? parseInt(classYear) : null,
             bio: sanitizeInput(bio.trim()) || null,
             email_domain: domain || null,
@@ -744,7 +693,7 @@ export default function AuthPage() {
       } else {
         const lockout = await checkLoginLockout(email);
         if (lockout.locked) {
-          toast.error(`Çok fazla başarısız giriş denemesi. ${lockout.minutesLeft} dakika sonra tekrar deneyin.`);
+          toast.error(`Ã‡ok fazla baÅŸarÄ±sÄ±z giriÅŸ denemesi. ${lockout.minutesLeft} dakika sonra tekrar deneyin.`);
           await logSecurityEvent("account_locked", { email });
           return;
         }
@@ -775,30 +724,16 @@ export default function AuthPage() {
               const { data: { user } } = await supabase.auth.getUser();
                if (user) {
                  await supabase.from("profiles").update(data).eq("user_id", user.id);
-                 // Auto-add new university to universities table if not exists
-                 if (data.university) {
-                   const { data: existing } = await supabase
-                     .from("universities")
-                     .select("id")
-                     .eq("name", data.university)
-                     .maybeSingle();
-                   if (!existing) {
-                     await supabase.from("universities").insert({
-                       name: data.university,
-                       created_by: user.id,
-                     } as any);
-                   }
-                 }
                }
             } catch {
-              toast.error("Profil bilgileri kaydedilemedi. Lütfen profil sayfanızdan bilgilerinizi güncelleyin.");
+              toast.error("Profil bilgileri kaydedilemedi. LÃ¼tfen profil sayfanÄ±zdan bilgilerinizi gÃ¼ncelleyin.");
             }
             localStorage.removeItem("pending_profile");
           }
           if (newDevice) {
-            toast.info("Yeni bir cihazdan giriş yaptınız. 2FA etkinleştirmenizi öneriyoruz.", { duration: 8000 });
+            toast.info("Yeni bir cihazdan giriÅŸ yaptÄ±nÄ±z. 2FA etkinleÅŸtirmenizi Ã¶neriyoruz.", { duration: 8000 });
           } else {
-            toast.success("Tekrar hoşgeldiniz!");
+            toast.success("Tekrar hoÅŸgeldiniz!");
           }
           navigate("/");
         } catch (loginErr: any) {
@@ -808,7 +743,7 @@ export default function AuthPage() {
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "Kimlik doğrulama başarısız");
+      toast.error(err.message || "Kimlik doÄŸrulama baÅŸarÄ±sÄ±z");
     } finally {
       setLoading(false);
     }
@@ -817,11 +752,13 @@ export default function AuthPage() {
   const switchMode = () => {
     setIsSignUp(!isSignUp);
     setErrors({});
+    setDetectedUniversityId(null);
     setEmailError("");
     setRequestResultMsg("");
     setRequestSubmitted(false);
     setRequestedUniversityName("");
     setRequestNote("");
+    setShowProgramRequestDialog(false);
     setConfirmPassword("");
     setAcceptTerms(false);
   };
@@ -848,9 +785,9 @@ export default function AuthPage() {
                   <Mail className="h-8 w-8 text-success" />
                 </div>
               </div>
-              <CardTitle className="font-heading text-xl font-extrabold">E-postanızı Doğrulayın</CardTitle>
+              <CardTitle className="font-heading text-xl font-extrabold">E-postanÄ±zÄ± DoÄŸrulayÄ±n</CardTitle>
               <CardDescription className="text-sm mt-2">
-                <span className="font-semibold text-foreground">{signupEmail}</span> adresine bir doğrulama bağlantısı gönderdik.
+                <span className="font-semibold text-foreground">{signupEmail}</span> adresine bir doÄŸrulama baÄŸlantÄ±sÄ± gÃ¶nderdik.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6 space-y-4">
@@ -858,18 +795,18 @@ export default function AuthPage() {
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                   <div className="text-[11px]">
-                    <p className="font-semibold text-warning-foreground">Üniversite e-postası kullanıyorsanız:</p>
+                    <p className="font-semibold text-warning-foreground">Ãœniversite e-postasÄ± kullanÄ±yorsanÄ±z:</p>
                     <ul className="mt-1 space-y-0.5 text-warning-foreground">
-                      <li>• <strong>Spam/Gereksiz</strong> klasörünüzü mutlaka kontrol edin</li>
-                      <li>• E-posta gelmesi birkaç dakika sürebilir</li>
-                      <li>• Üniversitenizin e-posta sistemi gecikmelere yol açabilir</li>
+                      <li>â€¢ <strong>Spam/Gereksiz</strong> klasÃ¶rÃ¼nÃ¼zÃ¼ mutlaka kontrol edin</li>
+                      <li>â€¢ E-posta gelmesi birkaÃ§ dakika sÃ¼rebilir</li>
+                      <li>â€¢ Ãœniversitenizin e-posta sistemi gecikmelere yol aÃ§abilir</li>
                     </ul>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div className="text-[11px]">
-                    <p>E-postayı bulamıyorsanız aşağıdaki butona tıklayarak tekrar gönderebilirsiniz.</p>
+                    <p>E-postayÄ± bulamÄ±yorsanÄ±z aÅŸaÄŸÄ±daki butona tÄ±klayarak tekrar gÃ¶nderebilirsiniz.</p>
                   </div>
                 </div>
               </div>
@@ -881,11 +818,11 @@ export default function AuthPage() {
                 disabled={resendLoading || resendCooldown > 0}
               >
                 {resendLoading ? (
-                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Gönderiliyor...</span>
+                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> GÃ¶nderiliyor...</span>
                 ) : resendCooldown > 0 ? (
-                  `Tekrar gönder (${resendCooldown}s)`
+                  `Tekrar gÃ¶nder (${resendCooldown}s)`
                 ) : (
-                  "Doğrulama E-postasını Tekrar Gönder"
+                  "DoÄŸrulama E-postasÄ±nÄ± Tekrar GÃ¶nder"
                 )}
               </Button>
 
@@ -893,7 +830,7 @@ export default function AuthPage() {
                 onClick={() => { setSignupComplete(false); setIsSignUp(false); }}
                 className="w-full h-10 rounded-lg font-semibold text-sm"
               >
-                Giriş Sayfasına Dön
+                GiriÅŸ SayfasÄ±na DÃ¶n
               </Button>
             </CardContent>
           </Card>
@@ -905,7 +842,7 @@ export default function AuthPage() {
   const passwordsMatch = isSignUp && confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = isSignUp && confirmPassword.length > 0 && password !== confirmPassword;
   const isAcademicEmailDomain = emailDomain.endsWith(".edu.tr") || emailDomain.endsWith(".edu");
-  const isHardEmailRejection = emailError.startsWith("Sadece Türkiye ve KKTC");
+  const isHardEmailRejection = emailError.startsWith("Sadece TÃ¼rkiye ve KKTC");
   const shouldShowUnknownDomainRequest =
     isSignUp &&
     !!email &&
@@ -932,16 +869,16 @@ export default function AuthPage() {
               </div>
             </div>
             <CardTitle className="font-heading text-2xl font-extrabold tracking-tight">
-              {isSignUp ? "Hesap Oluştur" : "Tekrar Hoşgeldiniz"}
+              {isSignUp ? "Hesap OluÅŸtur" : "Tekrar HoÅŸgeldiniz"}
             </CardTitle>
             <CardDescription className="text-sm mt-1">
-              {isSignUp ? "Üniversite e-postanızla güvenli kayıt olun" : "Hesabınıza güvenli giriş yapın"}
+              {isSignUp ? "Ãœniversite e-postanÄ±zla gÃ¼venli kayÄ±t olun" : "HesabÄ±nÄ±za gÃ¼venli giriÅŸ yapÄ±n"}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-6 pb-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* ── FIRST NAME & LAST NAME (signup only) ── */}
+              {/* â”€â”€ FIRST NAME & LAST NAME (signup only) â”€â”€ */}
               <AnimatePresence>
                 {isSignUp && (
                   <motion.div
@@ -958,7 +895,7 @@ export default function AuthPage() {
                         id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Adınız"
+                        placeholder="AdÄ±nÄ±z"
                         required
                         maxLength={50}
                         className="h-10 rounded-lg"
@@ -974,7 +911,7 @@ export default function AuthPage() {
                         id="lastName"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Soyadınız"
+                        placeholder="SoyadÄ±nÄ±z"
                         required
                         maxLength={50}
                         className="h-10 rounded-lg"
@@ -986,7 +923,7 @@ export default function AuthPage() {
                 )}
               </AnimatePresence>
 
-              {/* ── USERNAME (signup only) ── */}
+              {/* â”€â”€ USERNAME (signup only) â”€â”€ */}
               <AnimatePresence>
                 {isSignUp && (
                   <motion.div
@@ -997,7 +934,7 @@ export default function AuthPage() {
                   >
                     <Label htmlFor="username" className="text-xs font-semibold flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5 text-muted-foreground" />
-                      Kullanıcı Adı <span className="text-destructive">*</span>
+                      KullanÄ±cÄ± AdÄ± <span className="text-destructive">*</span>
                     </Label>
                     <div className="relative">
                       <Input
@@ -1017,25 +954,25 @@ export default function AuthPage() {
                       </div>
                     </div>
                     {usernameStatus === "taken" && (
-                      <p className="text-[10px] text-destructive">Bu kullanıcı adı zaten kullanılıyor.</p>
+                      <p className="text-[10px] text-destructive">Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor.</p>
                     )}
                     {usernameStatus === "inappropriate" && (
-                      <p className="text-[10px] text-destructive">Bu kullanıcı adı uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.</p>
+                      <p className="text-[10px] text-destructive">Bu kullanÄ±cÄ± adÄ± uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor. LÃ¼tfen farklÄ± bir ad seÃ§in.</p>
                     )}
                     {usernameStatus === "available" && (
-                      <p className="text-[10px] text-success">Kullanıcı adı müsait ✓</p>
+                      <p className="text-[10px] text-success">KullanÄ±cÄ± adÄ± mÃ¼sait âœ“</p>
                     )}
                     {errors.username && <p className="text-[10px] text-destructive">{errors.username}</p>}
-                    <p className="text-[10px] text-muted-foreground">Sadece harf, rakam ve alt çizgi. 30 günde bir değiştirilebilir.</p>
+                    <p className="text-[10px] text-muted-foreground">Sadece harf, rakam ve alt Ã§izgi. 30 gÃ¼nde bir deÄŸiÅŸtirilebilir.</p>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* ── EMAIL ── */}
+              {/* â”€â”€ EMAIL â”€â”€ */}
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs font-semibold flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                  {isSignUp ? "Üniversite E-postası" : "E-posta"} <span className="text-destructive">*</span>
+                  {isSignUp ? "Ãœniversite E-postasÄ±" : "E-posta"} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="email"
@@ -1051,7 +988,7 @@ export default function AuthPage() {
                   <div className="flex items-start gap-1.5 mt-1">
                     <Info className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
                     <p className="text-[10px] text-muted-foreground">
-                      Üniversite e-posta adresinizi kullanın (örn: isim@ege.edu.tr)
+                      Ãœniversite e-posta adresinizi kullanÄ±n (Ã¶rn: isim@ege.edu.tr)
                     </p>
                   </div>
                 )}
@@ -1063,8 +1000,8 @@ export default function AuthPage() {
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] font-semibold text-success">✓ Üniversite algılandı: {detectedUniversity}</p>
-                      <p className="text-[9px] text-success/80">E-posta domain eşleşmesi ile üniversiteniz otomatik bağlanacaktır.</p>
+                      <p className="text-[10px] font-semibold text-success">âœ“ Ãœniversite algÄ±landÄ±: {detectedUniversity}</p>
+                      <p className="text-[9px] text-success/80">E-posta domain eÅŸleÅŸmesi ile Ã¼niversiteniz otomatik baÄŸlanacaktÄ±r.</p>
                     </div>
                   </motion.div>
                 )}
@@ -1077,15 +1014,15 @@ export default function AuthPage() {
                     <div className="flex items-start gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
                       <p className="text-[10px] text-warning-foreground">
-                        Bu e-posta domaini henüz sistemde kayıtlı değil. Kayda devam etmeden önce talep oluşturmalısınız.
+                        Bu e-posta domaini henÃ¼z sistemde kayÄ±tlÄ± deÄŸil. Kayda devam etmeden Ã¶nce talep oluÅŸturmalÄ±sÄ±nÄ±z.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Bu e-posta hangi üniversiteye ait?</Label>
+                      <Label className="text-xs font-semibold">Bu e-posta hangi Ã¼niversiteye ait?</Label>
                       <Input
                         value={requestedUniversityName}
                         onChange={(e) => setRequestedUniversityName(e.target.value)}
-                        placeholder="Örn: Yakın Doğu Üniversitesi"
+                        placeholder="Ã–rn: YakÄ±n DoÄŸu Ãœniversitesi"
                         className="h-9 text-sm"
                         maxLength={200}
                         disabled={requestSending || requestSubmitted}
@@ -1094,7 +1031,7 @@ export default function AuthPage() {
                       <Input
                         value={requestNote}
                         onChange={(e) => setRequestNote(e.target.value)}
-                        placeholder="Örn: Domain neu.edu.tr"
+                        placeholder="Ã–rn: Domain neu.edu.tr"
                         className="h-9 text-sm"
                         maxLength={200}
                         disabled={requestSending || requestSubmitted}
@@ -1113,13 +1050,13 @@ export default function AuthPage() {
                           onClick={submitUnknownDomainRequest}
                         >
                           {requestSending ? (
-                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Gönderiliyor</>
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" />GÃ¶nderiliyor</>
                           ) : (
-                            "Talep Oluştur"
+                            "Talep OluÅŸtur"
                           )}
                         </Button>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">Admin onayı olmadan bu domain ile signup tamamlanamaz.</p>
+                      <p className="text-[9px] text-muted-foreground">Admin onayÄ± olmadan bu domain ile signup tamamlanamaz.</p>
                     </div>
                   </motion.div>
                 )}
@@ -1132,18 +1069,18 @@ export default function AuthPage() {
                 {errors.email && <p className="text-[10px] text-destructive">{errors.email}</p>}
               </div>
 
-              {/* ── PASSWORD ── */}
+              {/* â”€â”€ PASSWORD â”€â”€ */}
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-xs font-semibold flex items-center gap-1.5">
                   <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                  Şifre <span className="text-destructive">*</span>
+                  Åifre <span className="text-destructive">*</span>
                 </Label>
                 <PasswordInput id="password" value={password} onChange={setPassword} />
                 {isSignUp && <PasswordStrengthIndicator password={password} />}
                 {errors.password && <p className="text-[10px] text-destructive">{errors.password}</p>}
               </div>
 
-              {/* ── CONFIRM PASSWORD (signup) ── */}
+              {/* â”€â”€ CONFIRM PASSWORD (signup) â”€â”€ */}
               <AnimatePresence>
                 {isSignUp && (
                   <motion.div
@@ -1154,17 +1091,17 @@ export default function AuthPage() {
                   >
                     <Label htmlFor="confirmPassword" className="text-xs font-semibold flex items-center gap-1.5">
                       <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                      Şifreyi Onayla <span className="text-destructive">*</span>
+                      Åifreyi Onayla <span className="text-destructive">*</span>
                     </Label>
                     <PasswordInput id="confirmPassword" value={confirmPassword} onChange={setConfirmPassword} />
                     {passwordsMatch && (
                       <p className="text-[10px] text-success flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Şifreler eşleşiyor
+                        <CheckCircle2 className="h-3 w-3" /> Åifreler eÅŸleÅŸiyor
                       </p>
                     )}
                     {passwordsMismatch && (
                       <p className="text-[10px] text-destructive flex items-center gap-1">
-                        <XCircle className="h-3 w-3" /> Şifreler eşleşmiyor
+                        <XCircle className="h-3 w-3" /> Åifreler eÅŸleÅŸmiyor
                       </p>
                     )}
                     {errors.confirmPassword && <p className="text-[10px] text-destructive">{errors.confirmPassword}</p>}
@@ -1172,16 +1109,16 @@ export default function AuthPage() {
                 )}
               </AnimatePresence>
 
-              {/* ── FORGOT PASSWORD (login) ── */}
+              {/* â”€â”€ FORGOT PASSWORD (login) â”€â”€ */}
               {!isSignUp && (
                 <div className="text-right -mt-1">
                   <Link to="/forgot-password" className="text-[11px] text-primary font-semibold hover:underline">
-                    Şifremi unuttum
+                    Åifremi unuttum
                   </Link>
                 </div>
               )}
 
-              {/* ── ACADEMIC INFO (signup, after detection) ── */}
+              {/* â”€â”€ ACADEMIC INFO (signup, after detection) â”€â”€ */}
               <AnimatePresence>
                 {isSignUp && detectedUniversity && (
                   <motion.div
@@ -1199,7 +1136,7 @@ export default function AuthPage() {
 
                     {/* University (locked) */}
                     <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Üniversite <span className="text-destructive">*</span></Label>
+                      <Label className="text-xs font-semibold">Ãœniversite <span className="text-destructive">*</span></Label>
                       <div className="flex items-center gap-2 h-10 px-3 rounded-lg bg-secondary/50 border border-input">
                         <GraduationCap className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-sm font-medium truncate">{university}</span>
@@ -1207,106 +1144,60 @@ export default function AuthPage() {
                       </div>
                       <p className="text-[9px] text-muted-foreground flex items-center gap-1">
                         <ShieldCheck className="h-3 w-3" />
-                        E-postadan otomatik algılandı. Admin onayı ile değiştirilebilir.
+                        E-postadan otomatik algÄ±landÄ±. Admin onayÄ± ile deÄŸiÅŸtirilebilir.
                       </p>
                       {errors.university && <p className="text-[10px] text-destructive">{errors.university}</p>}
                     </div>
 
                     {/* Department */}
                     <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Bölüm <span className="text-destructive">*</span></Label>
+                      <Label className="text-xs font-semibold">BÃ¶lÃ¼m <span className="text-destructive">*</span></Label>
                       <SearchableSelect
                         value={department}
                         onValueChange={handleDepartmentChange}
-                        placeholder="Bölüm seçin"
-                        searchPlaceholder="Bölüm ara..."
+                        placeholder="BÃ¶lÃ¼m seÃ§in"
+                        searchPlaceholder="BÃ¶lÃ¼m ara..."
                         options={departmentOptions}
                         error={errors.department}
                       />
                       <button
                         type="button"
-                        onClick={() => { setShowCustomDept(true); setDeptValidation("idle"); setDeptValidationMsg(""); }}
+                        onClick={() => setShowProgramRequestDialog(true)}
                         className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all"
                       >
-                        <Search className="h-3.5 w-3.5" />
-                        Bölümümü Bulamadım
+                        BÃ¶lÃ¼mÃ¼mÃ¼ BulamadÄ±m
                       </button>
 
-                      {showCustomDept && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3 rounded-lg bg-secondary/50 border text-left space-y-2"
-                        >
-                          <Label className="text-xs font-semibold">Bölüm adını girin</Label>
-                          <Input
-                            value={customDepartment}
-                            onChange={(e) => { setCustomDepartment(e.target.value); setDeptValidation("idle"); }}
-                            placeholder="Örn: Bilgisayar Mühendisliği"
-                            className="h-9 text-sm"
-                            maxLength={200}
-                            disabled={deptValidation === "validating"}
-                          />
-                          <ValidationFeedback status={deptValidation} message={deptValidationMsg} />
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="text-xs flex-1"
-                              onClick={() => { setShowCustomDept(false); setCustomDepartment(""); setDeptValidation("idle"); }}
-                              disabled={deptValidation === "validating"}
-                            >
-                              İptal
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="text-xs flex-1"
-                              disabled={!customDepartment.trim() || deptValidation === "validating" || deptValidation === "approved"}
-                              onClick={validateDepartment}
-                            >
-                              {deptValidation === "validating" ? (
-                                <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Doğrulanıyor</>
-                              ) : (
-                                "Doğrula ve Kullan"
-                              )}
-                            </Button>
-                          </div>
-                          <p className="text-[9px] text-muted-foreground">Bölüm doğrulama servisi ile kontrol edilir.</p>
-                        </motion.div>
-                      )}
-
-                       <p className="text-[9px] text-muted-foreground flex items-center gap-1">
+                      <p className="text-[9px] text-muted-foreground flex items-center gap-1">
                         <Lock className="h-3 w-3" />
-                        Kayıt sonrası admin onayı ile değiştirilebilir.
+                        BÃ¶lÃ¼m talepleri AI yerine admin onaylÄ± request kuyruÄŸuna gÃ¶nderilir.
                       </p>
                     </div>
 
                     {/* Year + Bio row */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold">Sınıf</Label>
+                        <Label className="text-xs font-semibold">SÄ±nÄ±f</Label>
                         <Select value={classYear} onValueChange={setClassYear}>
                           <SelectTrigger className="h-9 text-sm rounded-lg">
-                            <SelectValue placeholder="Seçin" />
+                            <SelectValue placeholder="SeÃ§in" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="0">Hazırlık</SelectItem>
+                            <SelectItem value="0">HazÄ±rlÄ±k</SelectItem>
                             {Array.from({ length: programYears }, (_, i) => (
                               <SelectItem key={i + 1} value={String(i + 1)}>
-                                {i + 1}. Sınıf
+                                {i + 1}. SÄ±nÄ±f
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold">Hakkımda</Label>
+                        <Label className="text-xs font-semibold">HakkÄ±mda</Label>
                         <Input
                           value={bio}
                           onChange={(e) => setBio(e.target.value)}
-                          placeholder="Kısa açıklama"
+                          placeholder="KÄ±sa aÃ§Ä±klama"
                           maxLength={100}
                           className="h-9 text-sm rounded-lg"
                         />
@@ -1316,18 +1207,30 @@ export default function AuthPage() {
                 )}
               </AnimatePresence>
 
+              <AcademicProgramRequestDialog
+                open={showProgramRequestDialog}
+                onOpenChange={setShowProgramRequestDialog}
+                context="signup"
+                defaultUniversityId={detectedUniversityId}
+                defaultUniversityName={detectedUniversity}
+                requesterEmail={email}
+                onSubmitted={() => {
+                  setShowProgramRequestDialog(false);
+                }}
+              />
+
               {/* Warning for invalid domain */}
               {isSignUp && !detectedUniversity && !shouldShowUnknownDomainRequest && email && emailDomain && emailError && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                   <Mail className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                   <p className="text-[10px] text-warning-foreground">
-                    Kayıt olmak için geçerli bir üniversite e-posta adresi gereklidir.
-                    E-postanızın <strong>@universite.edu.tr</strong> formatında olduğundan emin olun.
+                    KayÄ±t olmak iÃ§in geÃ§erli bir Ã¼niversite e-posta adresi gereklidir.
+                    E-postanÄ±zÄ±n <strong>@universite.edu.tr</strong> formatÄ±nda olduÄŸundan emin olun.
                   </p>
                 </div>
               )}
 
-              {/* ── TERMS (signup) ── */}
+              {/* â”€â”€ TERMS (signup) â”€â”€ */}
               {isSignUp && (
                 <div className="space-y-1">
                   <div className="flex items-start gap-2">
@@ -1338,8 +1241,8 @@ export default function AuthPage() {
                       className="mt-0.5"
                     />
                     <label htmlFor="terms" className="text-[11px] text-muted-foreground leading-tight cursor-pointer">
-                      <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-semibold hover:underline">Kullanım Koşulları</button> ve{" "}
-                      <button type="button" onClick={() => setShowPrivacy(true)} className="text-primary font-semibold hover:underline">Gizlilik Politikası</button>'nı
+                      <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-semibold hover:underline">KullanÄ±m KoÅŸullarÄ±</button> ve{" "}
+                      <button type="button" onClick={() => setShowPrivacy(true)} className="text-primary font-semibold hover:underline">Gizlilik PolitikasÄ±</button>'nÄ±
                       okudum ve kabul ediyorum.
                     </label>
                   </div>
@@ -1358,12 +1261,12 @@ export default function AuthPage() {
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Yükleniyor...
+                    <Loader2 className="h-4 w-4 animate-spin" /> YÃ¼kleniyor...
                   </span>
                 ) : isSignUp ? (
-                  "Kayıt Ol"
+                  "KayÄ±t Ol"
                 ) : (
-                  "Giriş Yap"
+                  "GiriÅŸ Yap"
                 )}
               </Button>
 
@@ -1372,10 +1275,10 @@ export default function AuthPage() {
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
                   <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div className="text-[10px] text-muted-foreground space-y-0.5">
-                    <p className="font-semibold text-foreground">Güvenlik Bilgisi</p>
-                    <p>• E-postanıza doğrulama kodu gönderilecektir</p>
-                    <p>• Üniversite ve bölüm bilgileriniz kayıt sonrası admin onayı ile değiştirilebilir</p>
-                    <p>• Sadece kendi üniversitenizin derslerine içerik ekleyebilirsiniz</p>
+                    <p className="font-semibold text-foreground">GÃ¼venlik Bilgisi</p>
+                    <p>â€¢ E-postanÄ±za doÄŸrulama kodu gÃ¶nderilecektir</p>
+                    <p>â€¢ Ãœniversite ve bÃ¶lÃ¼m bilgileriniz kayÄ±t sonrasÄ± admin onayÄ± ile deÄŸiÅŸtirilebilir</p>
+                    <p>â€¢ Sadece kendi Ã¼niversitenizin derslerine iÃ§erik ekleyebilirsiniz</p>
                   </div>
                 </div>
               )}
@@ -1383,9 +1286,9 @@ export default function AuthPage() {
 
             {/* Toggle signup/login */}
             <div className="mt-5 text-center text-sm text-muted-foreground">
-              {isSignUp ? "Zaten hesabınız var mı?" : "Hesabınız yok mu?"}{" "}
+              {isSignUp ? "Zaten hesabÄ±nÄ±z var mÄ±?" : "HesabÄ±nÄ±z yok mu?"}{" "}
               <button onClick={switchMode} className="text-primary font-semibold hover:underline">
-                {isSignUp ? "Giriş Yap" : "Kayıt Ol"}
+                {isSignUp ? "GiriÅŸ Yap" : "KayÄ±t Ol"}
               </button>
             </div>
           </CardContent>
@@ -1393,7 +1296,7 @@ export default function AuthPage() {
 
         {/* Footer text */}
         <p className="text-center text-[10px] text-muted-foreground mt-4 px-4">
-          Verileriniz şifrelenerek güvenli sunucularda saklanır. Şifreniz bcrypt ile hash'lenir.
+          Verileriniz ÅŸifrelenerek gÃ¼venli sunucularda saklanÄ±r. Åifreniz bcrypt ile hash'lenir.
         </p>
       </motion.div>
 
@@ -1403,28 +1306,28 @@ export default function AuthPage() {
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2 font-heading text-lg">
               <FileText className="h-5 w-5 text-primary" />
-              Kullanım Koşulları
+              KullanÄ±m KoÅŸullarÄ±
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="px-6 pb-6 max-h-[65vh]">
             <div className="space-y-4 text-sm text-muted-foreground">
-              <p className="text-[10px]">Son güncelleme: 8 Mart 2026</p>
-              <h3 className="text-foreground font-semibold text-base">1. Hizmet Tanımı</h3>
-              <p>Bu platform, Türkiye'deki üniversite öğrencilerinin ders notlarını, sınav sorularını ve akademik kaynakları paylaşmaları için tasarlanmış bir akademik işbirliği platformudur. Platform, yalnızca geçerli bir üniversite e-posta adresi (.edu.tr) ile kayıt olan kullanıcılara hizmet vermektedir.</p>
-              <h3 className="text-foreground font-semibold text-base">2. Kullanıcı Hesabı ve Sorumluluklar</h3>
-              <p>Kullanıcılar, kayıt sırasında sağladıkları bilgilerin doğruluğundan sorumludur. Her kullanıcı yalnızca bir hesap açabilir. Hesap bilgileri (üniversite, bölüm) kayıt sonrası admin onayı ile değiştirilebilir. Kullanıcılar, hesap güvenliğinden ve şifrelerinin gizliliğinden kendileri sorumludur.</p>
-              <h3 className="text-foreground font-semibold text-base">3. İçerik Politikası</h3>
-              <p>Kullanıcılar yalnızca kendi üniversitelerine ait bölümlere içerik ekleyebilir. Paylaşılan tüm içerikler telif hakkı yasalarına uygun olmalıdır. Platform, uygunsuz içerikleri önceden haber vermeksizin kaldırma hakkını saklı tutar.</p>
-              <h3 className="text-foreground font-semibold text-base">4. Fikri Mülkiyet</h3>
-              <p>Kullanıcılar paylaştıkları içeriklerin fikri mülkiyet haklarına sahip olmalı veya paylaşım izni almış olmalıdır. Platformda paylaşılan içerikler, içerik sahibinin mülkiyetinde kalır.</p>
-              <h3 className="text-foreground font-semibold text-base">5. Yasaklanan Davranışlar</h3>
-              <p>Platformda spam, hakaret, taciz, nefret söylemi ve diğer zararlı davranışlar kesinlikle yasaktır. Başka kullanıcıların hesaplarına yetkisiz erişim girişimleri ve otomatik veri toplama (scraping) yasaktır.</p>
-              <h3 className="text-foreground font-semibold text-base">6. Hesap Askıya Alma</h3>
-              <p>Platform, kullanım koşullarını ihlal eden hesapları geçici veya kalıcı olarak askıya alma hakkını saklı tutar.</p>
-              <h3 className="text-foreground font-semibold text-base">7. Sorumluluk Sınırlaması</h3>
-              <p>Platform, kullanıcılar tarafından paylaşılan içeriklerin doğruluğu veya kalitesi konusunda garanti vermez. Platform, hizmet kesintileri veya veri kayıplarından kaynaklanan zararlardan sorumlu tutulamaz.</p>
-              <h3 className="text-foreground font-semibold text-base">8. Değişiklikler</h3>
-              <p>Bu koşullar önceden haber verilerek güncellenebilir. Platformu kullanmaya devam etmek, güncellenmiş koşulları kabul ettiğiniz anlamına gelir.</p>
+              <p className="text-[10px]">Son gÃ¼ncelleme: 8 Mart 2026</p>
+              <h3 className="text-foreground font-semibold text-base">1. Hizmet TanÄ±mÄ±</h3>
+              <p>Bu platform, TÃ¼rkiye'deki Ã¼niversite Ã¶ÄŸrencilerinin ders notlarÄ±nÄ±, sÄ±nav sorularÄ±nÄ± ve akademik kaynaklarÄ± paylaÅŸmalarÄ± iÃ§in tasarlanmÄ±ÅŸ bir akademik iÅŸbirliÄŸi platformudur. Platform, yalnÄ±zca geÃ§erli bir Ã¼niversite e-posta adresi (.edu.tr) ile kayÄ±t olan kullanÄ±cÄ±lara hizmet vermektedir.</p>
+              <h3 className="text-foreground font-semibold text-base">2. KullanÄ±cÄ± HesabÄ± ve Sorumluluklar</h3>
+              <p>KullanÄ±cÄ±lar, kayÄ±t sÄ±rasÄ±nda saÄŸladÄ±klarÄ± bilgilerin doÄŸruluÄŸundan sorumludur. Her kullanÄ±cÄ± yalnÄ±zca bir hesap aÃ§abilir. Hesap bilgileri (Ã¼niversite, bÃ¶lÃ¼m) kayÄ±t sonrasÄ± admin onayÄ± ile deÄŸiÅŸtirilebilir. KullanÄ±cÄ±lar, hesap gÃ¼venliÄŸinden ve ÅŸifrelerinin gizliliÄŸinden kendileri sorumludur.</p>
+              <h3 className="text-foreground font-semibold text-base">3. Ä°Ã§erik PolitikasÄ±</h3>
+              <p>KullanÄ±cÄ±lar yalnÄ±zca kendi Ã¼niversitelerine ait bÃ¶lÃ¼mlere iÃ§erik ekleyebilir. PaylaÅŸÄ±lan tÃ¼m iÃ§erikler telif hakkÄ± yasalarÄ±na uygun olmalÄ±dÄ±r. Platform, uygunsuz iÃ§erikleri Ã¶nceden haber vermeksizin kaldÄ±rma hakkÄ±nÄ± saklÄ± tutar.</p>
+              <h3 className="text-foreground font-semibold text-base">4. Fikri MÃ¼lkiyet</h3>
+              <p>KullanÄ±cÄ±lar paylaÅŸtÄ±klarÄ± iÃ§eriklerin fikri mÃ¼lkiyet haklarÄ±na sahip olmalÄ± veya paylaÅŸÄ±m izni almÄ±ÅŸ olmalÄ±dÄ±r. Platformda paylaÅŸÄ±lan iÃ§erikler, iÃ§erik sahibinin mÃ¼lkiyetinde kalÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">5. Yasaklanan DavranÄ±ÅŸlar</h3>
+              <p>Platformda spam, hakaret, taciz, nefret sÃ¶ylemi ve diÄŸer zararlÄ± davranÄ±ÅŸlar kesinlikle yasaktÄ±r. BaÅŸka kullanÄ±cÄ±larÄ±n hesaplarÄ±na yetkisiz eriÅŸim giriÅŸimleri ve otomatik veri toplama (scraping) yasaktÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">6. Hesap AskÄ±ya Alma</h3>
+              <p>Platform, kullanÄ±m koÅŸullarÄ±nÄ± ihlal eden hesaplarÄ± geÃ§ici veya kalÄ±cÄ± olarak askÄ±ya alma hakkÄ±nÄ± saklÄ± tutar.</p>
+              <h3 className="text-foreground font-semibold text-base">7. Sorumluluk SÄ±nÄ±rlamasÄ±</h3>
+              <p>Platform, kullanÄ±cÄ±lar tarafÄ±ndan paylaÅŸÄ±lan iÃ§eriklerin doÄŸruluÄŸu veya kalitesi konusunda garanti vermez. Platform, hizmet kesintileri veya veri kayÄ±plarÄ±ndan kaynaklanan zararlardan sorumlu tutulamaz.</p>
+              <h3 className="text-foreground font-semibold text-base">8. DeÄŸiÅŸiklikler</h3>
+              <p>Bu koÅŸullar Ã¶nceden haber verilerek gÃ¼ncellenebilir. Platformu kullanmaya devam etmek, gÃ¼ncellenmiÅŸ koÅŸullarÄ± kabul ettiÄŸiniz anlamÄ±na gelir.</p>
             </div>
           </ScrollArea>
         </DialogContent>
@@ -1436,28 +1339,28 @@ export default function AuthPage() {
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2 font-heading text-lg">
               <Shield className="h-5 w-5 text-primary" />
-              Gizlilik Politikası
+              Gizlilik PolitikasÄ±
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="px-6 pb-6 max-h-[65vh]">
             <div className="space-y-4 text-sm text-muted-foreground">
-              <p className="text-[10px]">Son güncelleme: 8 Mart 2026</p>
+              <p className="text-[10px]">Son gÃ¼ncelleme: 8 Mart 2026</p>
               <h3 className="text-foreground font-semibold text-base">1. Toplanan Veriler</h3>
-              <p>Kayıt sırasında: e-posta adresi, kullanıcı adı, üniversite, bölüm ve sınıf bilgileri toplanır. Kullanım sırasında: IP adresi, tarayıcı bilgisi, oturum verileri ve platform içi aktiviteler kaydedilir.</p>
-              <h3 className="text-foreground font-semibold text-base">2. Verilerin Kullanım Amacı</h3>
-              <p>Toplanan veriler hesap doğrulama, üniversiteye özgü içerik erişim kontrolü, platform güvenliğinin sağlanması ve hizmet kalitesinin iyileştirilmesi amacıyla kullanılır.</p>
-              <h3 className="text-foreground font-semibold text-base">3. Veri Güvenliği</h3>
-              <p>Şifreler endüstri standardı bcrypt algoritması ile hash'lenir. Tüm iletişimler TLS/HTTPS ile korunur. Veritabanı erişimi Row-Level Security politikaları ile sınırlandırılmıştır.</p>
-              <h3 className="text-foreground font-semibold text-base">4. Veri Paylaşımı</h3>
-              <p>Kişisel verileriniz üçüncü taraflarla paylaşılmaz. Yasal zorunluluk durumları hariç, veriler yalnızca platform hizmetleri için kullanılır.</p>
-              <h3 className="text-foreground font-semibold text-base">5. Kullanıcı Hakları (KVKK)</h3>
-              <p>6698 sayılı KVKK kapsamında: kişisel verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme, aktarıldığı üçüncü kişileri bilme ve itiraz etme haklarına sahipsiniz.</p>
-              <h3 className="text-foreground font-semibold text-base">6. Çerezler</h3>
-              <p>Platform, oturum yönetimi için gerekli çerezler kullanır. HTTP-only ve SameSite korumalarıyla güvence altına alınmıştır. Üçüncü taraf izleme çerezleri kullanılmamaktadır.</p>
-              <h3 className="text-foreground font-semibold text-base">7. Veri Saklama Süresi</h3>
-              <p>Hesap verileri aktif olduğu sürece, güvenlik logları 90 gün saklanır. Hesap silinmesinde kişisel veriler 30 gün içinde kalıcı olarak silinir.</p>
-              <h3 className="text-foreground font-semibold text-base">8. İletişim</h3>
-              <p>Gizlilik ile ilgili sorularınız için platform üzerinden destek ekibimize ulaşabilirsiniz.</p>
+              <p>KayÄ±t sÄ±rasÄ±nda: e-posta adresi, kullanÄ±cÄ± adÄ±, Ã¼niversite, bÃ¶lÃ¼m ve sÄ±nÄ±f bilgileri toplanÄ±r. KullanÄ±m sÄ±rasÄ±nda: IP adresi, tarayÄ±cÄ± bilgisi, oturum verileri ve platform iÃ§i aktiviteler kaydedilir.</p>
+              <h3 className="text-foreground font-semibold text-base">2. Verilerin KullanÄ±m AmacÄ±</h3>
+              <p>Toplanan veriler hesap doÄŸrulama, Ã¼niversiteye Ã¶zgÃ¼ iÃ§erik eriÅŸim kontrolÃ¼, platform gÃ¼venliÄŸinin saÄŸlanmasÄ± ve hizmet kalitesinin iyileÅŸtirilmesi amacÄ±yla kullanÄ±lÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">3. Veri GÃ¼venliÄŸi</h3>
+              <p>Åifreler endÃ¼stri standardÄ± bcrypt algoritmasÄ± ile hash'lenir. TÃ¼m iletiÅŸimler TLS/HTTPS ile korunur. VeritabanÄ± eriÅŸimi Row-Level Security politikalarÄ± ile sÄ±nÄ±rlandÄ±rÄ±lmÄ±ÅŸtÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">4. Veri PaylaÅŸÄ±mÄ±</h3>
+              <p>KiÅŸisel verileriniz Ã¼Ã§Ã¼ncÃ¼ taraflarla paylaÅŸÄ±lmaz. Yasal zorunluluk durumlarÄ± hariÃ§, veriler yalnÄ±zca platform hizmetleri iÃ§in kullanÄ±lÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">5. KullanÄ±cÄ± HaklarÄ± (KVKK)</h3>
+              <p>6698 sayÄ±lÄ± KVKK kapsamÄ±nda: kiÅŸisel verilerinizin iÅŸlenip iÅŸlenmediÄŸini Ã¶ÄŸrenme, dÃ¼zeltilmesini veya silinmesini talep etme, aktarÄ±ldÄ±ÄŸÄ± Ã¼Ã§Ã¼ncÃ¼ kiÅŸileri bilme ve itiraz etme haklarÄ±na sahipsiniz.</p>
+              <h3 className="text-foreground font-semibold text-base">6. Ã‡erezler</h3>
+              <p>Platform, oturum yÃ¶netimi iÃ§in gerekli Ã§erezler kullanÄ±r. HTTP-only ve SameSite korumalarÄ±yla gÃ¼vence altÄ±na alÄ±nmÄ±ÅŸtÄ±r. ÃœÃ§Ã¼ncÃ¼ taraf izleme Ã§erezleri kullanÄ±lmamaktadÄ±r.</p>
+              <h3 className="text-foreground font-semibold text-base">7. Veri Saklama SÃ¼resi</h3>
+              <p>Hesap verileri aktif olduÄŸu sÃ¼rece, gÃ¼venlik loglarÄ± 90 gÃ¼n saklanÄ±r. Hesap silinmesinde kiÅŸisel veriler 30 gÃ¼n iÃ§inde kalÄ±cÄ± olarak silinir.</p>
+              <h3 className="text-foreground font-semibold text-base">8. Ä°letiÅŸim</h3>
+              <p>Gizlilik ile ilgili sorularÄ±nÄ±z iÃ§in platform Ã¼zerinden destek ekibimize ulaÅŸabilirsiniz.</p>
             </div>
           </ScrollArea>
         </DialogContent>
@@ -1465,3 +1368,5 @@ export default function AuthPage() {
     </div>
   );
 }
+
+

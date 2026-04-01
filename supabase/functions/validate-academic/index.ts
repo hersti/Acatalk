@@ -513,6 +513,17 @@ serve(async (req) => {
       });
     }
 
+    if (type !== "course") {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          status: "rejected",
+          reason: "Bu fonksiyonda artÄ±k yalnÄ±zca ders doÄŸrulama akÄ±ÅŸÄ± aktiftir.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!universityRaw || !normalizeLoose(universityRaw)) {
       return new Response(JSON.stringify({ error: "University required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
