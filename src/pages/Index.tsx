@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
-import Onboarding from "@/components/Onboarding";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import SearchableSelect from "@/components/SearchableSelect";
 import SuggestAcademicDialog from "@/components/SuggestAcademicDialog";
+import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,10 +20,16 @@ import {
   Search, GraduationCap, BookOpen, Clock, Trophy, FileText,
   MessageSquare, Filter, Download, ThumbsUp, TrendingUp, Plus, Building2, Globe, Lock, Users, ArrowRight, Layers, Hash
 } from "lucide-react";
-import { getSortedUniversities, getDepartmentsForUniversity, ONLISANS_PROGRAMS } from "@/data/turkish-universities";
 import type { Tables, Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { buildCourseSelectLabel, normalizeCourseCode } from "@/lib/course-code";
+import {
+  fetchAcademicProgramsForUniversity,
+  fetchUniversitiesCatalog,
+  formatUniversityMetaLabel,
+  type AcademicProgramRow,
+  type UniversityCatalogRow,
+} from "@/lib/academic-catalog";
 
 type ContentType = Database["public"]["Enums"]["content_type"];
 type PostWithProfile = Tables<"posts"> & { profiles: Tables<"profiles"> | null; course_name?: string };
@@ -73,7 +79,6 @@ export default function Index() {
   const navigate = useNavigate();
   const searchQuery = searchParams.get("search") || "";
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [postCounts, setPostCounts] = useState<Record<string, any>>({});
   const [stats, setStats] = useState({ courses: 0, posts: 0, users: 0 });
@@ -97,89 +102,73 @@ export default function Index() {
   const [searching, setSearching] = useState(false);
 
   const [userUniversity, setUserUniversity] = useState<string | null>(null);
-  const [dbDepartments, setDbDepartments] = useState<any[]>([]);
+  const [userUniversityId, setUserUniversityId] = useState<string | null>(null);
+  const [catalogUniversities, setCatalogUniversities] = useState<UniversityCatalogRow[]>([]);
+  const [browsePrograms, setBrowsePrograms] = useState<AcademicProgramRow[]>([]);
 
   const [homeCreateOpen, setHomeCreateOpen] = useState(false);
   const [homeCreateCourseId, setHomeCreateCourseId] = useState("");
   const [homeCreateType, setHomeCreateType] = useState<ContentType>("notes");
-  const [dbUniversities, setDbUniversities] = useState<{ name: string; city: string | null; type: string | null }[]>([]);
 
-  const universityOptions = (() => {
-    const staticOpts = getSortedUniversities().map((u) => ({
-      label: u.name,
-      sublabel: `${u.city} · ${u.type === "devlet" ? "Devlet" : "Vakıf"}`,
-      group: u.popular ? "⭐ Popüler" : "",
-    }));
-    const staticNames = new Set(staticOpts.map(o => o.label));
-    const dbOnlyOpts = dbUniversities
-      .filter(u => !staticNames.has(u.name))
-      .map(u => ({
-        label: u.name,
-        sublabel: u.city
-          ? `${u.city} · ${u.type === "devlet" ? "Devlet" : u.type === "vakıf" ? "Vakıf" : "Üniversite"}`
-          : "Türkiye",
-        group: "",
-      }));
-    return [...staticOpts, ...dbOnlyOpts];
-  })();
+  const universityOptions = catalogUniversities.map((u) => ({
+    label: u.name,
+    sublabel: formatUniversityMetaLabel({ city: u.city, type: u.type }),
+    group: "",
+  }));
 
   const browseDepartments = browseUniversity
     ? (() => {
-        const staticDepts = getDepartmentsForUniversity(browseUniversity);
         const courseDepts = [...new Set(courses.map((c: any) => c.department))];
-        const dbDeptNames = dbDepartments.filter((d: any) => d.university === browseUniversity).map((d: any) => d.name);
-        const allDepts = [...new Set([...staticDepts, ...courseDepts, ...dbDeptNames])].sort((a, b) => a.localeCompare(b, "tr"));
+        const canonicalDepts = browsePrograms.map((p) => p.program_name);
+        const allDepts = [...new Set([...canonicalDepts, ...courseDepts])].sort((a, b) => a.localeCompare(b, "tr"));
         return ["Tümü", ...allDepts];
       })()
     : ["Tümü"];
 
   const filteredYears = (() => {
     if (selectedDept === "Tümü") return ALL_YEARS;
-    const dbDept = dbDepartments.find((d: any) => d.name === selectedDept && d.university === browseUniversity);
-    let maxYears = dbDept?.program_years || 4;
-    if (ONLISANS_PROGRAMS?.includes(selectedDept)) maxYears = 2;
-    const sixYearDepts = ["Tıp"];
-    if (sixYearDepts.includes(selectedDept)) maxYears = 6;
-    const fiveYearDepts = ["Eczacılık", "Diş Hekimliği", "Veteriner Hekimliği", "Mimarlık"];
-    if (fiveYearDepts.includes(selectedDept)) maxYears = 5;
+    const canonical = browsePrograms.find((p) => p.program_name === selectedDept);
+    const maxYears = canonical?.program_years || 4;
     return ["Tümü", "Hazırlık", ...Array.from({ length: maxYears }, (_, i) => `${i + 1}. Sınıf`)];
   })();
 
+  const loadCatalogUniversities = async () => {
+    try {
+      const rows = await fetchUniversitiesCatalog();
+      setCatalogUniversities(rows);
+    } catch {
+      setCatalogUniversities([]);
+    }
+  };
+
   useEffect(() => {
-    const onboarded = localStorage.getItem("onboarding-completed");
-    if (!onboarded) setShowOnboarding(true);
     const savedUni = localStorage.getItem("browse-university");
     if (savedUni) setBrowseUniversity(savedUni);
     fetchStats();
     fetchDiscoverySections();
     fetchTopContributors();
-    fetchDbDepartments();
-    fetchDbUniversities();
+    void loadCatalogUniversities();
   }, []);
 
   useEffect(() => {
-    if (user) {
-      supabase
-        .from("profiles")
-        .select("university, onboarding_completed")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data?.onboarding_completed) {
-            setShowOnboarding(false);
-            localStorage.setItem("onboarding-completed", "true");
-          } else if (!data?.onboarding_completed) {
-            setShowOnboarding(true);
+    if (!user) return;
+
+    supabase
+      .from("profiles")
+      .select("university, university_id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.university) {
+          setUserUniversity(data.university);
+          setUserUniversityId((data as any)?.university_id || null);
+
+          if (!browseUniversity && !localStorage.getItem("browse-university")) {
+            setBrowseUniversity(data.university);
+            localStorage.setItem("browse-university", data.university);
           }
-          if (data?.university) {
-            setUserUniversity(data.university);
-            if (!browseUniversity && !localStorage.getItem("browse-university")) {
-              setBrowseUniversity(data.university);
-              localStorage.setItem("browse-university", data.university);
-            }
-          }
-        });
-    }
+        }
+      });
   }, [user]);
 
   useEffect(() => {
@@ -194,66 +183,42 @@ export default function Index() {
   }, [searchQuery]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (browseUniversity) {
       localStorage.setItem("browse-university", browseUniversity);
     }
+
     setSelectedDept("Tümü");
     setSelectedCourse("Tümü");
     setSelectedYear("Tümü");
     fetchCourses();
-    fetchDbDepartments();
+
+    const loadPrograms = async () => {
+      if (!browseUniversity) {
+        setBrowsePrograms([]);
+        return;
+      }
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(browseUniversity);
+        if (!cancelled) setBrowsePrograms(rows);
+      } catch {
+        if (!cancelled) setBrowsePrograms([]);
+      }
+    };
+
+    void loadPrograms();
+
+    return () => {
+      cancelled = true;
+    };
   }, [browseUniversity]);
 
   useEffect(() => {
     if (selectedYear !== "Tümü" && !filteredYears.includes(selectedYear)) {
       setSelectedYear("Tümü");
     }
-  }, [selectedDept]);
-
-  const handleOnboardingComplete = async (university: string, dept: string, year: string) => {
-    localStorage.setItem("onboarding-completed", "true");
-    setShowOnboarding(false);
-    setBrowseUniversity(university);
-    localStorage.setItem("browse-university", university);
-    setSelectedDept(dept);
-    setSelectedYear(year);
-    if (user) {
-      let yearNum: number | null = null;
-      if (year === "Hazırlık") {
-        yearNum = 0;
-      } else {
-        const parsed = parseInt(year);
-        yearNum = isNaN(parsed) ? null : parsed;
-      }
-      await supabase.from("profiles").update({
-        university: university || null,
-        department: dept || null,
-        class_year: yearNum,
-        onboarding_completed: true,
-      }).eq("user_id", user.id);
-      setUserUniversity(university);
-    }
-  };
-
-  const fetchDbDepartments = async () => {
-    const { data } = await supabase.from("departments").select("name, university, program_years");
-    if (data) setDbDepartments(data as any[]);
-  };
-
-  const fetchDbUniversities = async () => {
-    const { data } = await supabase
-      .from("universities" as any)
-      .select("name, city, type")
-      .limit(1000);
-    if (data) {
-      setDbUniversities((data as any[]).map((u: any) => ({
-        name: u.name,
-        city: u.city || null,
-        type: u.type || null,
-      })));
-    }
-  };
-
+  }, [selectedDept, filteredYears]);
   const fetchStats = async () => {
     const [c, p, u] = await Promise.all([
       supabase.from("courses").select("id", { count: "exact", head: true }),
@@ -430,10 +395,13 @@ export default function Index() {
 
   const canAddContent = user && userUniversity && browseUniversity === userUniversity;
   const isViewingOtherUniversity = browseUniversity && userUniversity && browseUniversity !== userUniversity;
+  const currentUniversityId =
+    catalogUniversities.find((u) => u.name === (browseUniversity || userUniversity || ""))?.id ||
+    userUniversityId ||
+    null;
 
   return (
     <>
-      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Layout>
         {/* Hero */}
         <div className="border-b border-border">
@@ -474,6 +442,7 @@ export default function Index() {
                   <HomepageCreateButton
                     courses={courses}
                     university={browseUniversity || userUniversity || ""}
+                    universityId={currentUniversityId}
                     onSelectCourse={(courseId, type) => {
                       setHomeCreateCourseId(courseId);
                       setHomeCreateType(type);
@@ -493,6 +462,7 @@ export default function Index() {
                 <HomepageCreateButton
                   courses={courses}
                   university={browseUniversity || userUniversity || ""}
+                  universityId={currentUniversityId}
                   onSelectCourse={(courseId, type) => {
                     setHomeCreateCourseId(courseId);
                     setHomeCreateType(type);
@@ -772,10 +742,12 @@ export default function Index() {
 function HomepageCreateButton({
   courses,
   university,
+  universityId,
   onSelectCourse,
 }: {
   courses: any[];
   university: string;
+  universityId: string | null;
   onSelectCourse: (courseId: string, type: ContentType) => void;
 }) {
   const [dropupOpen, setDropupOpen] = useState(false);
@@ -785,33 +757,39 @@ function HomepageCreateButton({
   const [courseId, setCourseId] = useState("");
 
   const [localCourses, setLocalCourses] = useState<any[]>(courses);
-  const [deptDb, setDeptDb] = useState<string[]>([]);
+  const [programRows, setProgramRows] = useState<AcademicProgramRow[]>([]);
 
   const [missingDeptOpen, setMissingDeptOpen] = useState(false);
   const [missingCourseOpen, setMissingCourseOpen] = useState(false);
 
   useEffect(() => { setLocalCourses(courses); }, [courses]);
 
-  const fetchDepartmentsFromDb = async () => {
-    if (!university) return;
-    const { data, error } = await supabase
-      .from("departments" as any)
-      .select("name")
-      .eq("university", university)
-      .order("name", { ascending: true });
-    if (!error) {
-      const names = (data as any[] | null)?.map((d) => d.name).filter(Boolean) || [];
-      setDeptDb(names);
-    }
-  };
-
   useEffect(() => {
-    if (dialogOpen) fetchDepartmentsFromDb();
+    let cancelled = false;
+
+    const loadPrograms = async () => {
+      if (!dialogOpen || !university) {
+        setProgramRows([]);
+        return;
+      }
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(university);
+        if (!cancelled) setProgramRows(rows);
+      } catch {
+        if (!cancelled) setProgramRows([]);
+      }
+    };
+
+    void loadPrograms();
+
+    return () => {
+      cancelled = true;
+    };
   }, [dialogOpen, university]);
 
   const departmentsFromCourses = [...new Set(localCourses.map((c: any) => c.department))].filter(Boolean);
-  const staticDepts = getDepartmentsForUniversity(university);
-  const departments = [...new Set([...staticDepts, ...departmentsFromCourses, ...deptDb])].sort((a, b) => a.localeCompare(b, "tr"));
+  const canonicalDepartments = programRows.map((p) => p.program_name);
+  const departments = [...new Set([...canonicalDepartments, ...departmentsFromCourses])].sort((a, b) => a.localeCompare(b, "tr"));
 
   const filteredCourses = department ? localCourses.filter((c: any) => c.department === department) : [];
   const selectedCourse = courseId ? filteredCourses.find((c: any) => c.id === courseId) : null;
@@ -926,20 +904,21 @@ function HomepageCreateButton({
               <button
                 type="button"
                 className="text-xs text-primary hover:underline cursor-pointer"
+                disabled={!universityId}
                 onClick={() => setMissingDeptOpen(true)}
               >
                 Bölümümü bulamadım
               </button>
 
-              <SuggestAcademicDialog
-                type="department"
-                university={university}
+              <AcademicProgramRequestDialog
                 open={missingDeptOpen}
                 onOpenChange={setMissingDeptOpen}
-                onApproved={async ({ normalized_name }) => {
-                  setDepartment(normalized_name);
-                  setCourseId("");
-                  await fetchDepartmentsFromDb();
+                context="content_add"
+                defaultUniversityId={universityId}
+                defaultUniversityName={university}
+                onSubmitted={async () => {
+                  const rows = await fetchAcademicProgramsForUniversity(university);
+                  setProgramRows(rows);
                 }}
               />
             </div>
@@ -1052,3 +1031,4 @@ function DiscoveryPostItem({ post, showDownloads, showVotes, showComments }: {
     </Link>
   );
 }
+

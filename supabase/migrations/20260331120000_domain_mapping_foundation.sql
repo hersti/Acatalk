@@ -1,4 +1,4 @@
-﻿-- Foundation for domain-based university resolution (TR/KKTC only)
+-- Foundation for domain-based university resolution (TR/KKTC only)
 
 -- 1) Universities must carry explicit country and be whitelist-bound.
 ALTER TABLE public.universities

@@ -18,6 +18,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { formatUniversityMetaLabel, type UniversityCatalogRow } from "@/lib/academic-catalog";
 import {
   Shield, Users, FileText, MessageSquare, Flag, BarChart3,
   Trash2, CheckCircle, XCircle, AlertTriangle, Plus, Pencil, BookOpen,
@@ -26,8 +27,6 @@ import {
   VolumeX, UserX, CircleAlert, RefreshCw, Download, Clock,
   Mail, Activity, TrendingUp, Hash, Filter, MoreHorizontal,
 } from "lucide-react";
-import { getDepartmentsForUniversity } from "@/data/turkish-universities";
-
 const PAGE_SIZE = 25;
 
 // ─── Helper Components ───
@@ -137,8 +136,9 @@ export default function AdminPage() {
   const [moderationQueue, setModerationQueue] = useState<any[]>([]);
   const [moderationLogs, setModerationLogs] = useState<any[]>([]);
   const [academicSuggestions, setAcademicSuggestions] = useState<any[]>([]);
+  const [academicProgramRequests, setAcademicProgramRequests] = useState<any[]>([]);
   const [domainRequests, setDomainRequests] = useState<any[]>([]);
-  const [universitiesCatalog, setUniversitiesCatalog] = useState<any[]>([]);
+  const [universitiesCatalog, setUniversitiesCatalog] = useState<UniversityCatalogRow[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState("stats");
@@ -201,6 +201,7 @@ export default function AdminPage() {
         modQueueRes,
         modLogsRes,
         suggestionsRes,
+        programRequestsRes,
         deptsRes,
         ticketsRes,
         domainRequestsRes,
@@ -216,6 +217,7 @@ export default function AdminPage() {
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("moderation_logs").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("academic_suggestions").select("*").order("created_at", { ascending: false }).limit(500) as any,
+        supabase.from("academic_program_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
         supabase.from("departments").select("*") as any,
         supabase.from("support_tickets").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("university_domain_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
@@ -231,6 +233,7 @@ export default function AdminPage() {
       setModerationQueue(modQueueRes.data || []);
       setModerationLogs(modLogsRes.data || []);
       setAcademicSuggestions(((suggestionsRes.data || []) as any[]).filter((s) => s.type !== "department"));
+      setAcademicProgramRequests((programRequestsRes.data || []) as any[]);
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
       setDomainRequests((domainRequestsRes.data || []) as any[]);
@@ -255,6 +258,24 @@ export default function AdminPage() {
     const u = users.find((u: any) => u.user_id === userId);
     return u?.username || "Anonim";
   }, [users]);
+
+  const universityCatalogByName = useMemo(() => {
+    const map = new Map<string, UniversityCatalogRow>();
+    for (const row of universitiesCatalog) {
+      if (row?.name) map.set(row.name, row);
+    }
+    return map;
+  }, [universitiesCatalog]);
+
+  const getUniversityMetaLabel = useCallback((universityName: string | null | undefined) => {
+    const name = String(universityName || "").trim();
+    if (!name) return "Tür bilgisi yok";
+    const row = universityCatalogByName.get(name);
+    return formatUniversityMetaLabel({
+      city: row?.city || null,
+      type: row?.type || null,
+    });
+  }, [universityCatalogByName]);
 
   const getCourseName = useCallback((courseId: string) => {
     const c = courses.find((c: any) => c.id === courseId);
@@ -283,6 +304,7 @@ export default function AdminPage() {
     const pendingMod = moderationQueue.filter((m: any) => m.status === "flagged").length;
     const pendingSuggestions =
       academicSuggestions.filter((s: any) => s.status === "pending").length +
+      academicProgramRequests.filter((r: any) => r.status === "pending").length +
       domainRequests.filter((r: any) => r.status === "pending").length;
     const openTickets = supportTickets.filter((t: any) => t.status === "open").length;
 
@@ -319,7 +341,7 @@ export default function AdminPage() {
       mutedUsers, suspendedUsers, flaggedUsers, pendingReports, pendingMod, pendingSuggestions,
       openTickets, totalReports: reports.length, contentCounts, topCourses, topUsers,
     };
-  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, domainRequests, supportTickets, universitiesCatalog]);
+  }, [users, posts, comments, reports, courses, departments, moderationQueue, academicSuggestions, academicProgramRequests, domainRequests, supportTickets, universitiesCatalog]);
 
   // ─── Filtered data ───
   const filteredUsers = useMemo(() => {
@@ -409,6 +431,11 @@ export default function AdminPage() {
     return academicSuggestions.filter((s: any) => s.status === suggestionFilter);
   }, [academicSuggestions, suggestionFilter]);
 
+  const filteredAcademicProgramRequests = useMemo(() => {
+    if (suggestionFilter === "all") return academicProgramRequests;
+    return academicProgramRequests.filter((r: any) => r.status === suggestionFilter);
+  }, [academicProgramRequests, suggestionFilter]);
+
   const filteredDomainRequests = useMemo(() => {
     if (domainRequestFilter === "all") return domainRequests;
     return domainRequests.filter((r: any) => r.status === domainRequestFilter);
@@ -469,6 +496,7 @@ export default function AdminPage() {
   const pendingModCount = moderationQueue.filter((m: any) => m.status === "flagged").length;
   const pendingSuggestionsCount =
     academicSuggestions.filter((s: any) => s.status === "pending").length +
+    academicProgramRequests.filter((r: any) => r.status === "pending").length +
     domainRequests.filter((r: any) => r.status === "pending").length;
   const openTicketsCount = supportTickets.filter((t: any) => t.status === "open").length;
   const isMissingFunctionError = (error: any) =>
@@ -722,6 +750,107 @@ export default function AdminPage() {
     toast.success("Öneri reddedildi"); fetchAll(true);
   };
 
+  const handleApproveAcademicProgramRequest = async (request: any) => {
+    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+      p_request_id: request.id,
+      p_action: "approved",
+    } as any);
+
+    if (!error && data?.ok) {
+      toast.success("Program talebi onaylandı ve canonical kataloğa işlendi.");
+      fetchAll(true);
+      return;
+    }
+
+    if (error && !isMissingFunctionError(error)) {
+      toast.error("Talep işlenemedi: " + error.message);
+      return;
+    }
+
+    const finalProgramName = (request.requested_program_name || "").trim();
+    const finalProgramLevel = (request.requested_program_level || "lisans").trim();
+    const finalUnitName = (request.requested_unit_name || "").trim() || null;
+    const finalProgramYears = finalProgramLevel === "onlisans" ? 2 : 4;
+
+    const { data: upsertedProgram, error: upsertErr } = await supabase.from("academic_programs" as any).upsert({
+      university_id: request.university_id,
+      university_name: request.university_name,
+      program_name: finalProgramName,
+      unit_name: finalUnitName,
+      unit_type: finalUnitName?.toLocaleLowerCase("tr-TR").includes("fakülte") ? "fakulte" : "diger",
+      program_level: finalProgramLevel,
+      program_years: finalProgramYears,
+      source: "request",
+      is_active: true,
+      created_by: user?.id || null,
+    }, { onConflict: "university_id,program_name_normalized,program_level" }).select("id").maybeSingle();
+
+    if (upsertErr) {
+      toast.error("Program kataloğa işlenemedi: " + upsertErr.message);
+      return;
+    }
+
+    await supabase.from("departments" as any).upsert({
+      university: request.university_name,
+      name: finalProgramName,
+      faculty: finalUnitName,
+      program_years: finalProgramYears,
+      created_by: user?.id || null,
+    }, { onConflict: "university,name_normalized" });
+
+    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+      status: "approved",
+      admin_program_name: finalProgramName,
+      admin_program_level: finalProgramLevel,
+      admin_unit_name: finalUnitName,
+      admin_program_years: finalProgramYears,
+      inserted_program_id: upsertedProgram?.id || null,
+      reviewed_by: user?.id || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", request.id);
+
+    if (updateErr) {
+      toast.error("Talep güncellenemedi: " + updateErr.message);
+      return;
+    }
+
+    toast.success("Program talebi onaylandı.");
+    fetchAll(true);
+  };
+
+  const handleRejectAcademicProgramRequest = async (request: any) => {
+    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+      p_request_id: request.id,
+      p_action: "rejected",
+      p_admin_note: "Admin tarafından reddedildi",
+    } as any);
+
+    if (!error && data?.ok) {
+      toast.success("Program talebi reddedildi.");
+      fetchAll(true);
+      return;
+    }
+
+    if (error && !isMissingFunctionError(error)) {
+      toast.error("Talep reddedilemedi: " + error.message);
+      return;
+    }
+
+    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+      status: "rejected",
+      admin_note: "Admin tarafından reddedildi",
+      reviewed_by: user?.id || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", request.id);
+
+    if (updateErr) {
+      toast.error("Talep reddedilemedi: " + updateErr.message);
+      return;
+    }
+
+    toast.success("Program talebi reddedildi.");
+    fetchAll(true);
+  };
   const handleApproveDomainRequest = async (request: any) => {
     const draft = getDomainDraft(request);
     const universityName = (draft.university_name || "").trim();
@@ -1124,7 +1253,16 @@ export default function AdminPage() {
                                     </div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{u.university || "—"}</TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                  {u.university ? (
+                                    <div className="leading-tight">
+                                      <p className="text-xs text-foreground">{u.university}</p>
+                                      <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{u.department || "—"}</TableCell>
                                 <TableCell><UserStatusBadges user={u} /></TableCell>
                                 <TableCell>
@@ -1219,7 +1357,7 @@ export default function AdminPage() {
                             {paginate(filteredModQueue, modQueuePage).map((item: any) => (
                               <TableRow key={item.id}>
                                 <TableCell className="py-2">
-                                  <p className="text-xs line-clamp-2 max-w-[200px]">{item.content_text || (item.content_url ? "🖼️ Görsel" : "—")}</p>
+                                  <p className="text-xs line-clamp-2 max-w-[200px]">{item.content_text || (item.content_url ? "ğŸ–¼ï¸ Görsel" : "—")}</p>
                                 </TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px]">{item.content_type}</Badge></TableCell>
                                 <TableCell><Badge variant="secondary" className="text-[10px]">{item.violation_type}</Badge></TableCell>
@@ -1311,7 +1449,7 @@ export default function AdminPage() {
                           <SelectItem value="rejected">Reddedilen</SelectItem>
                         </SelectContent>
                       </Select>
-                      <span className="text-xs text-muted-foreground">{filteredSuggestions.length} öneri</span>
+                      <span className="text-xs text-muted-foreground">{filteredSuggestions.length + filteredAcademicProgramRequests.length} öğe</span>
                     </div>
                     {filteredSuggestions.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Öneri bulunamadı.</Card>}
                     {filteredSuggestions.map((s: any) => (
@@ -1346,6 +1484,73 @@ export default function AdminPage() {
                         )}
                       </Card>
                     ))}
+
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center gap-2 py-2">
+                        <h3 className="text-sm font-bold">Bölüm/Program Request Talepleri</h3>
+                        <span className="text-xs text-muted-foreground">{filteredAcademicProgramRequests.length} talep</span>
+                      </div>
+
+                      {filteredAcademicProgramRequests.length === 0 && (
+                        <Card className="p-6 text-center text-sm text-muted-foreground">Program talebi bulunamadı.</Card>
+                      )}
+
+                      {filteredAcademicProgramRequests.map((r: any) => (
+                        <Card key={r.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px]">Program Talebi</Badge>
+                              <StatusBadge status={r.status} />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Üniversite</p>
+                              <p className="font-medium">{r.university_name}</p>
+                              <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(r.university_name)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Program</p>
+                              <p className="font-medium">{r.requested_program_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Seviye</p>
+                              <p className="font-medium">{r.requested_program_level === "onlisans" ? "Önlisans" : "Lisans"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Fakülte/Yüksekokul</p>
+                              <p className="font-medium">{r.requested_unit_name || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Kaynak</p>
+                              <p className="font-medium">{r.request_context === "signup" ? "Signup" : "İçerik Ekle"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Talep Eden</p>
+                              <p className="font-medium">{r.requester_user_id ? getUsername(r.requester_user_id) : (r.requester_email || "Anonim")}</p>
+                            </div>
+                          </div>
+
+                          {r.request_note && <p className="text-xs text-muted-foreground">Not: {r.request_note}</p>}
+                          {r.admin_note && <p className="text-xs text-muted-foreground bg-primary/5 p-2 rounded">Admin notu: {r.admin_note}</p>}
+
+                          {r.status === "pending" && (
+                            <div className="flex gap-2 pt-1">
+                              <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => handleApproveAcademicProgramRequest(r)}>
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Onayla ve Kataloğa İşle
+                              </Button>
+                              <Button size="sm" variant="destructive" className="flex-1 h-8 text-xs" onClick={() => handleRejectAcademicProgramRequest(r)}>
+                                <XCircle className="h-3.5 w-3.5 mr-1" /> Reddet
+                              </Button>
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
 
                     <div className="pt-2 border-t">
                       <div className="flex items-center gap-2 py-2">
@@ -1543,7 +1748,11 @@ export default function AdminPage() {
                         <SelectTrigger className="w-48 h-9 text-xs"><SelectValue placeholder="Üniversite" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Tüm Üniversiteler</SelectItem>
-                          {allUniversities.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                          {allUniversities.map((u) => (
+                            <SelectItem key={u} value={u}>
+                              {`${u} (${getUniversityMetaLabel(u)})`}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <CourseFormDialog universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
@@ -1567,7 +1776,12 @@ export default function AdminPage() {
                                   <span className="text-sm font-medium">{c.name}</span>
                                   {c.code && <Badge variant="outline" className="ml-1.5 text-[10px]">{c.code}</Badge>}
                                 </TableCell>
-                                <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{c.university}</TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                  <div className="leading-tight">
+                                    <p className="text-xs text-foreground">{c.university}</p>
+                                    <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(c.university)}</p>
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{c.department}</TableCell>
                                 <TableCell><Badge variant="secondary" className="text-[10px]">{c.year === 0 ? "Hazırlık" : `${c.year}. Sınıf`}</Badge></TableCell>
                                 <TableCell className="text-right">
@@ -1935,7 +2149,11 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Üniversite</p><p className="font-medium">{u.university || "—"}</p></div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase">Üniversite</p>
+              <p className="font-medium">{u.university || "—"}</p>
+              {u.university && <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>}
+            </div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Bölüm</p><p className="font-medium">{u.department || "—"}</p></div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Sınıf</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "Hazırlık" : `${u.class_year}. Sınıf`) : "—"}</p></div>
             <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Rol</p><Badge variant={role === "admin" ? "destructive" : "outline"} className="text-[10px]">{role}</Badge></div>
@@ -2005,9 +2223,7 @@ function CourseFormDialog({
       .map((d: any) => d.name);
     const existingDepts = courses.filter((c: any) => c.university === selectedUniversity && c.department).map((c: any) => c.department);
     const merged = [...new Set([...dbDepts, ...existingDepts])];
-    if (merged.length > 0) return merged.sort((a, b) => a.localeCompare(b, "tr"));
-    const staticDepts = getDepartmentsForUniversity(selectedUniversity);
-    return [...new Set(staticDepts)].sort((a, b) => a.localeCompare(b, "tr"));
+    return merged.sort((a, b) => a.localeCompare(b, "tr"));
   }, [selectedUniversity, courses, departmentsCatalog]);
 
   useEffect(() => {
@@ -2110,3 +2326,4 @@ function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: 
     </Card>
   );
 }
+

@@ -8,10 +8,17 @@ import { isNewDevice, markDeviceAsKnown, getDeviceInfo } from "@/lib/device-fing
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import SearchableSelect from "@/components/SearchableSelect";
+import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
+import { extractEmailDomain } from "@/lib/email-domain";
 import {
-  getDepartmentsForUniversity,
-  extractEmailDomain,
-} from "@/data/turkish-universities";
+  fetchAcademicProgramsForUniversity,
+  fetchUniversitiesCatalog,
+  formatUniversityMetaLabel,
+  inferProgramYears,
+  resolveUniversityByName,
+  type AcademicProgramRow,
+  type UniversityCatalogRow,
+} from "@/lib/academic-catalog";
 import { sanitizeInput } from "@/lib/sanitize";
 import { checkUsernameProfanity } from "@/lib/profanity-filter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,75 +33,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   GraduationCap, Lock, AlertTriangle, Mail, ShieldCheck, Info,
   Eye, EyeOff, CheckCircle2, XCircle, Loader2, User, KeyRound,
-  FileText, Shield, Search, CheckCircle,
+  FileText, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
-
-type ValidationStatus = "idle" | "validating" | "approved" | "rejected" | "duplicate" | "error";
-
-/**
- * Determines program duration (in years) based on department name.
- * Turkish university system:
- * - 2 years: MYO / Ön Lisans programs
- * - 4 years: Standard (Engineering, Science, Arts, etc.)
- * - 5 years: Architecture, Pharmacy, Dentistry, Law, Veterinary
- * - 6 years: Medicine
- */
-function getProgramYearsForDepartment(deptName: string): number {
-  const lower = deptName.toLowerCase().replace(/İ/g, "i").replace(/I/g, "ı");
-  
-  // 6-year programs
-  const sixYear = ["tıp", "tıp fakültesi", "genel tıp"];
-  if (sixYear.some(k => lower.includes(k)) && !lower.includes("veteriner") && !lower.includes("diş")) return 6;
-  
-  // 5-year programs
-  const fiveYear = [
-    "eczacılık", "eczacı", "diş hekimliği", "dishekimliği",
-    "mimarlık", "mimar", "veteriner",
-  ];
-  if (fiveYear.some(k => lower.includes(k))) return 5;
-  
-  // 2-year programs (MYO / Ön Lisans)
-  const twoYear = [
-    "meslek yüksekokulu", "myo", "ön lisans", "önlisans",
-    "teknikerlik", "laborant", "odyometri", "anestezi",
-    "ilk ve acil yardım", "tıbbi laboratuvar", "tıbbi görüntüleme",
-    "tıbbi dokümantasyon", "radyoterapi", "diyaliz", "optisyenlik",
-    "ağız ve diş sağlığı", "ameliyathane", "paramedik",
-    "bilgisayar programcılığı", "web tasarım", "grafik tasarım",
-    "muhasebe ve vergi", "bankacılık", "sigortacılık",
-    "lojistik", "dış ticaret", "büro yönetimi",
-    "çocuk gelişimi", "yaşlı bakım", "sivil havacılık",
-    "aşçılık", "turizm ve otel", "pastacılık",
-  ];
-  if (twoYear.some(k => lower.includes(k))) return 2;
-  
-  return 4;
-}
-
-function ValidationFeedback({ status, message }: { status: ValidationStatus; message: string }) {
-  if (status === "idle") return null;
-  const config: Record<ValidationStatus, { icon: any; color: string; bg: string }> = {
-    idle: { icon: null, color: "", bg: "" },
-    validating: { icon: Loader2, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
-    approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10 border-success/20" },
-    rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
-    duplicate: { icon: CheckCircle, color: "text-warning", bg: "bg-warning/10 border-warning/20" },
-    error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/20" },
-  };
-  const { icon: Icon, color, bg } = config[status];
-  if (!Icon) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex items-start gap-2 p-3 rounded-lg border text-left ${bg}`}
-    >
-      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${color} ${status === "validating" ? "animate-spin" : ""}`} />
-      <p className={`text-xs ${color}`}>{message}</p>
-    </motion.div>
-  );
-}
 
 /* ─── MFA Sub-form ─── */
 function MfaForm({
@@ -251,6 +192,7 @@ export default function AuthPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Email domain detection
+  const [detectedUniversityId, setDetectedUniversityId] = useState<string | null>(null);
   const [detectedUniversity, setDetectedUniversity] = useState<string | null>(null);
   const [emailDomain, setEmailDomain] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -262,11 +204,8 @@ export default function AuthPage() {
   const [requestResultMsg, setRequestResultMsg] = useState("");
   const [requestSubmitted, setRequestSubmitted] = useState(false);
 
-  // Custom department validation
-  const [showCustomDept, setShowCustomDept] = useState(false);
-  const [customDepartment, setCustomDepartment] = useState("");
-  const [deptValidation, setDeptValidation] = useState<ValidationStatus>("idle");
-  const [deptValidationMsg, setDeptValidationMsg] = useState("");
+  // Missing program request (admin-approved queue)
+  const [showProgramRequestDialog, setShowProgramRequestDialog] = useState(false);
 
   // CAPTCHA
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -281,27 +220,81 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const usernameStatus = useUsernameCheck(username, isSignUp);
 
-  const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+  const [programRows, setProgramRows] = useState<AcademicProgramRow[]>([]);
+  const [universitiesCatalog, setUniversitiesCatalog] = useState<UniversityCatalogRow[]>([]);
 
   useEffect(() => {
-    if (!university) { setDbDepartments([]); return; }
-    supabase
-      .from("departments")
-      .select("name")
-      .eq("university", university)
-      .order("name", { ascending: true })
-      .then(({ data }) => {
-        setDbDepartments((data || []).map((d: any) => d.name).filter(Boolean));
-      });
+    let cancelled = false;
+
+    const loadUniversities = async () => {
+      try {
+        const rows = await fetchUniversitiesCatalog();
+        if (!cancelled) setUniversitiesCatalog(rows);
+      } catch {
+        if (!cancelled) setUniversitiesCatalog([]);
+      }
+    };
+
+    void loadUniversities();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!university) {
+      setProgramRows([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fetchPrograms = async () => {
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(university);
+        if (!cancelled) setProgramRows(rows);
+      } catch {
+        if (!cancelled) setProgramRows([]);
+      }
+    };
+
+    void fetchPrograms();
+
+    return () => {
+      cancelled = true;
+    };
   }, [university]);
 
   const departmentOptions = (() => {
-    const staticDepts = getDepartmentsForUniversity(university);
-    const allDepts = [...new Set([...staticDepts, ...dbDepartments])].sort((a, b) =>
+    const allDepts = [...new Set(programRows.map((row) => row.program_name))].sort((a, b) =>
       a.localeCompare(b, "tr")
     );
     return allDepts.map((d) => ({ label: d }));
   })();
+
+  const selectedProgram = programRows.find((row) => row.program_name === department) || null;
+  const detectedUniversityCatalog =
+    universitiesCatalog.find((row) => {
+      if (detectedUniversityId) {
+        return row.id === detectedUniversityId;
+      }
+      return !!detectedUniversity && row.name === detectedUniversity;
+    }) || null;
+  const detectedUniversityMetaLabel = formatUniversityMetaLabel({
+    city: detectedUniversityCatalog?.city || null,
+    type: detectedUniversityCatalog?.type || null,
+  });
+
+  useEffect(() => {
+    if (!department) return;
+    if (programRows.some((row) => row.program_name === department)) return;
+    setDepartment("");
+    setClassYear("");
+    setProgramYears(4);
+  }, [department, programRows]);
 
   // Auto-detect university from email via DB domain mapping (single source of truth)
   useEffect(() => {
@@ -346,11 +339,13 @@ export default function AuthPage() {
 
       return {
         found: true,
+        university_id: uniRow.id,
         university_name: uniRow.name,
       };
     };
 
     if (!isSignUp || !email.trim()) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setEmailDomain("");
@@ -368,6 +363,7 @@ export default function AuthPage() {
     setRequestSubmitted(false);
 
     if (!domain || !domain.includes(".")) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setEmailError("");
@@ -375,6 +371,7 @@ export default function AuthPage() {
     }
 
     if (!domain.endsWith(".edu.tr") && !domain.endsWith(".edu")) {
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setEmailError("Sadece Türkiye ve KKTC üniversitelerine ait e-posta adresleriyle kayıt olabilirsiniz.");
@@ -393,16 +390,20 @@ export default function AuthPage() {
       if (error) {
         const fallbackResolved = await resolveUniversityFallback(domain);
         if (cancelled) return;
-        if (fallbackResolved?.found && fallbackResolved?.university_name) {
+        if (fallbackResolved?.found && fallbackResolved?.university_name && fallbackResolved?.university_id) {
+          setDetectedUniversityId(fallbackResolved.university_id);
           setDetectedUniversity(fallbackResolved.university_name);
           setUniversity(fallbackResolved.university_name);
           setDepartment("");
+          setClassYear("");
+          setProgramYears(4);
           setEmailError("");
           setRequestedUniversityName("");
           setRequestNote("");
           return;
         }
 
+        setDetectedUniversityId(null);
         setDetectedUniversity(null);
         setUniversity("");
         setEmailError("Domain doğrulama servisi şu an yanıt vermiyor. Bu alan için talep oluşturabilirsiniz.");
@@ -411,18 +412,40 @@ export default function AuthPage() {
 
       const resolved = Array.isArray(data) ? data[0] : (data && typeof data === "object" ? data : null);
       if (resolved?.found && resolved?.university_name) {
+        const resolvedUniId =
+          typeof resolved?.university_id === "string" && resolved.university_id
+            ? resolved.university_id
+            : (await resolveUniversityByName(resolved.university_name))?.id || null;
+
+        if (!resolvedUniId) {
+          setDetectedUniversityId(null);
+          setDetectedUniversity(null);
+          setUniversity("");
+          setDepartment("");
+          setClassYear("");
+          setProgramYears(4);
+          setEmailError("Üniversite kaydı çözülemedi. Lütfen daha sonra tekrar deneyin.");
+          return;
+        }
+
+        setDetectedUniversityId(resolvedUniId);
         setDetectedUniversity(resolved.university_name);
         setUniversity(resolved.university_name);
         setDepartment("");
+        setClassYear("");
+        setProgramYears(4);
         setEmailError("");
         setRequestedUniversityName("");
         setRequestNote("");
         return;
       }
 
+      setDetectedUniversityId(null);
       setDetectedUniversity(null);
       setUniversity("");
       setDepartment("");
+      setClassYear("");
+      setProgramYears(4);
       setEmailError("Bu e-posta domaini sistemde kayıtlı değil. Devam etmek için talep oluşturun.");
     };
 
@@ -455,13 +478,13 @@ export default function AuthPage() {
     }
   };
 
-  const handleDepartmentChange = async (val: string) => {
+  const handleDepartmentChange = (val: string) => {
     setDepartment(val);
     setClassYear("");
     setErrors((prev) => ({ ...prev, department: "" }));
-    setDeptValidation("idle");
     if (val) {
-      setProgramYears(getProgramYearsForDepartment(val));
+      const selected = programRows.find((row) => row.program_name === val);
+      setProgramYears(selected?.program_years || inferProgramYears(val, selected?.program_level));
     } else {
       setProgramYears(4);
     }
@@ -522,9 +545,13 @@ export default function AuthPage() {
       }
 
       if (data?.already_known && data?.university_name) {
+        const resolvedUni = await resolveUniversityByName(data.university_name);
+        setDetectedUniversityId(resolvedUni?.id || null);
         setDetectedUniversity(data.university_name);
         setUniversity(data.university_name);
         setDepartment("");
+        setClassYear("");
+        setProgramYears(4);
         setEmailError("");
         setRequestSubmitted(false);
         setRequestResultMsg("Bu domain bu sırada sisteme eklendi. Kayda devam edebilirsiniz.");
@@ -545,53 +572,6 @@ export default function AuthPage() {
       setRequestResultMsg(err?.message || "Talep gönderilirken bir hata oluştu.");
     } finally {
       setRequestSending(false);
-    }
-  };
-
-  const validateDepartment = async () => {
-    if (!customDepartment.trim() || !university) return;
-    const applyDepartmentSelection = (name: string) => {
-      const next = name.trim();
-      if (!next) return;
-      setDepartment(next);
-      setClassYear("");
-      setProgramYears(getProgramYearsForDepartment(next));
-      setErrors((prev) => ({ ...prev, department: "" }));
-    };
-    setDeptValidation("validating");
-    setDeptValidationMsg("Bölüm doğrulanıyor...");
-    try {
-      const { data, error } = await supabase.functions.invoke("validate-academic", {
-        body: { type: "department", university, department: customDepartment.trim() },
-      });
-      if (error) throw error;
-      const result = data as any;
-      if (result.status === "approved") {
-        setDeptValidation("approved");
-        setDeptValidationMsg(result.reason || "Bölüm doğrulandı!");
-        applyDepartmentSelection(result.normalized_name || customDepartment.trim());
-        setTimeout(() => { setShowCustomDept(false); setCustomDepartment(""); }, 1500);
-      } else if (result.status === "duplicate") {
-        setDeptValidation("duplicate");
-        setDeptValidationMsg(result.reason || "Bu bölüm zaten mevcut.");
-        if (result.existing_name) {
-          setTimeout(() => {
-            applyDepartmentSelection(result.existing_name);
-            setShowCustomDept(false);
-            setCustomDepartment("");
-            setDeptValidation("idle");
-          }, 1200);
-        }
-      } else if (result.status === "error") {
-        setDeptValidation("error");
-        setDeptValidationMsg(result.reason || "Doğrulama servisi şu an kullanılamıyor. Lütfen tekrar deneyin.");
-      } else {
-        setDeptValidation("rejected");
-        setDeptValidationMsg(result.reason || "Bu bölüm doğrulanamadı.");
-      }
-    } catch {
-      setDeptValidation("error");
-      setDeptValidationMsg("Bölüm doğrulama servisine ulaşılamadı. Lütfen tekrar deneyin.");
     }
   };
 
@@ -726,7 +706,10 @@ export default function AuthPage() {
           JSON.stringify({
             display_name: displayName || null,
             university: university.trim() || null,
+            university_id: detectedUniversityId || null,
             department: department.trim() || null,
+            academic_program_id: selectedProgram?.id || null,
+            program_level: selectedProgram?.program_level || null,
             class_year: classYear ? parseInt(classYear) : null,
             bio: sanitizeInput(bio.trim()) || null,
             email_domain: domain || null,
@@ -775,20 +758,6 @@ export default function AuthPage() {
               const { data: { user } } = await supabase.auth.getUser();
                if (user) {
                  await supabase.from("profiles").update(data).eq("user_id", user.id);
-                 // Auto-add new university to universities table if not exists
-                 if (data.university) {
-                   const { data: existing } = await supabase
-                     .from("universities")
-                     .select("id")
-                     .eq("name", data.university)
-                     .maybeSingle();
-                   if (!existing) {
-                     await supabase.from("universities").insert({
-                       name: data.university,
-                       created_by: user.id,
-                     } as any);
-                   }
-                 }
                }
             } catch {
               toast.error("Profil bilgileri kaydedilemedi. Lütfen profil sayfanızdan bilgilerinizi güncelleyin.");
@@ -817,11 +786,13 @@ export default function AuthPage() {
   const switchMode = () => {
     setIsSignUp(!isSignUp);
     setErrors({});
+    setDetectedUniversityId(null);
     setEmailError("");
     setRequestResultMsg("");
     setRequestSubmitted(false);
     setRequestedUniversityName("");
     setRequestNote("");
+    setShowProgramRequestDialog(false);
     setConfirmPassword("");
     setAcceptTerms(false);
   };
@@ -1064,6 +1035,7 @@ export default function AuthPage() {
                     <ShieldCheck className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <div>
                       <p className="text-[10px] font-semibold text-success">✓ Üniversite algılandı: {detectedUniversity}</p>
+                      <p className="text-[9px] text-success/80">{detectedUniversityMetaLabel}</p>
                       <p className="text-[9px] text-success/80">E-posta domain eşleşmesi ile üniversiteniz otomatik bağlanacaktır.</p>
                     </div>
                   </motion.div>
@@ -1225,61 +1197,15 @@ export default function AuthPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => { setShowCustomDept(true); setDeptValidation("idle"); setDeptValidationMsg(""); }}
+                        onClick={() => setShowProgramRequestDialog(true)}
                         className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all"
                       >
-                        <Search className="h-3.5 w-3.5" />
                         Bölümümü Bulamadım
                       </button>
 
-                      {showCustomDept && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3 rounded-lg bg-secondary/50 border text-left space-y-2"
-                        >
-                          <Label className="text-xs font-semibold">Bölüm adını girin</Label>
-                          <Input
-                            value={customDepartment}
-                            onChange={(e) => { setCustomDepartment(e.target.value); setDeptValidation("idle"); }}
-                            placeholder="Örn: Bilgisayar Mühendisliği"
-                            className="h-9 text-sm"
-                            maxLength={200}
-                            disabled={deptValidation === "validating"}
-                          />
-                          <ValidationFeedback status={deptValidation} message={deptValidationMsg} />
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="text-xs flex-1"
-                              onClick={() => { setShowCustomDept(false); setCustomDepartment(""); setDeptValidation("idle"); }}
-                              disabled={deptValidation === "validating"}
-                            >
-                              İptal
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="text-xs flex-1"
-                              disabled={!customDepartment.trim() || deptValidation === "validating" || deptValidation === "approved"}
-                              onClick={validateDepartment}
-                            >
-                              {deptValidation === "validating" ? (
-                                <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Doğrulanıyor</>
-                              ) : (
-                                "Doğrula ve Kullan"
-                              )}
-                            </Button>
-                          </div>
-                          <p className="text-[9px] text-muted-foreground">Bölüm doğrulama servisi ile kontrol edilir.</p>
-                        </motion.div>
-                      )}
-
-                       <p className="text-[9px] text-muted-foreground flex items-center gap-1">
+                      <p className="text-[9px] text-muted-foreground flex items-center gap-1">
                         <Lock className="h-3 w-3" />
-                        Kayıt sonrası admin onayı ile değiştirilebilir.
+                        Bölüm talepleri AI yerine admin onaylı request kuyruğuna gönderilir.
                       </p>
                     </div>
 
@@ -1315,6 +1241,18 @@ export default function AuthPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <AcademicProgramRequestDialog
+                open={showProgramRequestDialog}
+                onOpenChange={setShowProgramRequestDialog}
+                context="signup"
+                defaultUniversityId={detectedUniversityId}
+                defaultUniversityName={detectedUniversity}
+                requesterEmail={email}
+                onSubmitted={() => {
+                  setShowProgramRequestDialog(false);
+                }}
+              />
 
               {/* Warning for invalid domain */}
               {isSignUp && !detectedUniversity && !shouldShowUnknownDomainRequest && email && emailDomain && emailError && (
@@ -1465,3 +1403,5 @@ export default function AuthPage() {
     </div>
   );
 }
+
+

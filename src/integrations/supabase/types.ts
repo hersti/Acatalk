@@ -80,6 +80,154 @@ export type Database = {
         }
         Relationships: []
       }
+      academic_program_requests: {
+        Row: {
+          admin_note: string | null
+          admin_program_level: string | null
+          admin_program_name: string | null
+          admin_program_years: number | null
+          admin_unit_name: string | null
+          created_at: string
+          id: string
+          inserted_program_id: string | null
+          request_context: string
+          request_note: string | null
+          requested_program_level: string
+          requested_program_name: string
+          requested_unit_name: string | null
+          requester_email: string | null
+          requester_email_domain: string | null
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          university_id: string
+          university_name: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          admin_program_level?: string | null
+          admin_program_name?: string | null
+          admin_program_years?: number | null
+          admin_unit_name?: string | null
+          created_at?: string
+          id?: string
+          inserted_program_id?: string | null
+          request_context: string
+          request_note?: string | null
+          requested_program_level: string
+          requested_program_name: string
+          requested_unit_name?: string | null
+          requester_email?: string | null
+          requester_email_domain?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          university_id: string
+          university_name: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          admin_program_level?: string | null
+          admin_program_name?: string | null
+          admin_program_years?: number | null
+          admin_unit_name?: string | null
+          created_at?: string
+          id?: string
+          inserted_program_id?: string | null
+          request_context?: string
+          request_note?: string | null
+          requested_program_level?: string
+          requested_program_name?: string
+          requested_unit_name?: string | null
+          requester_email?: string | null
+          requester_email_domain?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          university_id?: string
+          university_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_program_requests_inserted_program_id_fkey"
+            columns: ["inserted_program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_program_requests_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academic_programs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          program_level: string
+          program_name: string
+          program_name_normalized: string | null
+          program_years: number
+          source: string
+          unit_name: string | null
+          unit_name_normalized: string | null
+          unit_type: string | null
+          university_id: string
+          university_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          program_level: string
+          program_name: string
+          program_years: number
+          source?: string
+          unit_name?: string | null
+          unit_type?: string | null
+          university_id: string
+          university_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          program_level?: string
+          program_name?: string
+          program_years?: number
+          source?: string
+          unit_name?: string | null
+          unit_type?: string | null
+          university_id?: string
+          university_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_programs_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           category: string
@@ -417,6 +565,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          academic_program_id: string | null
           code: string | null
           created_at: string
           department: string
@@ -424,10 +573,13 @@ export type Database = {
           id: string
           is_common: boolean
           name: string
+          program_level: string | null
+          university_id: string | null
           university: string
           year: number | null
         }
         Insert: {
+          academic_program_id?: string | null
           code?: string | null
           created_at?: string
           department?: string
@@ -435,10 +587,13 @@ export type Database = {
           id?: string
           is_common?: boolean
           name: string
+          program_level?: string | null
+          university_id?: string | null
           university?: string
           year?: number | null
         }
         Update: {
+          academic_program_id?: string | null
           code?: string | null
           created_at?: string
           department?: string
@@ -446,10 +601,27 @@ export type Database = {
           id?: string
           is_common?: boolean
           name?: string
+          program_level?: string | null
+          university_id?: string | null
           university?: string
           year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_academic_program_id_fkey"
+            columns: ["academic_program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deleted_emails: {
         Row: {
@@ -823,6 +995,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          academic_program_id: string | null
           avatar_url: string | null
           bio: string | null
           class_year: number | null
@@ -835,9 +1008,10 @@ export type Database = {
           is_suspended: boolean
           moderation_score: number
           muted_until: string | null
-          onboarding_completed: boolean | null
+          program_level: string | null
           reputation_points: number | null
           suspended_until: string | null
+          university_id: string | null
           university: string | null
           university_locked: boolean
           updated_at: string
@@ -846,6 +1020,7 @@ export type Database = {
           username_changed_at: string | null
         }
         Insert: {
+          academic_program_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           class_year?: number | null
@@ -858,9 +1033,10 @@ export type Database = {
           is_suspended?: boolean
           moderation_score?: number
           muted_until?: string | null
-          onboarding_completed?: boolean | null
+          program_level?: string | null
           reputation_points?: number | null
           suspended_until?: string | null
+          university_id?: string | null
           university?: string | null
           university_locked?: boolean
           updated_at?: string
@@ -869,6 +1045,7 @@ export type Database = {
           username_changed_at?: string | null
         }
         Update: {
+          academic_program_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           class_year?: number | null
@@ -881,9 +1058,10 @@ export type Database = {
           is_suspended?: boolean
           moderation_score?: number
           muted_until?: string | null
-          onboarding_completed?: boolean | null
+          program_level?: string | null
           reputation_points?: number | null
           suspended_until?: string | null
+          university_id?: string | null
           university?: string | null
           university_locked?: boolean
           updated_at?: string
@@ -891,7 +1069,22 @@ export type Database = {
           username?: string | null
           username_changed_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_academic_program_id_fkey"
+            columns: ["academic_program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
