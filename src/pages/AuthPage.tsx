@@ -9,6 +9,7 @@ import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import SearchableSelect from "@/components/SearchableSelect";
 import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
+import AuthTrustPanel from "@/components/auth/AuthTrustPanel";
 import { extractEmailDomain } from "@/lib/email-domain";
 import {
   fetchAcademicProgramsForUniversity,
@@ -809,8 +810,13 @@ export default function AuthPage() {
 
   if (signupComplete) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-8 bg-background">
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid items-start gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="hidden lg:block">
+              <AuthTrustPanel mode="auth" />
+            </div>
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-md">
           <Card className="border-0 bg-card overflow-hidden" style={{ boxShadow: 'var(--shadow-elevated)' }}>
             <div className="h-1.5 w-full gradient-hero" />
             <CardHeader className="text-center pb-2 pt-8">
@@ -868,7 +874,9 @@ export default function AuthPage() {
               </Button>
             </CardContent>
           </Card>
-        </motion.div>
+            </motion.div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -885,18 +893,27 @@ export default function AuthPage() {
     !isHardEmailRejection;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8 bg-background">
-      <motion.div
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid items-start gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="hidden lg:block">
+            <AuthTrustPanel mode="auth" />
+          </div>
+          <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="w-full max-w-md"
+        className="mx-auto w-full max-w-md"
       >
         <Card className="border-0 bg-card overflow-hidden" style={{ boxShadow: 'var(--shadow-elevated)' }}>
           {/* Decorative top bar */}
           <div className="h-1.5 w-full gradient-hero" />
 
           <CardHeader className="text-center pb-2 pt-6">
+            <div className="mx-auto mb-2 inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <ShieldCheck className="h-3 w-3 text-primary" />
+              Guvenli Akademik Giris
+            </div>
             <div className="flex justify-center mb-4">
               <div className="h-14 w-14 rounded-2xl gradient-hero flex items-center justify-center" style={{ boxShadow: 'var(--shadow-card)' }}>
                 <GraduationCap className="h-7 w-7 text-primary-foreground" />
@@ -1333,7 +1350,9 @@ export default function AuthPage() {
         <p className="text-center text-[10px] text-muted-foreground mt-4 px-4">
           Verileriniz şifrelenerek güvenli sunucularda saklanır. Şifreniz bcrypt ile hash'lenir.
         </p>
-      </motion.div>
+          </motion.div>
+        </div>
+      </div>
 
       {/* Terms of Service Modal */}
       <Dialog open={showTerms} onOpenChange={setShowTerms}>
@@ -1403,5 +1422,6 @@ export default function AuthPage() {
     </div>
   );
 }
+
 
 

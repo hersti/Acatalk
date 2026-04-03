@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
@@ -8,14 +8,16 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import SearchableSelect from "@/components/SearchableSelect";
 import SuggestAcademicDialog from "@/components/SuggestAcademicDialog";
 import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
+import { AcademicMeta } from "@/components/ui/academic-meta";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import {
   Search, GraduationCap, BookOpen, Clock, Trophy, FileText,
   MessageSquare, Filter, Download, ThumbsUp, TrendingUp, Plus, Building2, Globe, Lock, Users, ArrowRight, Layers, Hash
@@ -60,7 +62,7 @@ const typeLabels: Record<string, string> = {
 /* ─── Stat Card (same style as admin panel) ─── */
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
   return (
-    <Card className="p-4">
+    <Surface className="p-4" border="subtle">
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${color}`} />
@@ -68,7 +70,7 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
       </div>
       <p className="text-2xl font-extrabold tracking-tight">{value}</p>
       <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
-    </Card>
+    </Surface>
   );
 }
 
@@ -76,7 +78,6 @@ export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const searchQuery = searchParams.get("search") || "";
 
   const [courses, setCourses] = useState<any[]>([]);
@@ -403,60 +404,57 @@ export default function Index() {
   return (
     <>
       <Layout>
-        {/* Hero */}
         <div className="border-b border-border">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-            <div className="flex items-start justify-between gap-8">
-              <div className="max-w-xl">
-                {browseUniversity && (
-                  <p className="text-xs font-medium text-primary mb-2 tracking-wide uppercase">
-                    {browseUniversity}
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+            <Surface variant="soft" border="subtle" padding="lg" radius="xl">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-2xl">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                    Home Feed
                   </p>
-                )}
-                <h1 className="font-heading text-3xl sm:text-4xl font-bold text-foreground leading-tight tracking-tight">
-                  Akademik bilgiye ulaşmanın en kolay yolu
-                </h1>
-                <p className="text-base text-muted-foreground mt-3 leading-relaxed">
-                  Ders notları, çıkmış sorular ve tartışmalarla akademik başarını artır.
-                </p>
+                  <h1 className="mt-1 font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
+                    Akademik içerikleri tek akışta takip et
+                  </h1>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    Ders notları, çıkmış sorular ve tartışmaları üniversite ve bölüm bağlamıyla keşfet.
+                  </p>
+                  <form onSubmit={handleLocalSearch} className="mt-4 max-w-md">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Ders, not veya kaynak ara..."
+                        value={localSearch}
+                        onChange={(e) => handleLocalSearchChange(e.target.value)}
+                        className="h-10 rounded-lg border-border/70 bg-background pl-9"
+                      />
+                    </div>
+                  </form>
+                  {!canAddContent && user && !isViewingOtherUniversity && (
+                    <p className="mt-3 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
+                  )}
+                </div>
 
-                <form onSubmit={handleLocalSearch} className="mt-6 max-w-sm">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Ders, not veya kaynak ara..."
-                      value={localSearch}
-                      onChange={(e) => handleLocalSearchChange(e.target.value)}
-                      className="pl-10 h-11 bg-muted border-transparent rounded-lg focus:border-border focus:bg-background"
+                {canAddContent && (
+                  <div className="hidden sm:flex flex-col items-center gap-1 shrink-0">
+                    <HomepageCreateButton
+                      courses={courses}
+                      university={browseUniversity || userUniversity || ""}
+                      universityId={currentUniversityId}
+                      onSelectCourse={(courseId, type) => {
+                        setHomeCreateCourseId(courseId);
+                        setHomeCreateType(type);
+                        setHomeCreateOpen(true);
+                      }}
                     />
+                    <p className="text-[11px] text-muted-foreground text-center leading-tight">
+                      Not, sınav, kaynak veya tartışma paylaş
+                    </p>
                   </div>
-                </form>
-                {!canAddContent && user && !isViewingOtherUniversity && (
-                  <p className="text-xs text-muted-foreground mt-4">İçerik eklemek için üniversitenizi seçin.</p>
                 )}
               </div>
+            </Surface>
 
-              {canAddContent && (
-                <div className="hidden sm:flex flex-col items-center shrink-0 self-center">
-                  <HomepageCreateButton
-                    courses={courses}
-                    university={browseUniversity || userUniversity || ""}
-                    universityId={currentUniversityId}
-                    onSelectCourse={(courseId, type) => {
-                      setHomeCreateCourseId(courseId);
-                      setHomeCreateType(type);
-                      setHomeCreateOpen(true);
-                    }}
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1.5 text-center leading-tight">
-                    Not, sınav, kaynak veya<br />tartışma paylaş
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile floating create button */}
             {canAddContent && (
               <div className="sm:hidden fixed bottom-20 right-4 z-40">
                 <HomepageCreateButton
@@ -472,8 +470,7 @@ export default function Index() {
               </div>
             )}
 
-            {/* Stats Row - Admin Panel Style */}
-            <div className="grid grid-cols-3 gap-3 mt-6">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <StatCard icon={BookOpen} label="Toplam Ders" value={stats.courses} color="text-primary" />
               <StatCard icon={FileText} label="Toplam İçerik" value={stats.posts} color="text-emerald-500" />
               <StatCard icon={Users} label="Toplam Üye" value={stats.users} color="text-amber-500" />
@@ -486,28 +483,31 @@ export default function Index() {
             {/* Main Content */}
             <div className="col-span-12 lg:col-span-8 space-y-6">
               {/* University Selector + Filters */}
-              <Card className="p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-3">
+              <Surface variant="base" border="subtle" padding="md" radius="xl">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Filter className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <span className="text-sm font-semibold text-foreground">Üniversite & Filtreler</span>
                   {isViewingOtherUniversity && (
-                    <Badge variant="secondary" className="ml-auto text-[10px] gap-1">
+                    <Badge variant="secondary" className="text-[10px] gap-1">
                       <Building2 className="h-3 w-3" />
                       Görüntüleme
                     </Badge>
                   )}
                   {userUniversity && browseUniversity !== userUniversity && (
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setBrowseUniversity(userUniversity);
                         localStorage.setItem("browse-university", userUniversity);
                       }}
-                      className="text-xs text-primary font-medium hover:underline ml-auto"
+                      className="ml-auto h-7 px-2 text-xs font-medium text-primary hover:bg-primary/5 hover:text-primary"
                     >
                       Kendi Üniversitem
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <SearchableSelect
@@ -549,23 +549,26 @@ export default function Index() {
                   </Select>
                 </div>
                 {(selectedDept !== "Tümü" || selectedYear !== "Tümü" || selectedCourse !== "Tümü" || selectedContentType !== "all") && (
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => { setSelectedDept("Tümü"); setSelectedYear("Tümü"); setSelectedCourse("Tümü"); setSelectedContentType("all"); }}
-                    className="mt-2.5 text-xs text-primary font-medium hover:underline"
+                    className="mt-2.5 h-7 px-2 text-xs font-medium text-primary hover:bg-primary/5 hover:text-primary"
                   >
                     Filtreleri Temizle
-                  </button>
+                  </Button>
                 )}
-              </Card>
+              </Surface>
 
               {/* Permission notice */}
               {isViewingOtherUniversity && (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-accent/5 border border-accent/20">
+                <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="flex items-center gap-2.5 border-accent/20 bg-accent/5">
                   <Lock className="h-3.5 w-3.5 text-accent shrink-0" />
                   <p className="text-xs text-accent">
                     <strong>{browseUniversity}</strong> içeriklerini görüntülüyorsunuz. İçerik eklemek için kendi üniversitenizi seçin.
                   </p>
-                </div>
+                </Surface>
               )}
 
               {/* Search results */}
@@ -586,12 +589,12 @@ export default function Index() {
                       <div className="grid gap-2 sm:grid-cols-2">
                         {searchCourseResults.map((c) => (
                           <Link key={c.id} to={`/course/${c.id}`}>
-                            <Card className="p-3.5 rounded-lg hover:border-primary/20 hover-lift cursor-pointer">
+                            <Surface variant="base" border="subtle" padding="md" radius="lg" className="hover:border-primary/20 hover-lift cursor-pointer">
                               <p className="text-sm font-semibold">{c.name}</p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
                                 {[normalizeCourseCode(c.code), c.department, c.university].filter(Boolean).join(" · ")}
                               </p>
-                            </Card>
+                            </Surface>
                           </Link>
                         ))}
                       </div>
@@ -604,7 +607,7 @@ export default function Index() {
                       <div className="grid gap-2 sm:grid-cols-2">
                         {searchUserResults.map((u) => (
                           <Link key={u.id} to={`/user/${u.user_id}`}>
-                            <Card className="p-3.5 rounded-lg hover:border-primary/20 hover-lift cursor-pointer flex items-center gap-3">
+                            <Surface variant="base" border="subtle" padding="md" radius="lg" className="hover:border-primary/20 hover-lift cursor-pointer flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{(u.username || "?")[0].toUpperCase()}</AvatarFallback>
                               </Avatar>
@@ -612,7 +615,7 @@ export default function Index() {
                                 <p className="text-sm font-semibold">{u.username || "Anonim"}</p>
                                 <p className="text-[11px] text-muted-foreground">{u.university || ""} · {u.reputation_points ?? 0} puan</p>
                               </div>
-                            </Card>
+                            </Surface>
                           </Link>
                         ))}
                       </div>
@@ -627,13 +630,13 @@ export default function Index() {
                   )}
 
                   {!searching && searchResults.length === 0 && searchCourseResults.length === 0 && searchUserResults.length === 0 && (
-                    <div className="text-center py-10 rounded-lg bg-muted/30">
-                      <Search className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-                      <p className="text-sm font-semibold text-foreground mb-1">Sonuç bulunamadı</p>
-                      <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                        "{searchQuery || localSearch}" için eşleşen sonuç bulunamadı.
-                      </p>
-                    </div>
+                    <StateBlock
+                      variant="noResults"
+                      size="section"
+                      icon={<Search className="h-5 w-5" />}
+                      title="Sonuç bulunamadı"
+                      description={`"${searchQuery || localSearch}" için eşleşen sonuç bulunamadı.`}
+                    />
                   )}
                 </div>
               )}
@@ -653,11 +656,13 @@ export default function Index() {
                 </div>
 
                 {!browseUniversity && filteredCourses.length === 0 && (
-                  <div className="text-center py-10 rounded-lg bg-muted/30">
-                    <GraduationCap className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-foreground mb-1">Henüz ders bulunamadı</p>
-                    <p className="text-xs text-muted-foreground">Filtreleri değiştirmeyi veya bir üniversite seçmeyi deneyin.</p>
-                  </div>
+                  <StateBlock
+                    variant="empty"
+                    size="section"
+                    icon={<GraduationCap className="h-5 w-5" />}
+                    title="Henüz ders bulunamadı"
+                    description="Filtreleri değiştirmeyi veya bir üniversite seçmeyi deneyin."
+                  />
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -669,17 +674,39 @@ export default function Index() {
                 </div>
 
                 {filteredCourses.filter((c: any) => selectedCourse === "Tümü" || c.name === selectedCourse).length === 0 && courses.length > 0 && (
-                  <div className="text-center py-10 rounded-lg bg-muted/30">
-                    <p className="text-muted-foreground text-sm">Bu filtrelere uygun ders bulunamadı.</p>
-                  </div>
+                  <StateBlock
+                    variant="noResults"
+                    size="section"
+                    title="Bu filtrelere uygun ders bulunamadı"
+                    description="Filtre kombinasyonunu değiştirip tekrar deneyin."
+                  />
                 )}
               </div>
             </div>
 
             {/* Sidebar */}
-            <div className="col-span-12 lg:col-span-4 space-y-5">
+            <div className="col-span-12 lg:col-span-4">
+              <div className="space-y-5 lg:sticky lg:top-20">
+              <Surface variant="soft" border="subtle" padding="md" radius="xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h3 className="font-heading text-sm font-bold">Hızlı Görünüm</h3>
+                </div>
+                <AcademicMeta
+                  size="sm"
+                  tone="muted"
+                  items={[
+                    { kind: "custom", label: "Ders", value: String(stats.courses), emphasis: "subtle" },
+                    { kind: "custom", label: "İçerik", value: String(stats.posts), emphasis: "subtle" },
+                    { kind: "custom", label: "Üye", value: String(stats.users), emphasis: "subtle" },
+                  ]}
+                />
+              </Surface>
+
               {/* Top Contributors */}
-              <Card className="overflow-hidden rounded-lg">
+              <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
                 <div className="px-4 py-3 border-b border-border flex items-center gap-2">
                   <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
                     <Trophy className="h-3 w-3 text-amber-500" />
@@ -700,26 +727,37 @@ export default function Index() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.username || "Anonim"}</p>
+                        <AcademicMeta
+                          size="sm"
+                          tone="muted"
+                          wrap={false}
+                          className="mt-0.5"
+                          items={[
+                            ...(p.university ? [{ kind: "university" as const, label: "Üniversite", value: p.university, emphasis: "subtle" as const }] : []),
+                            ...(p.department ? [{ kind: "department" as const, label: "Bölüm", value: p.department, emphasis: "subtle" as const }] : []),
+                          ]}
+                        />
                       </div>
                       <span className="text-xs font-semibold text-muted-foreground">{p.reputation_points ?? 0}</span>
                     </Link>
                   )) : (<p className="text-xs text-muted-foreground py-4 text-center">Henüz katkı sağlayan yok.</p>)}
                 </div>
-              </Card>
+              </Surface>
 
               {/* Discovery Sections */}
               {!searchQuery && (
                 discoveryLoading ? (
-                  <div className="text-center py-8">
-                    <div className="inline-block h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
+                  <StateBlock variant="loading" size="inline" title="Keşif yükleniyor" description="İkincil içerikler hazırlanıyor." />
                 ) : (
                   <>
+                    <DiscoverySection icon={Download} title="En Çok İndirilenler" posts={topDownloaded} showDownloads emptyText="Henüz indirilen içerik yok." color="text-notes" />
+                    <DiscoverySection icon={ThumbsUp} title="En Faydalı İçerikler" posts={topVoted} showVotes emptyText="Henüz oylanan içerik yok." color="text-primary" />
                     <DiscoverySection icon={MessageSquare} title="Aktif Tartışmalar" posts={activeDiscussions} showComments emptyText="Henüz tartışma yok." color="text-discussion" />
                     <DiscoverySection icon={Clock} title="Son Eklenenler" posts={recentNotes} emptyText="Henüz not eklenmemiş." color="text-notes" />
                   </>
                 )
               )}
+              </div>
             </div>
           </div>
         </div>
@@ -982,10 +1020,12 @@ function DiscoverySection({ icon: Icon, title, posts, showDownloads, showVotes, 
   icon: any; title: string; posts: PostWithProfile[]; emptyText: string;
   showDownloads?: boolean; showVotes?: boolean; showComments?: boolean; color?: string;
 }) {
+  const iconBgClass = color === "text-discussion" || color === "text-primary" ? "bg-primary/10" : "bg-emerald-500/10";
+
   return (
-    <Card className="overflow-hidden rounded-lg">
+    <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <div className={`h-6 w-6 rounded-md bg-opacity-10 flex items-center justify-center ${color === "text-discussion" ? "bg-primary/10" : "bg-emerald-500/10"}`}>
+        <div className={`h-6 w-6 rounded-md bg-opacity-10 flex items-center justify-center ${iconBgClass}`}>
           <Icon className={`h-3 w-3 ${color}`} />
         </div>
         <h3 className="font-heading text-sm font-bold">{title}</h3>
@@ -997,9 +1037,9 @@ function DiscoverySection({ icon: Icon, title, posts, showDownloads, showVotes, 
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground py-6 text-center">{emptyText}</p>
+        <StateBlock variant="empty" size="inline" title={emptyText} description="Yeni içerikler geldikçe burada listelenecek." className="rounded-none border-0" />
       )}
-    </Card>
+    </Surface>
   );
 }
 

@@ -12,7 +12,8 @@ import CourseWiki from "@/components/course/CourseWiki";
 import CourseResources from "@/components/course/CourseResources";
 import TrendingDiscussions from "@/components/course/TrendingDiscussions";
 import RecentContent from "@/components/course/RecentContent";
-import { Card } from "@/components/ui/card";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -123,7 +124,23 @@ export default function CoursePage() {
   };
 
   if (!course && !loading) {
-    return <Layout><div className="container mx-auto px-4 py-16 text-center"><p className="text-muted-foreground">Ders bulunamadı.</p><Link to="/" className="text-primary hover:underline text-sm mt-2 inline-block">Derslere dön</Link></div></Layout>;
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <StateBlock
+            variant="noResults"
+            size="section"
+            title="Ders bulunamadı"
+            description="Ders kaldırılmış olabilir veya bağlantı geçersiz olabilir."
+            primaryAction={
+              <Button asChild variant="outline" size="sm">
+                <Link to="/">Derslere dön</Link>
+              </Button>
+            }
+          />
+        </div>
+      </Layout>
+    );
   }
 
   const tabs = [
@@ -144,7 +161,7 @@ export default function CoursePage() {
         {/* Course header + tabs fused together */}
         {course && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="mb-0 overflow-hidden border-0 rounded-b-none" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+            <Surface className="mb-0 overflow-hidden rounded-b-none" variant="raised" padding="none" border="none" radius="xl">
               <div className="gradient-hero px-6 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -193,7 +210,7 @@ export default function CoursePage() {
                   )}
                 </div>
               </div>
-            </Card>
+            </Surface>
           </motion.div>
         )}
 
@@ -271,10 +288,12 @@ export default function CoursePage() {
 
                     <div className="space-y-3">
                       {loading ? (
-                        <div className="text-center py-12">
-                          <div className="inline-block h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                          <p className="text-sm text-muted-foreground mt-2">Yükleniyor...</p>
-                        </div>
+                        <StateBlock
+                          variant="loading"
+                          size="section"
+                          title="İçerikler yükleniyor"
+                          description="Ders içerikleri hazırlanıyor."
+                        />
                       ) : filteredPosts.length > 0 ? (
                         filteredPosts.map((post, i) => (
                           <motion.div key={post.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: i * 0.03 }}>
@@ -282,12 +301,25 @@ export default function CoursePage() {
                           </motion.div>
                         ))
                       ) : (
-                        <div className="text-center py-14 bg-secondary/30 rounded-xl">
-                          <p className="text-muted-foreground text-sm">Henüz {contentTypeLabel(activeTab)} yok.</p>
-                          {canAddContent && <p className="text-sm mt-1.5 font-medium text-primary">İlk paylaşan siz olun!</p>}
-                          {user && !canAddContent && <p className="text-xs mt-1.5 text-muted-foreground">Sadece kendi üniversitenizin derslerine içerik ekleyebilirsiniz.</p>}
-                          {!user && <p className="text-sm mt-1.5"><Link to="/auth" className="text-primary font-semibold hover:underline">Giriş yapın</Link> paylaşmak için.</p>}
-                        </div>
+                        <StateBlock
+                          variant="empty"
+                          size="section"
+                          title={`Henüz ${contentTypeLabel(activeTab)} yok`}
+                          description={
+                            canAddContent
+                              ? "İlk paylaşımı siz yapabilirsiniz."
+                              : user
+                                ? "Sadece kendi üniversitenizin derslerine içerik ekleyebilirsiniz."
+                                : "İçerik paylaşmak için giriş yapın."
+                          }
+                          primaryAction={
+                            !user ? (
+                              <Button asChild variant="outline" size="sm">
+                                <Link to="/auth">Giriş yapın</Link>
+                              </Button>
+                            ) : undefined
+                          }
+                        />
                       )}
                     </div>
                   </>

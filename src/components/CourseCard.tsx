@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Card } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
+import { AcademicMeta } from "@/components/ui/academic-meta";
 import { FileText, MessageSquare, BookOpen, BookMarked, ArrowRight } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { normalizeCourseCode } from "@/lib/course-code";
@@ -12,10 +13,22 @@ interface CourseCardProps {
 export default function CourseCard({ course, postCounts }: CourseCardProps) {
   const counts = postCounts ?? { notes: 0, past_exams: 0, discussion: 0, kaynaklar: 0 };
   const normalizedCode = normalizeCourseCode(course.code);
+  const yearLabel =
+    (course as any).year === null || (course as any).year === undefined
+      ? undefined
+      : (course as any).year === 0
+        ? "Hazırlık"
+        : `${(course as any).year}. Sınıf`;
 
   return (
     <Link to={`/course/${course.id}`}>
-      <Card className="group overflow-hidden rounded-lg hover:border-primary/30 transition-all duration-200 cursor-pointer h-full hover-lift">
+      <Surface
+        className="group overflow-hidden hover:border-primary/30 transition-all duration-200 cursor-pointer h-full hover-lift"
+        variant="raised"
+        border="default"
+        padding="none"
+        radius="xl"
+      >
         <div className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1 min-w-0">
@@ -29,12 +42,18 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
                   </span>
                 )}
               </div>
-              <h3 className="font-heading text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                <h3 className="font-heading text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                 {course.name}
               </h3>
-              {course.department && (
-                <p className="text-xs text-muted-foreground mt-1">{course.department}</p>
-              )}
+              <AcademicMeta
+                size="sm"
+                tone="muted"
+                className="mt-1"
+                items={[
+                  ...(course.department ? [{ kind: "department" as const, label: "Bölüm", value: course.department, emphasis: "subtle" as const }] : []),
+                  ...(yearLabel ? [{ kind: "semester" as const, label: "Sınıf", value: yearLabel, emphasis: "subtle" as const }] : []),
+                ]}
+              />
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0 ml-3 mt-1" />
           </div>
@@ -58,7 +77,7 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
             </div>
           </div>
         </div>
-      </Card>
+      </Surface>
     </Link>
   );
 }

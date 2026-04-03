@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,9 @@ import { tr } from "date-fns/locale";
 import { moderateImage, moderateText, getViolationMessage } from "@/lib/moderation";
 import { checkUsernameProfanity, quickContentCheck } from "@/lib/profanity-filter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AcademicMeta } from "@/components/ui/academic-meta";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 
 interface ProfileData {
   username: string;
@@ -409,18 +412,45 @@ export default function SettingsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Settings className="h-4.5 w-4.5 text-primary" />
+      <div className="container mx-auto max-w-6xl px-4 py-8">
+        <Surface variant="raised" border="subtle" radius="xl" padding="none" className="overflow-hidden">
+          <div className="h-20 gradient-hero" />
+          <div className="px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Settings className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-heading text-xl font-extrabold">Ayarlar</h1>
+                <p className="text-sm text-muted-foreground">
+                  Hesap, akademik kimlik, gizlilik ve bildirim tercihlerinizi yonetin.
+                </p>
+                <AcademicMeta
+                  className="mt-2"
+                  size="sm"
+                  tone="muted"
+                  items={[
+                    ...(profile.university
+                      ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }]
+                      : []),
+                    ...(profile.department
+                      ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }]
+                      : []),
+                    ...(profile.class_year !== null
+                      ? [{ kind: "custom" as const, label: "Sinif", value: profile.class_year === 0 ? "Hazirlik" : `${profile.class_year}. Sinif`, emphasis: "subtle" as const }]
+                      : []),
+                  ]}
+                />
+              </div>
+            </div>
           </div>
-          <h1 className="font-heading text-lg font-extrabold">Ayarlar</h1>
-        </div>
+        </Surface>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
           {/* Sidebar */}
           <div className="md:col-span-1">
-            <Card className="border-0 shadow-md">
+            <Surface variant="outline" border="subtle" radius="xl" padding="sm" className="md:sticky md:top-24">
+              <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Bolumler</p>
               <div className="p-2 space-y-0.5">
                 {sections.map((s) => (
                   <button
@@ -431,17 +461,19 @@ export default function SettingsPage() {
                     }`}
                   >
                     <s.icon className="h-4 w-4 shrink-0" />
-                    {s.label}
+                    <div className="min-w-0">
+                      <p>{s.label}</p>
+                    </div>
                   </button>
                 ))}
               </div>
-            </Card>
+            </Surface>
           </div>
 
           {/* Content */}
           <div className="md:col-span-3">
             {activeSection === "account" && (
-              <Card className="border-0 shadow-md">
+              <Surface variant="raised" border="subtle" radius="xl" padding="none">
                 <CardHeader>
                   <CardTitle className="text-base font-bold">Hesap Bilgileri</CardTitle>
                   <CardDescription className="text-xs">Temel hesap bilgilerinizi yönetin.</CardDescription>
@@ -538,12 +570,12 @@ export default function SettingsPage() {
                     {saving ? "Kaydediliyor..." : "Kaydet"}
                   </Button>
                 </CardContent>
-              </Card>
+              </Surface>
             )}
 
             {activeSection === "academic" && (
               <div className="space-y-4">
-                <Card className="border-0 shadow-md">
+                <Surface variant="raised" border="subtle" radius="xl" padding="none">
                   <CardHeader>
                     <CardTitle className="text-base font-bold">Akademik Bilgiler</CardTitle>
                     <CardDescription className="text-xs">
@@ -551,6 +583,15 @@ export default function SettingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <AcademicMeta
+                      size="sm"
+                      tone="muted"
+                      items={[
+                        { kind: "verified", label: "Dogrulanmis Ogrenci", emphasis: "default" },
+                        ...(profile.university ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }] : []),
+                        ...(profile.department ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }] : []),
+                      ]}
+                    />
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold flex items-center gap-1.5">
                         Üniversite
@@ -594,7 +635,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                </Surface>
 
                 <AcademicChangeRequestCard userId={user.id} currentProfile={profile} />
 
@@ -604,14 +645,18 @@ export default function SettingsPage() {
             )}
 
             {activeSection === "security" && (
-              <div className="space-y-4">
+              <Surface variant="raised" border="subtle" radius="xl" padding="lg" className="space-y-4">
+                <div>
+                  <h2 className="font-heading text-base font-bold">Guvenlik</h2>
+                  <p className="text-xs text-muted-foreground">Iki adimli dogrulama ile hesabinizi koruyun.</p>
+                </div>
                 <TwoFactorSetup enabled={mfaEnabled} onStatusChange={checkMfaStatus} />
-              </div>
+              </Surface>
             )}
 
             {activeSection === "privacy" && (
               <div className="space-y-4">
-                <Card className="border-0 shadow-md">
+                <Surface variant="raised" border="subtle" radius="xl" padding="none">
                   <CardHeader>
                     <CardTitle className="text-base font-bold">Gizlilik ve DM Ayarları</CardTitle>
                     <CardDescription className="text-xs">Kimler size mesaj gönderebileceğini belirleyin.</CardDescription>
@@ -690,9 +735,9 @@ export default function SettingsPage() {
                       {saving ? "Kaydediliyor..." : "Kaydet"}
                     </Button>
                   </CardContent>
-                </Card>
+                </Surface>
 
-                <Card className="border-0 shadow-md">
+                <Surface variant="raised" border="subtle" radius="xl" padding="none">
                   <CardHeader>
                     <CardTitle className="text-base font-bold flex items-center gap-2">
                       <Shield className="h-4 w-4" />
@@ -702,19 +747,31 @@ export default function SettingsPage() {
                   </CardHeader>
                   <CardContent>
                     {loadingBlocked ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                      </div>
+                      <StateBlock
+                        variant="loading"
+                        size="inline"
+                        title="Engellenen kullanicilar yukleniyor"
+                        description="Lutfen bekleyin."
+                      />
                     ) : blockedUsers.length === 0 ? (
-                      <div className="text-center py-8">
-                        <ShieldOff className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                        <p className="text-sm text-muted-foreground">Henüz engellediğiniz kullanıcı yok.</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">Bir kullanıcıyı DM ekranından engelleyebilirsiniz.</p>
-                      </div>
+                      <StateBlock
+                        variant="empty"
+                        size="inline"
+                        icon={<ShieldOff className="h-4 w-4" />}
+                        title="Heniz engellenen kullanici yok"
+                        description="Bir kullaniciyi DM ekranindan engelleyebilirsiniz."
+                      />
                     ) : (
                       <div className="space-y-2">
                         {blockedUsers.map((blocked) => (
-                          <div key={blocked.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                          <Surface
+                            key={blocked.id}
+                            variant="soft"
+                            border="subtle"
+                            padding="sm"
+                            radius="lg"
+                            className="flex items-center justify-between transition-colors hover:bg-secondary/60"
+                          >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9">
                                 <AvatarFallback className="bg-destructive/10 text-destructive text-xs font-bold">
@@ -743,17 +800,17 @@ export default function SettingsPage() {
                                 "Engeli Kaldır"
                               )}
                             </Button>
-                          </div>
+                          </Surface>
                         ))}
                       </div>
                     )}
                   </CardContent>
-                </Card>
+                </Surface>
               </div>
             )}
 
             {activeSection === "notifications" && (
-              <Card className="border-0 shadow-md">
+              <Surface variant="raised" border="subtle" radius="xl" padding="none">
                 <CardHeader>
                   <CardTitle className="text-base font-bold">Bildirim Ayarları</CardTitle>
                   <CardDescription className="text-xs">Hangi bildirimleri almak istediğinizi seçin.</CardDescription>
@@ -782,12 +839,12 @@ export default function SettingsPage() {
                     {saving ? "Kaydediliyor..." : "Kaydet"}
                   </Button>
                 </CardContent>
-              </Card>
+              </Surface>
             )}
 
             {activeSection === "danger" && (
               <div className="space-y-4">
-                <Card className="border-0 shadow-md border-destructive/20">
+                <Surface variant="raised" border="default" radius="xl" padding="none" className="border-destructive/20">
                   <CardHeader>
                     <CardTitle className="text-base font-bold text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
@@ -815,7 +872,7 @@ export default function SettingsPage() {
                       Hesabımı Sil
                     </Button>
                   </CardContent>
-                </Card>
+                </Surface>
               </div>
             )}
 
@@ -886,18 +943,24 @@ function UserSupportTickets({ userId }: { userId: string }) {
     fetchTickets();
   }, [userId]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <Surface variant="raised" border="subtle" radius="xl" padding="lg">
+        <StateBlock variant="loading" size="inline" title="Destek talepleri yukleniyor" description="Lutfen bekleyin." />
+      </Surface>
+    );
+  }
   if (tickets.length === 0) return null;
 
   return (
-    <Card className="border-0 shadow-md">
+    <Surface variant="raised" border="subtle" radius="xl" padding="none">
       <CardHeader>
         <CardTitle className="text-base font-bold">Destek Taleplerim</CardTitle>
         <CardDescription className="text-xs">Gönderdiğiniz destek talepleri ve yanıtları.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {tickets.map((t: any) => (
-          <div key={t.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
+          <Surface key={t.id} variant="soft" border="subtle" radius="lg" padding="sm" className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">{t.subject}</p>
               <Badge variant={t.status === "open" ? "destructive" : t.status === "replied" ? "default" : "secondary"} className="text-[10px]">
@@ -919,10 +982,10 @@ function UserSupportTickets({ userId }: { userId: string }) {
             <p className="text-[10px] text-muted-foreground">
               {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: tr })}
             </p>
-          </div>
+          </Surface>
         ))}
       </CardContent>
-    </Card>
+    </Surface>
   );
 }
 
@@ -951,7 +1014,7 @@ function AcademicChangeRequestCard({ userId, currentProfile }: { userId: string;
   };
 
   return (
-    <Card className="border-0 shadow-md">
+    <Surface variant="raised" border="subtle" radius="xl" padding="none">
       <CardHeader>
         <CardTitle className="text-base font-bold">Akademik Bilgi Değişiklik Talebi</CardTitle>
         <CardDescription className="text-xs">
@@ -985,6 +1048,6 @@ function AcademicChangeRequestCard({ userId, currentProfile }: { userId: string;
           {loading ? "Gönderiliyor..." : "Değişiklik Talebi Gönder"}
         </Button>
       </CardContent>
-    </Card>
+    </Surface>
   );
 }

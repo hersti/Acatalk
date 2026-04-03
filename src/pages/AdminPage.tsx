@@ -17,6 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Surface } from "@/components/ui/surface";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { AcademicMeta } from "@/components/ui/academic-meta";
 import { toast } from "sonner";
 import { formatUniversityMetaLabel, type UniversityCatalogRow } from "@/lib/academic-catalog";
 import {
@@ -59,7 +62,14 @@ function PaginationControls({ page, setPage, total }: { page: number; setPage: (
 
 function StatCard({ icon: Icon, label, value, color, onClick }: { icon: any; label: string; value: number | string; color: string; onClick?: () => void }) {
   return (
-    <Card className={`p-4 ${onClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}`} onClick={onClick}>
+    <Surface
+      variant="raised"
+      border="subtle"
+      padding="md"
+      radius="lg"
+      className={`${onClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}`}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${color}`} />
@@ -67,7 +77,7 @@ function StatCard({ icon: Icon, label, value, color, onClick }: { icon: any; lab
       </div>
       <p className="text-2xl font-extrabold tracking-tight">{value}</p>
       <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
-    </Card>
+    </Surface>
   );
 }
 
@@ -1034,7 +1044,8 @@ export default function AdminPage() {
         </div>
 
         {/* Quick action badges */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="mb-4">
+          <div className="flex gap-2 flex-wrap">
           {stats.pendingMod > 0 && (
             <Badge variant="destructive" className="cursor-pointer text-xs py-1 px-2.5" onClick={() => { setActiveTab("moderation"); setModQueueFilter("flagged"); }}>
               <ShieldAlert className="h-3 w-3 mr-1" /> {stats.pendingMod} moderasyon bekliyor
@@ -1065,11 +1076,12 @@ export default function AdminPage() {
               <VolumeX className="h-3 w-3 mr-1" /> {stats.mutedUsers} susturulmuş
             </Badge>
           )}
-        </div>
+          </div>
+        </Surface>
 
         <div className="flex gap-6">
           {/* Sidebar nav */}
-          <nav className="hidden md:flex flex-col gap-1 w-48 shrink-0">
+          <Surface variant="outline" border="subtle" padding="sm" radius="lg" className="hidden md:flex flex-col gap-1 w-48 shrink-0 h-fit">
             {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
               const badgeCount = key === "reports" ? pendingReportsCount : key === "moderation" ? pendingModCount : key === "suggestions" ? pendingSuggestionsCount : key === "support" ? openTicketsCount : 0;
               return (
@@ -1081,7 +1093,7 @@ export default function AdminPage() {
                 </button>
               );
             })}
-          </nav>
+          </Surface>
 
           {/* Mobile nav */}
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t p-2 flex gap-1 overflow-x-auto">
@@ -1097,9 +1109,12 @@ export default function AdminPage() {
           {/* Main */}
           <div className="flex-1 min-w-0 pb-20 md:pb-0">
             {dataLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
+              <StateBlock
+                variant="loading"
+                size="page"
+                title="Yonetici paneli yukleniyor"
+                description="Veriler aliniyor, lutfen bekleyin."
+              />
             ) : (
               <>
                 {/* ═══ STATS ═══ */}
@@ -1220,7 +1235,7 @@ export default function AdminPage() {
                         </Select>
                       </div>
                     </div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -1339,7 +1354,7 @@ export default function AdminPage() {
                       </Select>
                     </div>
 
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[400px]">
                         <Table>
                           <TableHeader>
@@ -1399,7 +1414,7 @@ export default function AdminPage() {
 
                     {/* Mod Logs */}
                     <h3 className="text-sm font-bold pt-2">Moderasyon Geçmişi</h3>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[300px]">
                         <Table>
                           <TableHeader>
@@ -1451,9 +1466,9 @@ export default function AdminPage() {
                       </Select>
                       <span className="text-xs text-muted-foreground">{filteredSuggestions.length + filteredAcademicProgramRequests.length} öğe</span>
                     </div>
-                    {filteredSuggestions.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Öneri bulunamadı.</Card>}
+                    {filteredSuggestions.length === 0 && <StateBlock variant="empty" size="inline" title="Öneri bulunamadı." description="" />}
                     {filteredSuggestions.map((s: any) => (
-                      <Card key={s.id} className="p-4 space-y-2">
+                      <Surface key={s.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-[10px]">{s.type === "department" ? "Bölüm" : s.type === "info_change" ? "Bilgi Değişikliği" : s.type === "university" ? "Üniversite" : "Ders"}</Badge>
@@ -1482,7 +1497,7 @@ export default function AdminPage() {
                             </Button>
                           </div>
                         )}
-                      </Card>
+                      </Surface>
                     ))}
 
                     <div className="pt-2 border-t">
@@ -1492,11 +1507,11 @@ export default function AdminPage() {
                       </div>
 
                       {filteredAcademicProgramRequests.length === 0 && (
-                        <Card className="p-6 text-center text-sm text-muted-foreground">Program talebi bulunamadı.</Card>
+                        <StateBlock variant="empty" size="inline" title="Program talebi bulunamadı." description="" />
                       )}
 
                       {filteredAcademicProgramRequests.map((r: any) => (
-                        <Card key={r.id} className="p-4 space-y-3">
+                        <Surface key={r.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="text-[10px]">Program Talebi</Badge>
@@ -1548,7 +1563,7 @@ export default function AdminPage() {
                               </Button>
                             </div>
                           )}
-                        </Card>
+                        </Surface>
                       ))}
                     </div>
 
@@ -1568,13 +1583,13 @@ export default function AdminPage() {
                       </div>
 
                       {filteredDomainRequests.length === 0 && (
-                        <Card className="p-6 text-center text-sm text-muted-foreground">Domain talebi bulunamadi.</Card>
+                        <StateBlock variant="empty" size="inline" title="Domain talebi bulunamadi." description="" />
                       )}
 
                       {filteredDomainRequests.map((r: any) => {
                         const draft = getDomainDraft(r);
                         return (
-                          <Card key={r.id} className="p-4 space-y-3">
+                          <Surface key={r.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-[10px]">Domain Talebi</Badge>
@@ -1688,7 +1703,7 @@ export default function AdminPage() {
                                 {r.admin_note && <p className="md:col-span-2">Admin Notu: {r.admin_note}</p>}
                               </div>
                             )}
-                          </Card>
+                          </Surface>
                         );
                       })}
                     </div>
@@ -1702,14 +1717,14 @@ export default function AdminPage() {
                   return (
                     <div className="space-y-4">
                       <h3 className="text-sm font-bold">Açık Destek Talepleri ({openTickets.length})</h3>
-                      {openTickets.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Açık destek talebi yok.</Card>}
+                      {openTickets.length === 0 && <StateBlock variant="empty" size="inline" title="Açık destek talebi yok." description="" />}
                       {openTickets.map((t: any) => (
                         <SupportTicketCard key={t.id} ticket={t} getUsername={getUsername} onReply={handleReplyTicket} onClose={handleCloseTicket} />
                       ))}
                       {closedTickets.length > 0 && (
                         <>
                           <h3 className="text-sm font-bold pt-4">Geçmiş Talepler ({closedTickets.length})</h3>
-                          <Card className="overflow-hidden">
+                          <Surface variant="outline" border="subtle" padding="none" radius="lg" className="overflow-hidden">
                             <ScrollArea className="max-h-[300px]">
                               <Table>
                                 <TableHeader><TableRow>
@@ -1730,7 +1745,7 @@ export default function AdminPage() {
                                 </TableBody>
                               </Table>
                             </ScrollArea>
-                          </Card>
+                          </Surface>
                         </>
                       )}
                     </div>
@@ -1757,7 +1772,7 @@ export default function AdminPage() {
                       </Select>
                       <CourseFormDialog universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
                     </div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -1823,7 +1838,7 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -1879,7 +1894,7 @@ export default function AdminPage() {
                 {activeTab === "comments" && (
                   <div className="space-y-3">
                     <SearchBar value={commentSearch} onChange={(v) => { setCommentSearch(v); setCommentPage(0); }} placeholder="Yorum ara (içerik)..." />
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -1935,7 +1950,7 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -2004,7 +2019,7 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/70">
                       <ScrollArea className="max-h-[600px]">
                         <Table>
                           <TableHeader>
@@ -2148,6 +2163,24 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <AcademicMeta
+            size="sm"
+            tone="muted"
+            className="pb-1"
+            items={[
+              ...(u.university ? [{ kind: "university" as const, label: "Universite", value: u.university }] : []),
+              ...(u.department ? [{ kind: "department" as const, label: "Bolum", value: u.department }] : []),
+              ...(u.class_year != null
+                ? [
+                    {
+                      kind: "semester" as const,
+                      label: "Sinif",
+                      value: u.class_year === 0 ? "Hazirlik" : `${u.class_year}. Sinif`,
+                    },
+                  ]
+                : []),
+            ]}
+          />
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <p className="text-[10px] text-muted-foreground font-semibold uppercase">Üniversite</p>
@@ -2307,7 +2340,7 @@ function CourseFormDialog({
 function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: any; getUsername: (id: string) => string; onReply: (id: string, reply: string) => void; onClose: (id: string) => void }) {
   const [reply, setReply] = useState("");
   return (
-    <Card className="p-4 space-y-3">
+    <Surface variant="soft" border="subtle" padding="md" radius="lg" className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold">{ticket.subject}</p>
@@ -2323,7 +2356,7 @@ function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: 
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onClose(ticket.id)}>Kapat</Button>
         </div>
       </div>
-    </Card>
+    </Surface>
   );
 }
 

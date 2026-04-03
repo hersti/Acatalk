@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Trash2, X, Filter, CheckCheck, Mail, AlertCircle, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -56,7 +57,7 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
 /* ─── Stat Card ─── */
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
-    <Card className="p-4">
+    <Surface className="p-4" border="subtle">
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${color}`} />
@@ -64,7 +65,7 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
       </div>
       <p className="text-2xl font-extrabold tracking-tight">{value}</p>
       <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
-    </Card>
+    </Surface>
   );
 }
 
@@ -180,7 +181,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filters - Admin Panel Style */}
-        <Card className="p-3">
+        <Surface variant="soft" border="subtle" padding="sm">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
@@ -213,29 +214,35 @@ export default function NotificationsPage() {
             </Select>
             <Badge variant="secondary" className="ml-auto text-[10px]">{filtered.length} sonuç</Badge>
           </div>
-        </Card>
+        </Surface>
 
         {/* List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground mt-2">Yükleniyor...</p>
-          </div>
+          <StateBlock
+            variant="loading"
+            size="section"
+            title="Bildirimler yükleniyor"
+            description="Bildirim listeniz hazırlanıyor."
+          />
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 rounded-lg bg-muted/30">
-            <Bell className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-foreground mb-1">
-              {notifications.length === 0 ? "Henüz bildirim yok" : "Filtreye uygun bildirim bulunamadı"}
-            </p>
-            <p className="text-xs text-muted-foreground">Yeni bildirimler burada görünecek.</p>
-          </div>
+          <StateBlock
+            variant={notifications.length === 0 ? "empty" : "noResults"}
+            size="section"
+            icon={<Bell className="h-5 w-5" />}
+            title={notifications.length === 0 ? "Henüz bildirim yok" : "Filtreye uygun bildirim bulunamadı"}
+            description={notifications.length === 0 ? "Yeni bildirimler burada görünecek." : "Filtreleri değiştirerek tekrar deneyin."}
+          />
         ) : (
           <div className="space-y-2">
             {filtered.map((n) => {
               const NotifIcon = TYPE_ICONS[n.type] || Bell;
               return (
-                <Card
+                <Surface
                   key={n.id}
+                  variant="soft"
+                  border="subtle"
+                  padding="none"
+                  radius="lg"
                   className={`relative group cursor-pointer transition-colors hover:bg-secondary/50 ${!n.is_read ? "border-primary/30 bg-primary/5" : ""}`}
                   onClick={() => handleClick(n)}
                 >
@@ -266,7 +273,7 @@ export default function NotificationsPage() {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                </Card>
+                </Surface>
               );
             })}
           </div>
