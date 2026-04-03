@@ -98,19 +98,19 @@ function StatusBadge({ status }: { status: string }) {
     under_review: { label: "İnceleniyor", variant: "outline" },
   };
   const s = map[status] || { label: status, variant: "outline" as const };
-  return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
+  return <Badge variant={s.variant} className="text-xs">{s.label}</Badge>;
 }
 
 function UserStatusBadges({ user: u }: { user: any }) {
   return (
     <div className="flex gap-1 flex-wrap">
-      {u.is_suspended && <Badge variant="destructive" className="text-[9px]">Askıda</Badge>}
-      {u.is_muted && <Badge className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-300">Susturulmuş</Badge>}
+      {u.is_suspended && <Badge variant="destructive" className="text-xs">Askıda</Badge>}
+      {u.is_muted && <Badge className="text-xs bg-amber-500/10 text-amber-600 border-amber-300">Susturulmuş</Badge>}
       {(u.moderation_score || 0) > 0 && !u.is_muted && !u.is_suspended && (
-        <Badge variant="outline" className="text-[9px] text-amber-600">{u.moderation_score} puan</Badge>
+        <Badge variant="outline" className="text-xs text-amber-600">{u.moderation_score} puan</Badge>
       )}
       {!u.is_suspended && !u.is_muted && (u.moderation_score || 0) === 0 && (
-        <Badge variant="outline" className="text-[9px] text-green-600">Aktif</Badge>
+        <Badge variant="outline" className="text-xs text-green-600">Aktif</Badge>
       )}
     </div>
   );
@@ -704,7 +704,7 @@ export default function AdminPage() {
   // ─── Suggestion Handlers ───
   const handleApproveSuggestion = async (suggestion: any) => {
     if (suggestion.type === "department") {
-      toast.error("Bolum onerileri admin kuyrugunda islenmez.");
+      toast.error("B?l?m ?nerileri admin kuyru?unda i?lenmez.");
       return;
     }
     if (suggestion.type === "info_change") {
@@ -866,7 +866,7 @@ export default function AdminPage() {
     const universityName = (draft.university_name || "").trim();
     const domain = (draft.domain || "").trim().toLowerCase();
     if (!universityName) {
-      toast.error("Universite adi zorunlu.");
+      toast.error("?niversite ad? zorunlu.");
       return;
     }
     if (!domain) {
@@ -885,13 +885,13 @@ export default function AdminPage() {
       p_seed_general_department: draft.seed_general_department,
     } as any);
     if (!error && rpcData) {
-      toast.success("Domain talebi onaylandi ve sisteme eklendi.");
+      toast.success("Domain talebi onayland? ve sisteme eklendi.");
       fetchAll(true);
       return;
     }
 
     if (error && !isMissingFunctionError(error)) {
-      toast.error("Talep onaylanamadi: " + error.message);
+      toast.error("Talep onaylanamad?: " + error.message);
       return;
     }
 
@@ -907,7 +907,7 @@ export default function AdminPage() {
       .select("id")
       .maybeSingle();
     if (uniErr || !uniRow?.id) {
-      toast.error("Universite eklenemedi: " + (uniErr?.message || "Bilinmeyen hata"));
+      toast.error("?niversite eklenemedi: " + (uniErr?.message || "Bilinmeyen hata"));
       return;
     }
 
@@ -948,7 +948,7 @@ export default function AdminPage() {
       return;
     }
 
-    toast.success("Domain talebi onaylandi ve sisteme eklendi.");
+    toast.success("Domain talebi onayland? ve sisteme eklendi.");
     fetchAll(true);
   };
 
@@ -957,7 +957,7 @@ export default function AdminPage() {
     const { data: rpcData, error } = await supabase.rpc("admin_process_university_domain_request", {
       p_request_id: request.id,
       p_action: "rejected",
-      p_admin_note: draft.admin_note.trim() || "Admin tarafindan reddedildi",
+      p_admin_note: draft.admin_note.trim() || "Admin taraf?ndan reddedildi",
     } as any);
     if (!error && rpcData) {
       toast.success("Domain talebi reddedildi.");
@@ -973,7 +973,7 @@ export default function AdminPage() {
       .from("university_domain_requests" as any)
       .update({
         status: "rejected",
-        admin_note: draft.admin_note.trim() || "Admin tarafindan reddedildi",
+        admin_note: draft.admin_note.trim() || "Admin taraf?ndan reddedildi",
         reviewed_by: user?.id || null,
         reviewed_at: new Date().toISOString(),
       })
@@ -1089,7 +1089,7 @@ export default function AdminPage() {
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                   <Icon className="h-4 w-4 shrink-0" />
                   {label}
-                  {badgeCount > 0 && <Badge variant="destructive" className="ml-auto text-[9px] h-4 px-1.5">{badgeCount}</Badge>}
+                  {badgeCount > 0 && <Badge variant="destructive" className="ml-auto text-xs h-4 px-1.5">{badgeCount}</Badge>}
                 </button>
               );
             })}
@@ -1099,7 +1099,7 @@ export default function AdminPage() {
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t p-2 flex gap-1 overflow-x-auto">
             {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setActiveTab(key)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-colors min-w-[56px] ${activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors min-w-[56px] ${activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 <Icon className="h-3.5 w-3.5" />
                 {label}
               </button>
@@ -1112,8 +1112,8 @@ export default function AdminPage() {
               <StateBlock
                 variant="loading"
                 size="page"
-                title="Yonetici paneli yukleniyor"
-                description="Veriler aliniyor, lutfen bekleyin."
+                title="Y?netici paneli y?kleniyor"
+                description="Veriler al?n?yor, l?tfen bekleyin."
               />
             ) : (
               <>
@@ -1134,19 +1134,19 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.notes}</p>
-                        <p className="text-[11px] text-muted-foreground">Not</p>
+                        <p className="text-xs text-muted-foreground">Not</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.past_exams}</p>
-                        <p className="text-[11px] text-muted-foreground">Çıkmış Soru</p>
+                        <p className="text-xs text-muted-foreground">Çıkmış Soru</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.discussion}</p>
-                        <p className="text-[11px] text-muted-foreground">Tartışma</p>
+                        <p className="text-xs text-muted-foreground">Tartışma</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.kaynaklar}</p>
-                        <p className="text-[11px] text-muted-foreground">Kaynak</p>
+                        <p className="text-xs text-muted-foreground">Kaynak</p>
                       </Card>
                     </div>
 
@@ -1158,7 +1158,7 @@ export default function AdminPage() {
                             {stats.topCourses.map((c, i) => (
                               <div key={i} className="flex items-center justify-between">
                                 <span className="text-sm truncate">{c.code && <span className="text-muted-foreground mr-1">{c.code}</span>}{c.name}</span>
-                                <Badge variant="secondary" className="text-[10px]">{c.count} gönderi</Badge>
+                                <Badge variant="secondary" className="text-xs">{c.count} gönderi</Badge>
                               </div>
                             ))}
                           </div>
@@ -1172,8 +1172,8 @@ export default function AdminPage() {
                               <div key={i} className="flex items-center justify-between">
                                 <span className="text-sm">{u.name}</span>
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-[10px]">{u.rep} puan</Badge>
-                                  <Badge variant="secondary" className="text-[10px]">{u.count} gönderi</Badge>
+                                  <Badge variant="outline" className="text-xs">{u.rep} puan</Badge>
+                                  <Badge variant="secondary" className="text-xs">{u.count} gönderi</Badge>
                                 </div>
                               </div>
                             ))}
@@ -1188,19 +1188,19 @@ export default function AdminPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("active"); }}>
                           <p className="text-lg font-extrabold text-green-600">{stats.totalUsers - stats.mutedUsers - stats.suspendedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Aktif</p>
+                          <p className="text-xs text-muted-foreground">Aktif</p>
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("muted"); }}>
                           <p className="text-lg font-extrabold text-amber-500">{stats.mutedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Susturulmuş</p>
+                          <p className="text-xs text-muted-foreground">Susturulmuş</p>
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("suspended"); }}>
                           <p className="text-lg font-extrabold text-destructive">{stats.suspendedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Askıda</p>
+                          <p className="text-xs text-muted-foreground">Askıda</p>
                         </div>
                         <div className="text-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg" onClick={() => { setActiveTab("users"); setUserStatusFilter("flagged"); }}>
                           <p className="text-lg font-extrabold text-amber-600">{stats.flaggedUsers}</p>
-                          <p className="text-[11px] text-muted-foreground">Uyarılı</p>
+                          <p className="text-xs text-muted-foreground">Uyarılı</p>
                         </div>
                       </div>
                     </Card>
@@ -1256,14 +1256,14 @@ export default function AdminPage() {
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-7 w-7">
                                       {u.avatar_url && <AvatarImage src={u.avatar_url} />}
-                                      <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
+                                      <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
                                         {(u.username || "?")[0].toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div>
                                       <span className="text-sm font-medium truncate max-w-[120px] block">{u.username || "Anonim"}</span>
                                       {u.display_name && u.display_name !== u.username && (
-                                        <span className="text-[10px] text-muted-foreground">{u.display_name}</span>
+                                        <span className="text-xs text-muted-foreground">{u.display_name}</span>
                                       )}
                                     </div>
                                   </div>
@@ -1272,7 +1272,7 @@ export default function AdminPage() {
                                   {u.university ? (
                                     <div className="leading-tight">
                                       <p className="text-xs text-foreground">{u.university}</p>
-                                      <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>
+                                      <p className="text-xs text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>
                                     </div>
                                   ) : (
                                     <span className="text-xs text-muted-foreground">—</span>
@@ -1281,7 +1281,7 @@ export default function AdminPage() {
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{u.department || "—"}</TableCell>
                                 <TableCell><UserStatusBadges user={u} /></TableCell>
                                 <TableCell>
-                                  <Badge variant={getUserRole(u.user_id) === "admin" ? "destructive" : "outline"} className="text-[10px]">
+                                  <Badge variant={getUserRole(u.user_id) === "admin" ? "destructive" : "outline"} className="text-xs">
                                     {getUserRole(u.user_id)}
                                   </Badge>
                                 </TableCell>
@@ -1289,12 +1289,12 @@ export default function AdminPage() {
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-0.5">
                                     {u.is_muted && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-amber-600" onClick={() => handleUnmuteUser(u.user_id)} title="Susturmayı Kaldır">
+                                      <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-amber-600" onClick={() => handleUnmuteUser(u.user_id)} title="Susturmayı Kaldır">
                                         <VolumeX className="h-3 w-3" />
                                       </Button>
                                     )}
                                     {u.is_suspended && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-destructive" onClick={() => handleUnsuspendUser(u.user_id)} title="Askıyı Kaldır">
+                                      <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-destructive" onClick={() => handleUnsuspendUser(u.user_id)} title="Askıyı Kaldır">
                                         <Ban className="h-3 w-3" />
                                       </Button>
                                     )}
@@ -1309,7 +1309,7 @@ export default function AdminPage() {
                                       </>
                                     )}
                                     {(u.moderation_score || 0) > 0 && (
-                                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-1.5 text-primary" onClick={() => handleClearScore(u.user_id)} title="Skoru Sıfırla">
+                                      <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-primary" onClick={() => handleClearScore(u.user_id)} title="Skoru Sıfırla">
                                         <RefreshCw className="h-3 w-3" />
                                       </Button>
                                     )}
@@ -1374,10 +1374,10 @@ export default function AdminPage() {
                                 <TableCell className="py-2">
                                   <p className="text-xs line-clamp-2 max-w-[200px]">{item.content_text || (item.content_url ? "ğŸ–¼ï¸ Görsel" : "—")}</p>
                                 </TableCell>
-                                <TableCell><Badge variant="outline" className="text-[10px]">{item.content_type}</Badge></TableCell>
-                                <TableCell><Badge variant="secondary" className="text-[10px]">{item.violation_type}</Badge></TableCell>
+                                <TableCell><Badge variant="outline" className="text-xs">{item.content_type}</Badge></TableCell>
+                                <TableCell><Badge variant="secondary" className="text-xs">{item.violation_type}</Badge></TableCell>
                                 <TableCell>
-                                  <Badge variant={item.severity === "high" || item.severity === "critical" ? "destructive" : item.severity === "medium" ? "secondary" : "outline"} className="text-[10px]">
+                                  <Badge variant={item.severity === "high" || item.severity === "critical" ? "destructive" : item.severity === "medium" ? "secondary" : "outline"} className="text-xs">
                                     {item.severity}
                                   </Badge>
                                 </TableCell>
@@ -1428,16 +1428,16 @@ export default function AdminPage() {
                           <TableBody>
                             {paginate(moderationLogs, modLogPage).map((log: any) => (
                               <TableRow key={log.id}>
-                                <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                   {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: tr })}
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={["suspend", "mute", "suspended", "muted"].includes(log.action) ? "destructive" : "outline"} className="text-[10px]">
+                                  <Badge variant={["suspend", "mute", "suspended", "muted"].includes(log.action) ? "destructive" : "outline"} className="text-xs">
                                     {log.action}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs">{getUsername(log.user_id)}</TableCell>
-                                <TableCell className="text-[10px] text-muted-foreground max-w-[200px] truncate">{log.reason || "—"}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{log.reason || "—"}</TableCell>
                               </TableRow>
                             ))}
                             {moderationLogs.length === 0 && (
@@ -1471,20 +1471,20 @@ export default function AdminPage() {
                       <Surface key={s.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px]">{s.type === "department" ? "Bölüm" : s.type === "info_change" ? "Bilgi Değişikliği" : s.type === "university" ? "Üniversite" : "Ders"}</Badge>
+                            <Badge variant="outline" className="text-xs">{s.type === "department" ? "Bölüm" : s.type === "info_change" ? "Bilgi Değişikliği" : s.type === "university" ? "Üniversite" : "Ders"}</Badge>
                             <StatusBadge status={s.status} />
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true, locale: tr })}</span>
+                          <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true, locale: tr })}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div><p className="text-[10px] text-muted-foreground">Üniversite</p><p className="font-medium">{s.university}</p></div>
-                          {s.department && <div><p className="text-[10px] text-muted-foreground">Bölüm</p><p className="font-medium">{s.department}</p></div>}
-                          {s.course_name && <div><p className="text-[10px] text-muted-foreground">Ders</p><p className="font-medium">{s.course_name}</p></div>}
-                          {s.course_code && <div><p className="text-[10px] text-muted-foreground">Kod</p><p className="font-medium">{s.course_code}</p></div>}
-                          {s.class_year && <div><p className="text-[10px] text-muted-foreground">Sınıf</p><p className="font-medium">{s.class_year === "0" || s.class_year === 0 ? "Hazırlık" : `${s.class_year}. Sınıf`}</p></div>}
-                          <div><p className="text-[10px] text-muted-foreground">Öneren</p><p className="font-medium">{getUsername(s.user_id)}</p></div>
+                          <div><p className="text-xs text-muted-foreground">Üniversite</p><p className="font-medium">{s.university}</p></div>
+                          {s.department && <div><p className="text-xs text-muted-foreground">Bölüm</p><p className="font-medium">{s.department}</p></div>}
+                          {s.course_name && <div><p className="text-xs text-muted-foreground">Ders</p><p className="font-medium">{s.course_name}</p></div>}
+                          {s.course_code && <div><p className="text-xs text-muted-foreground">Kod</p><p className="font-medium">{s.course_code}</p></div>}
+                          {s.class_year && <div><p className="text-xs text-muted-foreground">Sınıf</p><p className="font-medium">{s.class_year === "0" || s.class_year === 0 ? "Hazırlık" : `${s.class_year}. Sınıf`}</p></div>}
+                          <div><p className="text-xs text-muted-foreground">Öneren</p><p className="font-medium">{getUsername(s.user_id)}</p></div>
                         </div>
-                        {s.ai_reason && <p className="text-xs text-muted-foreground bg-secondary/50 p-2 rounded">AI: {s.ai_reason} (güven: {Math.round((s.ai_confidence || 0) * 100)}%)</p>}
+                        {s.ai_reason && <p className="text-xs text-muted-foreground bg-secondary/50 p-2 rounded">Otomatik moderasyon: {s.ai_reason} (güven: {Math.round((s.ai_confidence || 0) * 100)}%)</p>}
                         {s.explanation && <p className="text-xs text-muted-foreground">Açıklama: {s.explanation}</p>}
                         {s.admin_note && <p className="text-xs text-muted-foreground bg-primary/5 p-2 rounded">Admin notu: {s.admin_note}</p>}
                         {s.status === "pending" && (
@@ -1502,7 +1502,7 @@ export default function AdminPage() {
 
                     <div className="pt-2 border-t">
                       <div className="flex items-center gap-2 py-2">
-                        <h3 className="text-sm font-bold">Bölüm/Program Request Talepleri</h3>
+                    <h3 className="text-sm font-bold">Bölüm/Program Talepleri</h3>
                         <span className="text-xs text-muted-foreground">{filteredAcademicProgramRequests.length} talep</span>
                       </div>
 
@@ -1514,38 +1514,38 @@ export default function AdminPage() {
                         <Surface key={r.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px]">Program Talebi</Badge>
+                              <Badge variant="outline" className="text-xs">Program Talebi</Badge>
                               <StatusBadge status={r.status} />
                             </div>
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Üniversite</p>
+                              <p className="text-xs text-muted-foreground">Üniversite</p>
                               <p className="font-medium">{r.university_name}</p>
-                              <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(r.university_name)}</p>
+                              <p className="text-xs text-muted-foreground">{getUniversityMetaLabel(r.university_name)}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Program</p>
+                              <p className="text-xs text-muted-foreground">Program</p>
                               <p className="font-medium">{r.requested_program_name}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Seviye</p>
+                              <p className="text-xs text-muted-foreground">Seviye</p>
                               <p className="font-medium">{r.requested_program_level === "onlisans" ? "Önlisans" : "Lisans"}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Fakülte/Yüksekokul</p>
+                              <p className="text-xs text-muted-foreground">Fakülte/Yüksekokul</p>
                               <p className="font-medium">{r.requested_unit_name || "-"}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Kaynak</p>
-                              <p className="font-medium">{r.request_context === "signup" ? "Signup" : "İçerik Ekle"}</p>
+                              <p className="text-xs text-muted-foreground">Kaynak</p>
+                              <p className="font-medium">{r.request_context === "signup" ? "Kayıt" : "İçerik Ekle"}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Talep Eden</p>
+                              <p className="text-xs text-muted-foreground">Talep Eden</p>
                               <p className="font-medium">{r.requester_user_id ? getUsername(r.requester_user_id) : (r.requester_email || "Anonim")}</p>
                             </div>
                           </div>
@@ -1583,7 +1583,7 @@ export default function AdminPage() {
                       </div>
 
                       {filteredDomainRequests.length === 0 && (
-                        <StateBlock variant="empty" size="inline" title="Domain talebi bulunamadi." description="" />
+                        <StateBlock variant="empty" size="inline" title="Domain talebi bulunamad?." description="" />
                       )}
 
                       {filteredDomainRequests.map((r: any) => {
@@ -1592,29 +1592,29 @@ export default function AdminPage() {
                           <Surface key={r.id} variant="soft" border="subtle" padding="md" radius="lg" className="space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[10px]">Domain Talebi</Badge>
+                                <Badge variant="outline" className="text-xs">Domain Talebi</Badge>
                                 <StatusBadge status={r.status} />
                               </div>
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                               <div>
-                                <p className="text-[10px] text-muted-foreground">Talep E-posta</p>
+                                <p className="text-xs text-muted-foreground">Talep E-posta</p>
                                 <p className="font-medium">{r.request_email}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-muted-foreground">Domain</p>
+                                <p className="text-xs text-muted-foreground">Domain</p>
                                 <p className="font-medium">{r.request_email_domain}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-muted-foreground">Bildirilen Universite</p>
+                                <p className="text-xs text-muted-foreground">Bildirilen ?niversite</p>
                                 <p className="font-medium">{r.claimed_university_name}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-muted-foreground">Oneren</p>
+                                <p className="text-xs text-muted-foreground">Oneren</p>
                                 <p className="font-medium">{r.requester_user_id ? getUsername(r.requester_user_id) : "Anonim"}</p>
                               </div>
                             </div>
@@ -1624,7 +1624,7 @@ export default function AdminPage() {
                             {r.status === "pending" ? (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Universite Adi</Label>
+                                  <Label className="text-xs text-muted-foreground">?niversite Ad?</Label>
                                   <Input
                                     value={draft.university_name}
                                     onChange={(e) => updateDomainDraft(r, { university_name: e.target.value })}
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Domain</Label>
+                                  <Label className="text-xs text-muted-foreground">Domain</Label>
                                   <Input
                                     value={draft.domain}
                                     onChange={(e) => updateDomainDraft(r, { domain: e.target.value.toLowerCase() })}
@@ -1640,7 +1640,7 @@ export default function AdminPage() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Ulke</Label>
+                                  <Label className="text-xs text-muted-foreground">Ulke</Label>
                                   <Select value={draft.country} onValueChange={(v) => updateDomainDraft(r, { country: v as "TR" | "KKTC" })}>
                                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                     <SelectContent>
@@ -1650,7 +1650,7 @@ export default function AdminPage() {
                                   </Select>
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Universite Tipi (opsiyonel)</Label>
+                                  <Label className="text-xs text-muted-foreground">?niversite Tipi (opsiyonel)</Label>
                                   <Input
                                     value={draft.type}
                                     onChange={(e) => updateDomainDraft(r, { type: e.target.value })}
@@ -1659,7 +1659,7 @@ export default function AdminPage() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Sehir (opsiyonel)</Label>
+                                  <Label className="text-xs text-muted-foreground">Sehir (opsiyonel)</Label>
                                   <Input
                                     value={draft.city}
                                     onChange={(e) => updateDomainDraft(r, { city: e.target.value })}
@@ -1667,7 +1667,7 @@ export default function AdminPage() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] text-muted-foreground">Genel Bolum Eklenmesi</Label>
+                                  <Label className="text-xs text-muted-foreground">Genel B?l?m Eklenmesi</Label>
                                   <Select
                                     value={draft.seed_general_department ? "yes" : "no"}
                                     onValueChange={(v) => updateDomainDraft(r, { seed_general_department: v === "yes" })}
@@ -1680,7 +1680,7 @@ export default function AdminPage() {
                                   </Select>
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
-                                  <Label className="text-[10px] text-muted-foreground">Admin Notu</Label>
+                                  <Label className="text-xs text-muted-foreground">Admin Notu</Label>
                                   <Textarea
                                     value={draft.admin_note}
                                     onChange={(e) => updateDomainDraft(r, { admin_note: e.target.value })}
@@ -1739,7 +1739,7 @@ export default function AdminPage() {
                                       <TableCell className="text-xs font-medium max-w-[200px] truncate">{t.subject}</TableCell>
                                       <TableCell className="text-xs text-muted-foreground">{getUsername(t.user_id)}</TableCell>
                                       <TableCell><StatusBadge status={t.status} /></TableCell>
-                                      <TableCell className="text-[10px] text-muted-foreground hidden sm:table-cell">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: tr })}</TableCell>
+                                      <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: tr })}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
@@ -1789,16 +1789,16 @@ export default function AdminPage() {
                               <TableRow key={c.id}>
                                 <TableCell className="py-2">
                                   <span className="text-sm font-medium">{c.name}</span>
-                                  {c.code && <Badge variant="outline" className="ml-1.5 text-[10px]">{c.code}</Badge>}
+                                  {c.code && <Badge variant="outline" className="ml-1.5 text-xs">{c.code}</Badge>}
                                 </TableCell>
                                 <TableCell className="hidden sm:table-cell">
                                   <div className="leading-tight">
                                     <p className="text-xs text-foreground">{c.university}</p>
-                                    <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(c.university)}</p>
+                                    <p className="text-xs text-muted-foreground">{getUniversityMetaLabel(c.university)}</p>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">{c.department}</TableCell>
-                                <TableCell><Badge variant="secondary" className="text-[10px]">{c.year === 0 ? "Hazırlık" : `${c.year}. Sınıf`}</Badge></TableCell>
+                                <TableCell><Badge variant="secondary" className="text-xs">{c.year === 0 ? "Hazırlık" : `${c.year}. Sınıf`}</Badge></TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">
                                     <CourseFormDialog course={c} universities={allUniversities} courses={courses} departmentsCatalog={departments} onSaved={() => fetchAll(true)} />
@@ -1858,13 +1858,13 @@ export default function AdminPage() {
                                   <span className="text-sm font-medium line-clamp-1 max-w-[200px]">{p.title}</span>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant="outline" className="text-[10px]">
+                                  <Badge variant="outline" className="text-xs">
                                     {({ notes: "Not", past_exams: "Çıkmış", discussion: "Tartışma", kaynaklar: "Kaynak" } as any)[p.content_type] || p.content_type}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{p.is_anonymous ? "Anonim" : getUsername(p.user_id)}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell truncate max-w-[120px]">{getCourseName(p.course_id)}</TableCell>
-                                <TableCell className="text-[11px] text-muted-foreground hidden lg:table-cell">
+                                <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
                                   {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: tr })}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -1912,7 +1912,7 @@ export default function AdminPage() {
                                 <TableCell className="py-2"><p className="text-sm line-clamp-2 max-w-[250px]">{c.content}</p></TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{c.is_anonymous ? "Anonim" : getUsername(c.user_id)}</TableCell>
                                 <TableCell className="text-xs hidden md:table-cell">{c.like_count ?? 0}</TableCell>
-                                <TableCell className="text-[11px] text-muted-foreground hidden lg:table-cell">
+                                <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
                                   {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: tr })}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -1966,11 +1966,11 @@ export default function AdminPage() {
                           <TableBody>
                             {paginate(filteredReports, reportPage).map((r: any) => (
                               <TableRow key={r.id}>
-                                <TableCell><Badge variant="outline" className="text-[10px]">{r.target_type}</Badge></TableCell>
+                                <TableCell><Badge variant="outline" className="text-xs">{r.target_type}</Badge></TableCell>
                                 <TableCell className="text-xs max-w-[200px] truncate">{r.reason}</TableCell>
                                 <TableCell><StatusBadge status={r.status} /></TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{getUsername(r.reporter_id)}</TableCell>
-                                <TableCell className="text-[11px] text-muted-foreground hidden md:table-cell">
+                                <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
                                   {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -1987,7 +1987,7 @@ export default function AdminPage() {
                                       onRemoveAvatar={(note) => handleRemoveAvatar(r, note)}
                                     />
                                   ) : (
-                                    r.admin_note && <span className="text-[10px] text-muted-foreground max-w-[100px] truncate block">{r.admin_note}</span>
+                                    r.admin_note && <span className="text-xs text-muted-foreground max-w-[100px] truncate block">{r.admin_note}</span>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -2035,16 +2035,16 @@ export default function AdminPage() {
                               const meta = log.metadata || {};
                               return (
                                 <TableRow key={log.id}>
-                                  <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                     {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: tr })}
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant={["login_failure", "suspicious_activity", "brute_force"].includes(log.event_type) ? "destructive" : log.event_type === "login_success" ? "default" : "outline"} className="text-[10px]">
+                                    <Badge variant={["login_failure", "suspicious_activity", "brute_force"].includes(log.event_type) ? "destructive" : log.event_type === "login_success" ? "default" : "outline"} className="text-xs">
                                       {log.event_type}
                                     </Badge>
                                   </TableCell>
                                   <TableCell className="text-xs">{getUsername(log.user_id) || meta.email || "—"}</TableCell>
-                                  <TableCell className="text-[10px] text-muted-foreground max-w-[200px] truncate">
+                                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                                     {meta.device ? `${meta.device.browser}/${meta.device.os}` : ""}
                                     {meta.reason ? ` — ${meta.reason}` : ""}
                                     {meta.method ? ` (${meta.method})` : ""}
@@ -2090,7 +2090,7 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-7 text-[10px] px-2">İşlem Yap</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2">İşlem Yap</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader><DialogTitle className="text-sm font-bold">Rapor İşlemi</DialogTitle></DialogHeader>
@@ -2100,7 +2100,7 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Neden bu işlemi yaptığınızı yazın..." rows={2} maxLength={500} className="text-sm" />
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Rapor İşlemleri</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase">Rapor İşlemleri</p>
             <div className="flex flex-col gap-1.5">
               <Button size="sm" className="w-full gap-1.5 text-xs" onClick={() => act(onResolve)}><CheckCircle className="h-3.5 w-3.5" /> Çözüldü</Button>
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={() => act(onDismiss)}><XCircle className="h-3.5 w-3.5" /> Reddet</Button>
@@ -2108,7 +2108,7 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
             </div>
           </div>
           <div className="space-y-1 border-t pt-2">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">İçerik İşlemleri</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase">İçerik İşlemleri</p>
             <div className="flex flex-col gap-1.5">
               <Button size="sm" variant="destructive" className="w-full gap-1.5 text-xs" onClick={() => act(onDeleteContent)}><Trash2 className="h-3.5 w-3.5" /> İçeriği Sil</Button>
               {(report.target_type === "user" || report.target_type === "avatar") && (
@@ -2117,7 +2117,7 @@ function ReportActionDialog({ report, onResolve, onDismiss, onDeleteContent, onM
             </div>
           </div>
           <div className="space-y-1 border-t pt-2">
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase">Kullanıcı İşlemleri</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase">Kullanıcı İşlemleri</p>
             <div className="flex flex-col gap-1.5">
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={() => act(onWarnUser)}><CircleAlert className="h-3.5 w-3.5" /> Uyar</Button>
               <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs text-amber-600 border-amber-300" onClick={() => act(onMuteUser)}><VolumeX className="h-3.5 w-3.5" /> Sustur (6 saat)</Button>
@@ -2168,14 +2168,14 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
             tone="muted"
             className="pb-1"
             items={[
-              ...(u.university ? [{ kind: "university" as const, label: "Universite", value: u.university }] : []),
-              ...(u.department ? [{ kind: "department" as const, label: "Bolum", value: u.department }] : []),
+              ...(u.university ? [{ kind: "university" as const, label: "?niversite", value: u.university }] : []),
+              ...(u.department ? [{ kind: "department" as const, label: "B?l?m", value: u.department }] : []),
               ...(u.class_year != null
                 ? [
                     {
                       kind: "semester" as const,
-                      label: "Sinif",
-                      value: u.class_year === 0 ? "Hazirlik" : `${u.class_year}. Sinif`,
+                      label: "S?n?f",
+                      value: u.class_year === 0 ? "Haz?rl?k" : `${u.class_year}. S?n?f`,
                     },
                   ]
                 : []),
@@ -2183,23 +2183,23 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
           />
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase">Üniversite</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase">Üniversite</p>
               <p className="font-medium">{u.university || "—"}</p>
-              {u.university && <p className="text-[10px] text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>}
+              {u.university && <p className="text-xs text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>}
             </div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Bölüm</p><p className="font-medium">{u.department || "—"}</p></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Sınıf</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "Hazırlık" : `${u.class_year}. Sınıf`) : "—"}</p></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Rol</p><Badge variant={role === "admin" ? "destructive" : "outline"} className="text-[10px]">{role}</Badge></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Mod Skoru</p><p className="font-medium">{u.moderation_score || 0}</p></div>
-            <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Durum</p><UserStatusBadges user={u} /></div>
+            <div><p className="text-xs text-muted-foreground font-semibold uppercase">Bölüm</p><p className="font-medium">{u.department || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground font-semibold uppercase">Sınıf</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "Hazırlık" : `${u.class_year}. Sınıf`) : "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground font-semibold uppercase">Rol</p><Badge variant={role === "admin" ? "destructive" : "outline"} className="text-xs">{role}</Badge></div>
+            <div><p className="text-xs text-muted-foreground font-semibold uppercase">Mod Skoru</p><p className="font-medium">{u.moderation_score || 0}</p></div>
+            <div><p className="text-xs text-muted-foreground font-semibold uppercase">Durum</p><UserStatusBadges user={u} /></div>
           </div>
-          {u.bio && <div><p className="text-[10px] text-muted-foreground font-semibold uppercase">Hakkında</p><p className="text-sm text-muted-foreground">{u.bio}</p></div>}
+          {u.bio && <div><p className="text-xs text-muted-foreground font-semibold uppercase">Hakkında</p><p className="text-sm text-muted-foreground">{u.bio}</p></div>}
           <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-            <div className="text-center"><p className="text-lg font-extrabold">{u.reputation_points ?? 0}</p><p className="text-[10px] text-muted-foreground"><Star className="h-2.5 w-2.5 inline mr-0.5" />Puan</p></div>
-            <div className="text-center"><p className="text-lg font-extrabold">{postCount}</p><p className="text-[10px] text-muted-foreground"><FileText className="h-2.5 w-2.5 inline mr-0.5" />Gönderi</p></div>
-            <div className="text-center"><p className="text-lg font-extrabold">{commentCount}</p><p className="text-[10px] text-muted-foreground"><MessageSquare className="h-2.5 w-2.5 inline mr-0.5" />Yorum</p></div>
+            <div className="text-center"><p className="text-lg font-extrabold">{u.reputation_points ?? 0}</p><p className="text-xs text-muted-foreground"><Star className="h-2.5 w-2.5 inline mr-0.5" />Puan</p></div>
+            <div className="text-center"><p className="text-lg font-extrabold">{postCount}</p><p className="text-xs text-muted-foreground"><FileText className="h-2.5 w-2.5 inline mr-0.5" />Gönderi</p></div>
+            <div className="text-center"><p className="text-lg font-extrabold">{commentCount}</p><p className="text-xs text-muted-foreground"><MessageSquare className="h-2.5 w-2.5 inline mr-0.5" />Yorum</p></div>
           </div>
-          <div className="text-[11px] text-muted-foreground">Kayıt: {formatDistanceToNow(new Date(u.created_at), { addSuffix: true, locale: tr })}</div>
+          <div className="text-xs text-muted-foreground">Kayıt: {formatDistanceToNow(new Date(u.created_at), { addSuffix: true, locale: tr })}</div>
           <Button variant="outline" size="sm" className="w-full text-xs" asChild><Link to={`/user/${u.user_id}`}>Profili Görüntüle</Link></Button>
           {role !== "admin" && (
             <div className="border-t pt-3">
@@ -2344,9 +2344,9 @@ function SupportTicketCard({ ticket, getUsername, onReply, onClose }: { ticket: 
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold">{ticket.subject}</p>
-          <p className="text-[10px] text-muted-foreground">{getUsername(ticket.user_id)} · {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: tr })}</p>
+          <p className="text-xs text-muted-foreground">{getUsername(ticket.user_id)} · {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: tr })}</p>
         </div>
-        <Badge variant="destructive" className="text-[10px]">Açık</Badge>
+        <Badge variant="destructive" className="text-xs">Açık</Badge>
       </div>
       <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">{ticket.message}</p>
       <div className="space-y-2">

@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
           </div>
           <div>
             <h1 className="font-heading text-lg font-extrabold tracking-tight">Sıralama</h1>
-            <p className="text-[11px] text-muted-foreground">En çok katkı sağlayan öğrenciler</p>
+            <p className="text-xs text-muted-foreground">En çok katkı sağlayan öğrenciler</p>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export default function LeaderboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold">Sıralamanız: <span className="text-primary">#{myRank}</span></p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {users.find(u => u.user_id === user?.id)?.reputation_points ?? 0} puan ile {users.length} kullanıcı arasında
                   </p>
                 </div>
@@ -198,7 +198,7 @@ export default function LeaderboardPage() {
                   ))}
                 </SelectContent>
             </Select>
-            <Badge variant="secondary" className="text-[10px] shrink-0 self-center">{filtered.length} sonuç</Badge>
+            <Badge variant="secondary" className="text-xs shrink-0 self-center">{filtered.length} sonuç</Badge>
           </div>
         </Surface>
 
@@ -288,7 +288,7 @@ export default function LeaderboardPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <span className="font-heading font-extrabold text-lg text-primary">{u.reputation_points ?? 0}</span>
-                    <p className="text-[10px] text-muted-foreground font-medium">puan</p>
+                    <p className="text-xs text-muted-foreground font-medium">puan</p>
                   </div>
                 </Link>
               </motion.div>

@@ -39,8 +39,8 @@ function RouteLoadingFallback() {
         <StateBlock
           variant="loading"
           size="page"
-          title="Sayfa hazirlaniyor"
-          description="Icerik yukleniyor, lutfen bekleyin."
+          title="Sayfa hazırlanıyor"
+          description="İçerik yükleniyor, lütfen bekleyin."
         />
       </div>
     </div>

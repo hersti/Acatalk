@@ -423,7 +423,7 @@ export default function SettingsPage() {
               <div className="min-w-0 flex-1">
                 <h1 className="font-heading text-xl font-extrabold">Ayarlar</h1>
                 <p className="text-sm text-muted-foreground">
-                  Hesap, akademik kimlik, gizlilik ve bildirim tercihlerinizi yonetin.
+                  Hesap, akademik kimlik, gizlilik ve bildirim tercihlerinizi yönetin.
                 </p>
                 <AcademicMeta
                   className="mt-2"
@@ -431,13 +431,13 @@ export default function SettingsPage() {
                   tone="muted"
                   items={[
                     ...(profile.university
-                      ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }]
+                      ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }]
                       : []),
                     ...(profile.department
-                      ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }]
+                      ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }]
                       : []),
                     ...(profile.class_year !== null
-                      ? [{ kind: "custom" as const, label: "Sinif", value: profile.class_year === 0 ? "Hazirlik" : `${profile.class_year}. Sinif`, emphasis: "subtle" as const }]
+                      ? [{ kind: "custom" as const, label: "Sınıf", value: profile.class_year === 0 ? "Hazırlık" : `${profile.class_year}. Sınıf`, emphasis: "subtle" as const }]
                       : []),
                   ]}
                 />
@@ -450,7 +450,7 @@ export default function SettingsPage() {
           {/* Sidebar */}
           <div className="md:col-span-1">
             <Surface variant="outline" border="subtle" radius="xl" padding="sm" className="md:sticky md:top-24">
-              <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Bolumler</p>
+              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Bölümler</p>
               <div className="p-2 space-y-0.5">
                 {sections.map((s) => (
                   <button
@@ -514,7 +514,7 @@ export default function SettingsPage() {
                             <Trash2 className="h-3 w-3 mr-1" /> Kaldır
                           </Button>
                         )}
-                        <p className="text-[10px] text-muted-foreground">JPEG, PNG, WebP veya GIF. Maks 2MB.</p>
+                        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP veya GIF. Maks 2MB.</p>
                       </div>
                     </div>
                     <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
@@ -523,25 +523,25 @@ export default function SettingsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">E-posta</Label>
                     <Input value={user.email || ""} disabled className="h-9 text-sm rounded-lg bg-secondary/50" />
-                    <p className="text-[10px] text-muted-foreground">E-posta değişikliği şu anda desteklenmemektedir.</p>
+                    <p className="text-xs text-muted-foreground">E-posta değişikliği şu anda desteklenmemektedir.</p>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Kullanıcı Adı</Label>
                     <Input
                       value={profile.username}
                       onChange={(e) => setProfile((p) => ({ ...p, username: e.target.value }))}
-                      placeholder="kullaniciadi"
+                      placeholder="kullanici_adi"
                       maxLength={30}
                       disabled={!canChangeUsername()}
                       className="h-9 text-sm rounded-lg"
                     />
                     {!canChangeUsername() && (
-                      <p className="text-[10px] text-warning">
+                      <p className="text-xs text-warning">
                         Kullanıcı adınızı {daysUntilUsernameChange()} gün sonra değiştirebilirsiniz. (30 günde 1 kez)
                       </p>
                     )}
                     {canChangeUsername() && (
-                      <p className="text-[10px] text-muted-foreground">Kullanıcı adı 30 günde bir değiştirilebilir.</p>
+                      <p className="text-xs text-muted-foreground">Kullanıcı adı 30 günde bir değiştirilebilir.</p>
                     )}
                   </div>
                   <div className="space-y-1.5">
@@ -564,7 +564,7 @@ export default function SettingsPage() {
                       maxLength={300}
                       className="text-sm rounded-lg"
                     />
-                    <p className="text-[10px] text-muted-foreground text-right">{profile.bio.length}/300</p>
+                    <p className="text-xs text-muted-foreground text-right">{profile.bio.length}/300</p>
                   </div>
                   <Button onClick={handleSaveProfile} disabled={saving} className="h-9 rounded-lg font-semibold">
                     {saving ? "Kaydediliyor..." : "Kaydet"}
@@ -587,9 +587,9 @@ export default function SettingsPage() {
                       size="sm"
                       tone="muted"
                       items={[
-                        { kind: "verified", label: "Dogrulanmis Ogrenci", emphasis: "default" },
-                        ...(profile.university ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }] : []),
-                        ...(profile.department ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }] : []),
+                        { kind: "verified", label: "Doğrulanmış Öğrenci", emphasis: "default" },
+                        ...(profile.university ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }] : []),
+                        ...(profile.department ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }] : []),
                       ]}
                     />
                     <div className="space-y-1.5">
@@ -602,7 +602,7 @@ export default function SettingsPage() {
                         disabled
                         className="h-9 text-sm rounded-lg bg-secondary/50"
                       />
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Üniversite bilgisi e-posta adresinize bağlıdır ve değiştirilemez.
                       </p>
                     </div>
@@ -616,7 +616,7 @@ export default function SettingsPage() {
                         disabled
                         className="h-9 text-sm rounded-lg bg-secondary/50"
                       />
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Bölüm bilgisi kayıt sırasında belirlenir ve değiştirilemez.
                       </p>
                     </div>
@@ -630,7 +630,7 @@ export default function SettingsPage() {
                         disabled
                         className="h-9 text-sm rounded-lg bg-secondary/50"
                       />
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Sınıf düzeyi kayıt sırasında belirlenir ve değiştirilemez.
                       </p>
                     </div>
@@ -647,8 +647,8 @@ export default function SettingsPage() {
             {activeSection === "security" && (
               <Surface variant="raised" border="subtle" radius="xl" padding="lg" className="space-y-4">
                 <div>
-                  <h2 className="font-heading text-base font-bold">Guvenlik</h2>
-                  <p className="text-xs text-muted-foreground">Iki adimli dogrulama ile hesabinizi koruyun.</p>
+                  <h2 className="font-heading text-base font-bold">Güvenlik</h2>
+                  <p className="text-xs text-muted-foreground">İki adımlı doğrulama ile hesabınızı koruyun.</p>
                 </div>
                 <TwoFactorSetup enabled={mfaEnabled} onStatusChange={checkMfaStatus} />
               </Surface>
@@ -673,7 +673,7 @@ export default function SettingsPage() {
                           <SelectItem value="nobody">Hiç kimse</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         "Herkes" seçili ise tüm kullanıcılar size doğrudan mesaj gönderebilir.
                       </p>
                     </div>
@@ -682,7 +682,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">Bağlantı isteklerini engelle</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Aktif olduğunda hiç kimse size bağlantı isteği gönderemez.
                           </p>
                         </div>
@@ -700,7 +700,7 @@ export default function SettingsPage() {
                           <Ghost className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">Hayalet Mod</p>
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               Aktif olduğunda diğer kullanıcılar sizi çevrimiçi olarak göremez.
                             </p>
                           </div>
@@ -719,7 +719,7 @@ export default function SettingsPage() {
                           <BellOff className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">Rahatsız Etme Modu</p>
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               Aktif olduğunda yeni DM mesajları engellenir ve bildirimler sınırlandırılır.
                             </p>
                           </div>
@@ -750,16 +750,16 @@ export default function SettingsPage() {
                       <StateBlock
                         variant="loading"
                         size="inline"
-                        title="Engellenen kullanicilar yukleniyor"
-                        description="Lutfen bekleyin."
+                        title="Engellenen kullanıcılar yükleniyor"
+                        description="Lütfen bekleyin."
                       />
                     ) : blockedUsers.length === 0 ? (
                       <StateBlock
                         variant="empty"
                         size="inline"
                         icon={<ShieldOff className="h-4 w-4" />}
-                        title="Heniz engellenen kullanici yok"
-                        description="Bir kullaniciyi DM ekranindan engelleyebilirsiniz."
+                        title="Henüz engellenen kullanıcı yok"
+                        description="Bir kullanıcıyı DM ekranından engelleyebilirsiniz."
                       />
                     ) : (
                       <div className="space-y-2">
@@ -780,7 +780,7 @@ export default function SettingsPage() {
                               </Avatar>
                               <div>
                                 <p className="text-sm font-semibold">{blocked.username || "Bilinmeyen"}</p>
-                                <p className="text-[10px] text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                   {[blocked.university, blocked.department].filter(Boolean).join(" · ") || "Bilgi yok"}
                                   {" · "}
                                   {formatDistanceToNow(new Date(blocked.created_at), { addSuffix: true, locale: tr })}
@@ -826,7 +826,7 @@ export default function SettingsPage() {
                     <div key={item.key} className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">{item.label}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
                       </div>
                       <Switch
                         checked={settings[item.key]}
@@ -946,7 +946,7 @@ function UserSupportTickets({ userId }: { userId: string }) {
   if (loading) {
     return (
       <Surface variant="raised" border="subtle" radius="xl" padding="lg">
-        <StateBlock variant="loading" size="inline" title="Destek talepleri yukleniyor" description="Lutfen bekleyin." />
+        <StateBlock variant="loading" size="inline" title="Destek talepleri yükleniyor" description="Lütfen bekleyin." />
       </Surface>
     );
   }
@@ -963,23 +963,23 @@ function UserSupportTickets({ userId }: { userId: string }) {
           <Surface key={t.id} variant="soft" border="subtle" radius="lg" padding="sm" className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">{t.subject}</p>
-              <Badge variant={t.status === "open" ? "destructive" : t.status === "replied" ? "default" : "secondary"} className="text-[10px]">
+              <Badge variant={t.status === "open" ? "destructive" : t.status === "replied" ? "default" : "secondary"} className="text-xs">
                 {t.status === "open" ? "Açık" : t.status === "replied" ? "Yanıtlandı" : "Kapatıldı"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">{t.message}</p>
             {t.admin_reply && (
               <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10">
-                <p className="text-[10px] font-semibold text-primary mb-1">Admin Yanıtı:</p>
+                <p className="text-xs font-semibold text-primary mb-1">Admin Yanıtı:</p>
                 <p className="text-xs">{t.admin_reply}</p>
                 {t.replied_at && (
-                  <p className="text-[10px] text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {formatDistanceToNow(new Date(t.replied_at), { addSuffix: true, locale: tr })}
                   </p>
                 )}
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: tr })}
             </p>
           </Surface>

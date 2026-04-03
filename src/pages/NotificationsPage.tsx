@@ -155,7 +155,7 @@ export default function NotificationsPage() {
           </div>
           <div className="flex-1">
             <h1 className="text-lg font-extrabold tracking-tight">Bildirimler</h1>
-            <p className="text-[11px] text-muted-foreground">Tüm bildirimlerinizi yönetin</p>
+            <p className="text-xs text-muted-foreground">Tüm bildirimlerinizi yönetin</p>
           </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
@@ -212,7 +212,7 @@ export default function NotificationsPage() {
                 <SelectItem value="read">Okunmuş</SelectItem>
               </SelectContent>
             </Select>
-            <Badge variant="secondary" className="ml-auto text-[10px]">{filtered.length} sonuç</Badge>
+            <Badge variant="secondary" className="ml-auto text-xs">{filtered.length} sonuç</Badge>
           </div>
         </Surface>
 
@@ -252,7 +252,7 @@ export default function NotificationsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${TYPE_COLORS[n.type] || "bg-muted text-muted-foreground"}`}>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${TYPE_COLORS[n.type] || "bg-muted text-muted-foreground"}`}>
                           {TYPE_LABELS[n.type] || n.type}
                         </span>
                         {!n.is_read && (
@@ -261,7 +261,7 @@ export default function NotificationsPage() {
                       </div>
                       <p className="text-sm font-semibold pr-6">{n.title}</p>
                       {n.message && <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>}
-                      <p className="text-[10px] text-muted-foreground mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1.5">
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: tr })}
                       </p>
                     </div>

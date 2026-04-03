@@ -304,7 +304,7 @@ export default function MessagesPage() {
           </div>
           <div>
             <h1 className="font-heading text-xl font-extrabold">Mesajlar</h1>
-            <p className="text-[11px] text-muted-foreground">Bağlantılarınızla mesajlaşın</p>
+            <p className="text-xs text-muted-foreground">Bağlantılarınızla mesajlaşın</p>
           </div>
           <div className="ml-auto">
             <UserSearchDialog onUserSelected={handleUserSelected} />
@@ -341,7 +341,7 @@ export default function MessagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{c.other_username}</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: true, locale: tr })}
                     </p>
                   </div>
@@ -351,8 +351,8 @@ export default function MessagesPage() {
                   variant="empty"
                   size="inline"
                   icon={<Link2Off className="h-4 w-4" />}
-                  title="Heniz sohbet yok"
-                  description="Baglanti kurdugunuz kullanicilarla burada sohbet baslatabilirsiniz."
+                  title="Henüz sohbet yok"
+                  description="Bağlantı kurduğunuz kullanıcılarla burada sohbet başlatabilirsiniz."
                   className="m-3"
                 />
               )}
@@ -384,7 +384,7 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{activeConvData.other_username}</p>
                     {typingUsers.length > 0 ? (
-                      <p className="text-[11px] text-primary animate-pulse flex items-center gap-1">
+                      <p className="text-xs text-primary animate-pulse flex items-center gap-1">
                         <span className="flex gap-0.5">
                           <span className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                           <span className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -426,7 +426,7 @@ export default function MessagesPage() {
                           : "bg-secondary rounded-bl-md"
                       }`}>
                         <p className="text-sm leading-relaxed">{renderMentions(m.content)}</p>
-                        <p className={`text-[10px] mt-1 ${m.sender_id === user.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        <p className={`text-xs mt-1 ${m.sender_id === user.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: tr })}
                         </p>
                       </div>
@@ -482,7 +482,7 @@ function OnlineDot({ userId }: { userId: string }) {
 function OnlineStatusText({ userId }: { userId: string }) {
   const online = useIsUserOnline(userId);
   return (
-    <p className={`text-[11px] ${online ? "text-emerald-500" : "text-muted-foreground"}`}>
+    <p className={`text-xs ${online ? "text-emerald-500" : "text-muted-foreground"}`}>
       {online ? "Çevrimiçi" : "Çevrimdışı"}
     </p>
   );

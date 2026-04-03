@@ -11,7 +11,9 @@
           "preview": "vite preview",
           "test": "vitest run",
           "test:watch": "vitest",
-          "check:encoding": "node scripts/check-encoding.mjs",
+          "check:encoding": "node scripts/check-encoding.mjs --encoding-only",
+          "check:copy": "node scripts/check-encoding.mjs --copy-only",
+          "check:quality": "npm run check:encoding && npm run check:copy",
           "check:catalog-integrity": "node scripts/check-catalog-integrity.mjs",
           "import:academic-catalog": "node scripts/import-academic-catalog.mjs"
     },

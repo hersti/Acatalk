@@ -409,7 +409,7 @@ export default function Index() {
             <Surface variant="soft" border="subtle" padding="lg" radius="xl">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="max-w-2xl">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                     Home Feed
                   </p>
                   <h1 className="mt-1 font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
@@ -447,7 +447,7 @@ export default function Index() {
                         setHomeCreateOpen(true);
                       }}
                     />
-                    <p className="text-[11px] text-muted-foreground text-center leading-tight">
+                    <p className="text-xs text-muted-foreground text-center leading-tight">
                       Not, sınav, kaynak veya tartışma paylaş
                     </p>
                   </div>
@@ -490,7 +490,7 @@ export default function Index() {
                   </div>
                   <span className="text-sm font-semibold text-foreground">Üniversite & Filtreler</span>
                   {isViewingOtherUniversity && (
-                    <Badge variant="secondary" className="text-[10px] gap-1">
+                    <Badge variant="secondary" className="text-xs gap-1">
                       <Building2 className="h-3 w-3" />
                       Görüntüleme
                     </Badge>
@@ -591,7 +591,7 @@ export default function Index() {
                           <Link key={c.id} to={`/course/${c.id}`}>
                             <Surface variant="base" border="subtle" padding="md" radius="lg" className="hover:border-primary/20 hover-lift cursor-pointer">
                               <p className="text-sm font-semibold">{c.name}</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                              <p className="text-xs text-muted-foreground mt-0.5">
                                 {[normalizeCourseCode(c.code), c.department, c.university].filter(Boolean).join(" · ")}
                               </p>
                             </Surface>
@@ -613,7 +613,7 @@ export default function Index() {
                               </Avatar>
                               <div>
                                 <p className="text-sm font-semibold">{u.username || "Anonim"}</p>
-                                <p className="text-[11px] text-muted-foreground">{u.university || ""} · {u.reputation_points ?? 0} puan</p>
+                                <p className="text-xs text-muted-foreground">{u.university || ""} · {u.reputation_points ?? 0} puan</p>
                               </div>
                             </Surface>
                           </Link>
@@ -650,7 +650,7 @@ export default function Index() {
                     </div>
                     <h2 className="font-heading text-base font-bold">Dersler</h2>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] font-semibold">
+                  <Badge variant="secondary" className="text-xs font-semibold">
                     {filteredCourses.filter((c: any) => selectedCourse === "Tümü" || c.name === selectedCourse).length} ders
                   </Badge>
                 </div>
@@ -719,11 +719,11 @@ export default function Index() {
                 <div className="p-4 space-y-3">
                   {topContributors.length > 0 ? topContributors.map((p: any, i) => (
                     <Link key={p.id} to={`/user/${p.user_id}`} className="flex items-center gap-3 group">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                         i === 0 ? "bg-primary text-primary-foreground" : i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                       }`}>{i + 1}</span>
                       <Avatar className="h-7 w-7">
-                        <AvatarFallback className="text-[10px] font-bold bg-muted text-muted-foreground">{(p.username || "?")[0].toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="text-xs font-bold bg-muted text-muted-foreground">{(p.username || "?")[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.username || "Anonim"}</p>
@@ -1053,11 +1053,11 @@ function DiscoveryPostItem({ post, showDownloads, showVotes, showComments }: {
 
   return (
     <Link to={`/post/${post.id}`} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold shrink-0 ${typeBadgeClass[post.content_type]}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold shrink-0 ${typeBadgeClass[post.content_type]}`}>
         {typeLabels[post.content_type]}
       </span>
       <p className="text-sm font-medium truncate flex-1">{post.title}</p>
-      <div className="flex items-center gap-2 shrink-0 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
         {(showVotes || (!showDownloads && !showComments)) && voteCount > 0 && (
           <span className="flex items-center gap-0.5"><ThumbsUp className="h-2.5 w-2.5" /> {voteCount}</span>
         )}

@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
       await logSecurityEvent("password_reset_request", { email });
       setSent(true);
       setResendCooldown(60);
-      toast.success("Sifre sifirlama baglantisi gonderildi.");
+      toast.success("Şifre sıfırlama bağlantısı gönderildi.");
     } catch (err: any) {
       toast.error(err.message || "Bir hata olustu.");
     } finally {
@@ -57,18 +57,18 @@ export default function ForgotPasswordPage() {
             <Card className="border-0" style={{ boxShadow: "var(--shadow-elevated)" }}>
               <CardHeader className="pb-2 text-center">
                 <div className="mb-2 inline-flex items-center justify-center rounded-full border border-border px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Guvenli Hesap Kurtarma
+                  Güvenli Hesap Kurtarma
                 </div>
                 <div className="mb-3 flex justify-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-hero">
                     <GraduationCap className="h-6 w-6 text-primary-foreground" />
                   </div>
                 </div>
-                <CardTitle className="font-heading text-xl font-extrabold">Sifremi Unuttum</CardTitle>
+                <CardTitle className="font-heading text-xl font-extrabold">Şifremi Unuttum</CardTitle>
                 <CardDescription className="text-xs">
                   {sent
-                    ? "E-postaniza bir sifirlama baglantisi gonderdik."
-                    : "E-posta adresinizi girin, sifre sifirlama baglantisi gonderelim."}
+                    ? "E-posta adresinize bir sıfırlama bağlantısı gönderdik."
+                    : "E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim."}
                 </CardDescription>
               </CardHeader>
 
@@ -88,30 +88,30 @@ export default function ForgotPasswordPage() {
                       />
                     </div>
                     <Button type="submit" className="h-10 w-full rounded-lg font-semibold" disabled={loading}>
-                      {loading ? "Gonderiliyor..." : "Sifirlama Baglantisi Gonder"}
+                      {loading ? "Gönderiliyor..." : "Sıfırlama Bağlantısı Gönder"}
                     </Button>
                   </form>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-center text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">{email}</span> adresine sifirlama baglantisi gonderildi.
+                      <span className="font-semibold text-foreground">{email}</span> adresine sıfırlama bağlantısı gönderildi.
                     </p>
 
                     {isEduEmail && (
                       <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                         <div className="text-[11px] text-warning-foreground">
-                          <p className="font-semibold">Universite e-postasi kullaniyorsaniz:</p>
+                          <p className="font-semibold">Üniversite e-postası kullanıyorsanız:</p>
                           <ul className="mt-1 space-y-0.5">
-                            <li>- Spam/Gereksiz klasorunuzu kontrol edin</li>
-                            <li>- E-posta gelmesi birkac dakika surebilir</li>
+                            <li>- Spam/Gereksiz klasörünüzü kontrol edin</li>
+                            <li>- E-postanın gelmesi birkaç dakika sürebilir</li>
                           </ul>
                         </div>
                       </div>
                     )}
 
                     <p className="text-center text-xs text-muted-foreground">
-                      E-posta gelmezse spam klasorunuze bakin veya tekrar gonderin.
+                      E-posta gelmezse spam klasörünüze bakın veya tekrar gönderin.
                     </p>
 
                     <Button
@@ -121,15 +121,15 @@ export default function ForgotPasswordPage() {
                       disabled={loading || resendCooldown > 0}
                     >
                       {resendCooldown > 0
-                        ? `Tekrar gonder (${resendCooldown}s)`
-                        : "Sifirlama E-postasini Tekrar Gonder"}
+                        ? `Tekrar gönder (${resendCooldown}s)`
+                        : "Sıfırlama E-postasını Tekrar Gönder"}
                     </Button>
                   </div>
                 )}
 
                 <div className="mt-4 text-center">
                   <Link to="/auth" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                    <ArrowLeft className="h-3 w-3" /> Giris sayfasina don
+                    <ArrowLeft className="h-3 w-3" /> Giriş sayfasına dön
                   </Link>
                 </div>
               </CardContent>
@@ -140,4 +140,3 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
-

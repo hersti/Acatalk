@@ -25,33 +25,33 @@ export default function GuestLandingPage() {
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
           <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <Surface variant="raised" border="subtle" padding="lg" radius="xl">
-              <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+              <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs font-semibold text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                Modern Akademik Sosyal Platform
+                Türkiye'deki Üniversiteliler için Akademik Ağ
               </p>
               <h1 className="font-heading text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                Universite hayatinda guvenilir akademik akis
+                Üniversite yaşamında güvenilir akademik akış
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                AcaTalk ile universite, bolum ve ders baglaminda not, cikmis soru, kaynak ve tartisma iceriklerini tek yerde takip et.
+                AcaTalk ile üniversite, bölüm ve ders bağlamında not, çıkmış soru, kaynak ve tartışma içeriklerini tek bir akışta takip edin.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <Button asChild size="lg" className="h-11 rounded-lg px-6">
                   <Link to="/auth" className="inline-flex items-center gap-2">
-                    Hesabina Gir
+                    Giriş Yap
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-11 rounded-lg px-6">
-                  <Link to="/auth">Yeni Hesap Olustur</Link>
+                  <Link to="/auth">Hesap Oluştur</Link>
                 </Button>
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <LandingMicroStat icon={CheckCircle2} text="Dogrulanmis ogrenci hissi" />
-                <LandingMicroStat icon={BookOpen} text="Ders odakli icerik aileleri" />
-                <LandingMicroStat icon={Lock} text="Guvenli ve olgun urun dili" />
+                <LandingMicroStat icon={CheckCircle2} text="Doğrulanmış öğrenci topluluğu" />
+                <LandingMicroStat icon={BookOpen} text="Ders odaklı içerik akışı" />
+                <LandingMicroStat icon={Lock} text="Güvenilir paylaşım kültürü" />
               </div>
             </Surface>
 
@@ -59,29 +59,29 @@ export default function GuestLandingPage() {
           </section>
 
           <section id="features" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <LandingStat icon={BookOpen} value="Ders Odakli" label="Yapilandirilmis icerik" />
-            <LandingStat icon={Users} value="Topluluk" label="Ogrenci etkilesimi" />
-            <LandingStat icon={GraduationCap} value="Akademik" label="Profesyonel urun deneyimi" />
-            <LandingStat icon={CheckCircle2} value="Guvenilir" label="Dogrulanmis kullanici hissi" />
+            <LandingStat icon={BookOpen} value="Ders Odaklı" label="Yapılandırılmış içerik" />
+            <LandingStat icon={Users} value="Topluluk" label="Öğrenci etkileşimi" />
+            <LandingStat icon={GraduationCap} value="Akademik" label="Faydalı tartışma ortamı" />
+            <LandingStat icon={CheckCircle2} value="Güvenilir" label="Doğrulanmış kullanıcı yapısı" />
           </section>
 
           <section className="mt-6 grid gap-4 lg:grid-cols-3">
             <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <h2 className="font-heading text-base font-bold">1. Universiteni dogrula</h2>
+              <h2 className="font-heading text-base font-bold">1. Üniversiteni doğrula</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Universite e-postan ile kayit ol, akademik kimligini netlestir.
+                Üniversite e-postanla kayıt ol, akademik kimliğini netleştir.
               </p>
             </Surface>
             <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <h2 className="font-heading text-base font-bold">2. Ders baglaminda kesfet</h2>
+              <h2 className="font-heading text-base font-bold">2. Ders bağlamında keşfet</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Not, sinav, kaynak ve tartisma iceriklerini bolum/program baglaminda filtrele.
+                Not, sınav, kaynak ve tartışma içeriklerini bölüm/program bağlamında filtrele.
               </p>
             </Surface>
             <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <h2 className="font-heading text-base font-bold">3. Topluluga katki sagla</h2>
+              <h2 className="font-heading text-base font-bold">3. Topluluğa katkı sağla</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Faydali icerik paylas, guvenilir akademik toplulukta gorunurluk kazan.
+                Faydalı içerik paylaş, güvenilir akademik toplulukta görünürlük kazan.
               </p>
             </Surface>
           </section>
@@ -92,18 +92,18 @@ export default function GuestLandingPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <LandingFeature
                   icon={FileText}
-                  title="Not ve Cikmis Soru Paylasimi"
-                  description="Icerikler ders ve program baglamiyla duzenli sekilde sunulur."
+                  title="Not ve Çıkmış Soru Paylaşımı"
+                  description="İçerikler ders ve program bağlamında düzenli şekilde sunulur."
                 />
                 <LandingFeature
                   icon={MessageSquare}
-                  title="Akademik Tartisma Kalitesi"
-                  description="Topluluk etkileşimi faydali ve akademik eksende ilerler."
+                  title="Akademik Tartışma Kalitesi"
+                  description="Topluluk etkileşimi faydalı ve akademik eksende ilerler."
                 />
                 <LandingFeature
                   icon={ShieldCheck}
-                  title="Guven Mesaji ve Dogrulama"
-                  description="Universite dogrulamasi urunun merkezinde yer alir."
+                  title="Güven ve Doğrulama"
+                  description="Üniversite doğrulaması ürün deneyiminin merkezinde yer alır."
                 />
               </div>
             </Surface>
@@ -124,7 +124,7 @@ function LandingMicroStat({
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/70 px-3 py-2">
       <Icon className="h-3.5 w-3.5 text-primary" />
-      <span className="text-xs font-medium text-foreground/85">{text}</span>
+      <span className="text-sm font-medium text-foreground/85">{text}</span>
     </div>
   );
 }
@@ -145,7 +145,7 @@ function LandingFeature({
       </div>
       <div>
         <p className="text-sm font-semibold">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -167,7 +167,7 @@ function LandingStat({
       </div>
       <div>
         <p className="text-sm font-bold">{value}</p>
-        <p className="text-[11px] text-muted-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </Surface>
   );

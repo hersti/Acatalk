@@ -12,8 +12,8 @@ function RootContentFallback() {
         <StateBlock
           variant="loading"
           size="page"
-          title="AcaTalk hazirlaniyor"
-          description="Ana icerik yukleniyor."
+          title="AcaTalk hazırlanıyor"
+          description="Ana içerik yükleniyor."
         />
       </div>
     </div>

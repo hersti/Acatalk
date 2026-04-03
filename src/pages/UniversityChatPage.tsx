@@ -192,8 +192,8 @@ export default function UniversityChatPage() {
                 wrap={false}
                 className="mt-1"
                 items={[
-                  { kind: "verified", label: "Dogrulanmis ogrenci", emphasis: "default" },
-                  { kind: "university", label: "Universite", value: university, emphasis: "subtle" },
+                  { kind: "verified", label: "Doğrulanmış öğrenci", emphasis: "default" },
+                  { kind: "university", label: "Üniversite", value: university, emphasis: "subtle" },
                 ]}
               />
             </div>
@@ -203,7 +203,7 @@ export default function UniversityChatPage() {
                 <span className="font-medium">{onlineCount} çevrimiçi</span>
               </div>
               <Lock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Sadece {university} öğrencileri</span>
+              <span className="text-xs text-muted-foreground">Sadece {university} öğrencileri</span>
             </div>
           </div>
 
@@ -223,12 +223,12 @@ export default function UniversityChatPage() {
                 return (
                   <div key={msg.id} className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
                     <Avatar className="h-7 w-7 shrink-0">
-                      <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
+                      <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
                         {(msg.profiles?.username || "?")[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className={`max-w-[75%] ${isOwn ? "text-right" : ""}`}>
-                      <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">
+                      <p className="text-xs text-muted-foreground mb-0.5 font-medium">
                         {msg.profiles?.username || "Anonim"} · {formatDistanceToNow(new Date(msg.created_at!), { addSuffix: true, locale: tr })}
                       </p>
                       <div className={`inline-block px-3 py-2 rounded-xl text-sm ${isOwn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>

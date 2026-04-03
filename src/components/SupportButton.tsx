@@ -71,7 +71,7 @@ export default function SupportButton() {
           </DialogHeader>
           <Surface variant="soft" border="subtle" padding="md" radius="lg" className="space-y-4">
             <p className="text-[11px] text-muted-foreground">
-              Talebiniz hesabinizla iliskilendirilir ve en kisa surede yanitlanir.
+              Talebiniz hesabınızla ilişkilendirilir ve en kısa sürede yanıtlanır.
             </p>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Konu <span className="text-destructive">*</span></Label>

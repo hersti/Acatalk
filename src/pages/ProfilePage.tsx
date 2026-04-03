@@ -50,7 +50,7 @@ function ProfileStatCard({
         </div>
       </div>
       <p className="text-lg font-extrabold tracking-tight">{value}</p>
-      <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </Surface>
   );
 }
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                 <div className="min-w-0 flex-1 pt-10">
                   <div className="flex items-center gap-2">
                     <h1 className="truncate font-heading text-xl font-extrabold">{profile?.username || "Profil"}</h1>
-                    <Badge className="border-emerald-200 bg-emerald-500/10 text-[10px] text-emerald-500">Cevrimici</Badge>
+                    <Badge className="border-emerald-200 bg-emerald-500/10 text-xs text-emerald-500">Çevrimiçi</Badge>
                     <Button
                       variant="outline"
                       size="sm"
@@ -230,18 +230,18 @@ export default function ProfilePage() {
                     className="mt-1"
                     items={[
                       ...(profile?.university
-                        ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }]
+                        ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }]
                         : []),
                       ...(profile?.department
-                        ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }]
+                        ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }]
                         : []),
                       ...(profile?.class_year
-                        ? [{ kind: "custom" as const, label: "Sinif", value: `${profile.class_year}. Sinif`, emphasis: "subtle" as const }]
+                        ? [{ kind: "custom" as const, label: "Sınıf", value: `${profile.class_year}. Sınıf`, emphasis: "subtle" as const }]
                         : []),
                     ]}
                   />
 
-                  {profile?.bio ? <p className="mt-1 line-clamp-2 text-[11px] italic text-muted-foreground">{profile.bio}</p> : null}
+                  {profile?.bio ? <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground">{profile.bio}</p> : null}
 
                   <div className="mt-2 flex items-center gap-1.5">
                     <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
@@ -254,13 +254,13 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-5 border-t border-border/60 pt-4">
-                <SectionHeader title="Profil Istatistikleri" description="Katkilarinizin genel gorunumu" icon={TrendingUp} />
+                <SectionHeader title="Profil İstatistikleri" description="Katkılarınızın genel görünümü" icon={TrendingUp} />
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  <ProfileStatCard icon={FileText} label="Gonderi" value={userStats.posts} color="text-primary" />
+                  <ProfileStatCard icon={FileText} label="Gönderi" value={userStats.posts} color="text-primary" />
                   <ProfileStatCard icon={ThumbsUp} label="Oy" value={userStats.votes} color="text-emerald-500" />
                   <ProfileStatCard icon={MessageSquare} label="Yorum" value={userStats.comments} color="text-amber-500" />
                   <ProfileStatCard icon={BookOpen} label="Not" value={userStats.notes} color="text-blue-500" />
-                  <ProfileStatCard icon={ClipboardList} label="Tartisma" value={userStats.discussions} color="text-purple-500" />
+                  <ProfileStatCard icon={ClipboardList} label="Tartışma" value={userStats.discussions} color="text-purple-500" />
                   <ProfileStatCard icon={BookMarked} label="Kaynak" value={userStats.resources} color="text-orange-500" />
                 </div>
               </div>
@@ -272,21 +272,21 @@ export default function ProfilePage() {
           <Tabs defaultValue="contributions" className="w-full">
             <Surface variant="soft" border="subtle" padding="sm" radius="xl">
               <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl bg-secondary/70 p-1">
-                <TabsTrigger value="contributions" className="rounded-lg text-xs font-semibold">Katkilarim</TabsTrigger>
+                <TabsTrigger value="contributions" className="rounded-lg text-xs font-semibold">Katkılarım</TabsTrigger>
                 <TabsTrigger value="saved" className="rounded-lg text-xs font-semibold">Kaydedilenler</TabsTrigger>
                 <TabsTrigger value="activity" className="rounded-lg text-xs font-semibold">Son Aktivite</TabsTrigger>
               </TabsList>
             </Surface>
 
             <TabsContent value="contributions" className="mt-3 space-y-2">
-              <SectionHeader title="Katkilarim" description="Paylastiginiz son icerikler" icon={FileText} />
+              <SectionHeader title="Katkılarım" description="Paylaştığınız son içerikler" icon={FileText} />
               {recentPosts.length === 0 ? (
                 <StateBlock
                   variant="empty"
                   size="section"
                   icon={<FileText className="h-5 w-5" />}
-                  title="Henuz katki yok"
-                  description="Bir derse not, kaynak veya tartisma ekleyerek baslayin."
+                  title="Henüz katkı yok"
+                  description="Bir derse not, kaynak veya tartışma ekleyerek başlayın."
                 />
               ) : (
                 recentPosts.map((p) => {
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{p.title}</p>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               {contentTypeLabel[p.content_type]} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: tr })}
                             </p>
                           </div>
@@ -313,14 +313,14 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="saved" className="mt-3 space-y-2">
-              <SectionHeader title="Kaydedilenler" description="Daha sonra bakmak icin sakladiginiz icerikler" icon={Bookmark} />
+              <SectionHeader title="Kaydedilenler" description="Daha sonra bakmak için sakladığınız içerikler" icon={Bookmark} />
               {bookmarks.length === 0 ? (
                 <StateBlock
                   variant="empty"
                   size="section"
                   icon={<Bookmark className="h-5 w-5" />}
-                  title="Henuz kayitli icerik yok"
-                  description="Kaydettiginiz icerikler burada listelenecek."
+                  title="Henüz kayıtlı içerik yok"
+                  description="Kaydettiğiniz içerikler burada listelenecek."
                 />
               ) : (
                 bookmarks.map((b) => (
@@ -335,7 +335,7 @@ export default function ProfilePage() {
                             {b.post.title}
                           </Link>
                         ) : (
-                          <span className="text-sm italic text-muted-foreground">Silinen icerik</span>
+                          <span className="text-sm italic text-muted-foreground">Silinen içerik</span>
                         )}
                       </div>
                       <button onClick={() => removeBookmark(b.id)} className="shrink-0 text-muted-foreground transition-colors hover:text-destructive">
@@ -354,8 +354,8 @@ export default function ProfilePage() {
                   variant="empty"
                   size="section"
                   icon={<Clock className="h-5 w-5" />}
-                  title="Henuz aktivite yok"
-                  description="Yorum ve katkilariniz burada gorunecek."
+                  title="Henüz aktivite yok"
+                  description="Yorum ve katkılarınız burada görünecek."
                 />
               ) : (
                 recentComments.slice(0, 8).map((c) => (
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="line-clamp-1 text-sm text-muted-foreground">{c.content}</p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Yorum · {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: tr })}
                           </p>
                         </div>
@@ -398,4 +398,3 @@ function OwnBadges() {
     </div>
   );
 }
-

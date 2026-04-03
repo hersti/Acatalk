@@ -16,25 +16,25 @@ const COPY: Record<
   { badge: string; title: string; description: string; points: string[] }
 > = {
   auth: {
-    badge: "Verified Student Network",
-    title: "Akademik ve guvenilir giris deneyimi",
+    badge: "Doğrulanmış Öğrenci Ağı",
+    title: "Güvenilir akademik giriş deneyimi",
     description:
-      "Universite e-postasi dogrulamasi, bolum baglami ve topluluk kalite kurallari birlikte calisir.",
+      "Üniversite e-posta doğrulaması, bölüm bağlamı ve topluluk kalite standartları birlikte çalışır.",
     points: [
-      "Universite email domain dogrulamasi",
-      "Bolum ve program baglamiyla profil",
-      "Topluluk iceriklerinde guven odakli akıs",
+      "Üniversite e-posta alan adı doğrulaması",
+      "Bölüm ve program bağlamıyla profil",
+      "Topluluk içeriklerinde güven odaklı akış",
     ],
   },
   recovery: {
-    badge: "Secure Account Recovery",
-    title: "Hesabini guvenli sekilde geri al",
+    badge: "Güvenli Hesap Kurtarma",
+    title: "Hesabını güvenli şekilde geri al",
     description:
-      "Sifrenizi sifirlarken ayni akademik kimlik ve guven standartlari korunur.",
+      "Şifrenizi sıfırlarken aynı akademik kimlik ve güven standartları korunur.",
     points: [
-      "Guvenli reset baglantisi",
-      "Sifre guclugu kontrolu",
-      "Supabase oturum guvenlik politikasi",
+      "Güvenli sıfırlama bağlantısı",
+      "Şifre güvenliği kontrolü",
+      "Oturum güvenlik politikası",
     ],
   },
 };
@@ -50,7 +50,7 @@ export default function AuthTrustPanel({ mode = "auth", className }: AuthTrustPa
       radius="xl"
       className={cn("h-full", className)}
     >
-      <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+      <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
         <ShieldCheck className="h-3.5 w-3.5 text-primary" />
         {content.badge}
       </p>
@@ -65,8 +65,8 @@ export default function AuthTrustPanel({ mode = "auth", className }: AuthTrustPa
         size="sm"
         tone="muted"
         items={[
-          { kind: "verified", label: "Dogrulanmis", value: "Universite Ogrencisi", emphasis: "subtle" },
-          { kind: "custom", label: "Odak", value: "Akademik Icerik", emphasis: "subtle" },
+          { kind: "verified", label: "Doğrulanmış", value: "Üniversite Öğrencisi", emphasis: "subtle" },
+          { kind: "custom", label: "Odak", value: "Akademik İçerik", emphasis: "subtle" },
         ]}
       />
 
@@ -89,4 +89,3 @@ export default function AuthTrustPanel({ mode = "auth", className }: AuthTrustPa
     </Surface>
   );
 }
-

@@ -52,7 +52,7 @@ function ProfileStatCard({
         </div>
       </div>
       <p className="text-lg font-extrabold tracking-tight">{value}</p>
-      <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </Surface>
   );
 }
@@ -181,7 +181,7 @@ export default function UserProfilePage() {
     return (
       <Layout>
         <div className="container mx-auto max-w-3xl px-4 py-12">
-          <StateBlock variant="loading" size="section" title="Profil yukleniyor" description="Kullanici bilgileri hazirlaniyor." />
+          <StateBlock variant="loading" size="section" title="Profil yükleniyor" description="Kullanıcı bilgileri hazırlanıyor." />
         </div>
       </Layout>
     );
@@ -194,8 +194,8 @@ export default function UserProfilePage() {
           <StateBlock
             variant="noResults"
             size="section"
-            title="Kullanici bulunamadi"
-            description="Profil kaldirilmis olabilir veya baglanti gecersiz olabilir."
+            title="Kullanıcı bulunamadı"
+            description="Profil kaldırılmış olabilir veya bağlantı geçersiz olabilir."
           />
         </div>
       </Layout>
@@ -211,8 +211,8 @@ export default function UserProfilePage() {
   };
   const contentTypeLabel: Record<string, string> = {
     notes: "Not",
-    past_exams: "Cikmis Soru",
-    discussion: "Tartisma",
+    past_exams: "Çıkmış Soru",
+    discussion: "Tartışma",
     kaynaklar: "Kaynak",
   };
 
@@ -244,9 +244,9 @@ export default function UserProfilePage() {
                         trigger={
                           <button
                             className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-destructive group-hover:opacity-100"
-                            title="Avatari Bildir"
+                            title="Avatarı Bildir"
                           >
-                            <span className="text-[10px]">!</span>
+          <span className="text-xs">!</span>
                           </button>
                         }
                       />
@@ -256,9 +256,9 @@ export default function UserProfilePage() {
 
                 <div className="min-w-0 flex-1 pt-10">
                   <div className="flex items-center gap-2">
-                    <h1 className="truncate font-heading text-xl font-extrabold">{profile.username || "Kullanici"}</h1>
-                    <Badge className={`text-[10px] ${isOnline ? "border-emerald-200 bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"}`}>
-                      {isOnline ? "Cevrimici" : "Cevrimdisi"}
+                    <h1 className="truncate font-heading text-xl font-extrabold">{profile.username || "Kullanıcı"}</h1>
+                    <Badge className={`text-xs ${isOnline ? "border-emerald-200 bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"}`}>
+                      {isOnline ? "Çevrimiçi" : "Çevrimdışı"}
                     </Badge>
                   </div>
 
@@ -268,18 +268,18 @@ export default function UserProfilePage() {
                     className="mt-1"
                     items={[
                       ...(profile.university
-                        ? [{ kind: "university" as const, label: "Universite", value: profile.university, emphasis: "subtle" as const }]
+                        ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }]
                         : []),
                       ...(profile.department
-                        ? [{ kind: "department" as const, label: "Bolum", value: profile.department, emphasis: "subtle" as const }]
+                        ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }]
                         : []),
                       ...(profile.class_year
-                        ? [{ kind: "custom" as const, label: "Sinif", value: `${profile.class_year}. Sinif`, emphasis: "subtle" as const }]
+                        ? [{ kind: "custom" as const, label: "Sınıf", value: `${profile.class_year}. Sınıf`, emphasis: "subtle" as const }]
                         : []),
                     ]}
                   />
 
-                  {profile.bio ? <p className="mt-1 line-clamp-2 text-[11px] italic text-muted-foreground">{profile.bio}</p> : null}
+                  {profile.bio ? <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground">{profile.bio}</p> : null}
 
                   <div className="mt-2 flex items-center gap-1.5">
                     <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
@@ -296,7 +296,7 @@ export default function UserProfilePage() {
                   <div className="flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm font-bold">{followersCount}</span>
-                    <span className="text-xs text-muted-foreground">Takipci</span>
+                    <span className="text-xs text-muted-foreground">Takipçi</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold">{followingCount}</span>
@@ -306,13 +306,13 @@ export default function UserProfilePage() {
               </div>
 
               <div className="mt-4 border-t border-border/60 pt-4">
-                <SectionHeader title="Profil Istatistikleri" description="Kullanicinin icerik ve etkilesim ozetleri" icon={TrendingUp} />
+                <SectionHeader title="Profil İstatistikleri" description="Kullanıcının içerik ve etkileşim özetleri" icon={TrendingUp} />
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  <ProfileStatCard icon={FileText} label="Gonderi" value={userStats.posts} color="text-primary" />
+                  <ProfileStatCard icon={FileText} label="Gönderi" value={userStats.posts} color="text-primary" />
                   <ProfileStatCard icon={ThumbsUp} label="Oy" value={userStats.votes} color="text-emerald-500" />
                   <ProfileStatCard icon={MessageSquare} label="Yorum" value={userStats.comments} color="text-amber-500" />
                   <ProfileStatCard icon={BookOpen} label="Not" value={userStats.notes} color="text-blue-500" />
-                  <ProfileStatCard icon={ClipboardList} label="Tartisma" value={userStats.discussions} color="text-purple-500" />
+                  <ProfileStatCard icon={ClipboardList} label="Tartışma" value={userStats.discussions} color="text-purple-500" />
                   <ProfileStatCard icon={BookMarked} label="Kaynak" value={userStats.resources} color="text-orange-500" />
                 </div>
               </div>
@@ -323,11 +323,11 @@ export default function UserProfilePage() {
                     <FollowButton targetUserId={userId!} />
                     {dmStatus === "disabled" ? (
                       <Button variant="outline" size="sm" className="h-8 gap-2 text-xs" disabled>
-                        <Send className="h-3.5 w-3.5" /> DM Kapali
+                        <Send className="h-3.5 w-3.5" /> DM Kapalı
                       </Button>
                     ) : (
                       <Button size="sm" className="h-8 gap-2 text-xs" onClick={() => navigate(`/messages?to=${userId}`)}>
-                        <Send className="h-3.5 w-3.5" /> Mesaj Gonder
+                        <Send className="h-3.5 w-3.5" /> Mesaj Gönder
                       </Button>
                     )}
                   </>
@@ -335,7 +335,7 @@ export default function UserProfilePage() {
 
                 {isOwnProfile ? (
                   <Button variant="outline" className="flex-1" onClick={() => navigate("/settings")}>
-                    Profili Duzenle
+                    Profili Düzenle
                   </Button>
                 ) : null}
               </div>
@@ -345,13 +345,13 @@ export default function UserProfilePage() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-4">
           <Surface variant="raised" border="none" padding="md" radius="xl">
-            <SectionHeader title="Son Katkilar" description="Kullanicinin son paylastigi icerikler" icon={Clock} />
+            <SectionHeader title="Son Katkılar" description="Kullanıcının son paylaştığı içerikler" icon={Clock} />
             {recentPosts.length === 0 ? (
               <StateBlock
                 variant="empty"
                 size="inline"
-                title="Henuz gosterilecek katki yok"
-                description="Yeni paylasimlar yapildiginda burada listelenecek."
+                title="Henüz gösterilecek katkı yok"
+                description="Yeni paylaşımlar yapıldığında burada listelenecek."
               />
             ) : (
               <div className="space-y-2">
@@ -366,7 +366,7 @@ export default function UserProfilePage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{p.title}</p>
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               {contentTypeLabel[p.content_type]} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: tr })}
                             </p>
                           </div>
@@ -393,4 +393,3 @@ function UserBadgesDisplay({ userId }: { userId: string }) {
     </div>
   );
 }
-

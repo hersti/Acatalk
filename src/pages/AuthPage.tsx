@@ -62,7 +62,7 @@ function MfaForm({
             {newDeviceWarning && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mb-3">
                 <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                <p className="text-[11px] text-warning-foreground">
+                <p className="text-xs text-warning-foreground">
                   Yeni bir cihazdan giriş yapıyorsunuz. Kimliğinizi doğrulayın.
                 </p>
               </div>
@@ -834,7 +834,7 @@ export default function AuthPage() {
               <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <div className="text-[11px]">
+                  <div className="text-xs">
                     <p className="font-semibold text-warning-foreground">Üniversite e-postası kullanıyorsanız:</p>
                     <ul className="mt-1 space-y-0.5 text-warning-foreground">
                       <li>• <strong>Spam/Gereksiz</strong> klasörünüzü mutlaka kontrol edin</li>
@@ -845,7 +845,7 @@ export default function AuthPage() {
                 </div>
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
                   <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="text-[11px]">
+                  <div className="text-xs">
                     <p>E-postayı bulamıyorsanız aşağıdaki butona tıklayarak tekrar gönderebilirsiniz.</p>
                   </div>
                 </div>
@@ -910,9 +910,9 @@ export default function AuthPage() {
           <div className="h-1.5 w-full gradient-hero" />
 
           <CardHeader className="text-center pb-2 pt-6">
-            <div className="mx-auto mb-2 inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="mx-auto mb-2 inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <ShieldCheck className="h-3 w-3 text-primary" />
-              Guvenli Akademik Giris
+              Güvenli Akademik Giriş
             </div>
             <div className="flex justify-center mb-4">
               <div className="h-14 w-14 rounded-2xl gradient-hero flex items-center justify-center" style={{ boxShadow: 'var(--shadow-card)' }}>
@@ -920,7 +920,7 @@ export default function AuthPage() {
               </div>
             </div>
             <CardTitle className="font-heading text-2xl font-extrabold tracking-tight">
-              {isSignUp ? "Hesap Oluştur" : "Tekrar Hoşgeldiniz"}
+              {isSignUp ? "Hesap Oluştur" : "Tekrar hoş geldiniz"}
             </CardTitle>
             <CardDescription className="text-sm mt-1">
               {isSignUp ? "Üniversite e-postanızla güvenli kayıt olun" : "Hesabınıza güvenli giriş yapın"}
@@ -952,7 +952,7 @@ export default function AuthPage() {
                         className="h-10 rounded-lg"
                         autoComplete="given-name"
                       />
-                      {errors.firstName && <p className="text-[10px] text-destructive">{errors.firstName}</p>}
+                      {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="lastName" className="text-xs font-semibold">
@@ -968,7 +968,7 @@ export default function AuthPage() {
                         className="h-10 rounded-lg"
                         autoComplete="family-name"
                       />
-                      {errors.lastName && <p className="text-[10px] text-destructive">{errors.lastName}</p>}
+                      {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
                     </div>
                   </motion.div>
                 )}
@@ -992,7 +992,7 @@ export default function AuthPage() {
                         id="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase())}
-                        placeholder="kullaniciadi"
+                        placeholder="kullanici_adi"
                         required
                         maxLength={30}
                         className="h-10 rounded-lg pr-9"
@@ -1005,16 +1005,16 @@ export default function AuthPage() {
                       </div>
                     </div>
                     {usernameStatus === "taken" && (
-                      <p className="text-[10px] text-destructive">Bu kullanıcı adı zaten kullanılıyor.</p>
+                      <p className="text-xs text-destructive">Bu kullanıcı adı zaten kullanılıyor.</p>
                     )}
                     {usernameStatus === "inappropriate" && (
-                      <p className="text-[10px] text-destructive">Bu kullanıcı adı uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.</p>
+                      <p className="text-xs text-destructive">Bu kullanıcı adı uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.</p>
                     )}
                     {usernameStatus === "available" && (
-                      <p className="text-[10px] text-success">Kullanıcı adı müsait ✓</p>
+                      <p className="text-xs text-success">Kullanıcı adı müsait ✓</p>
                     )}
-                    {errors.username && <p className="text-[10px] text-destructive">{errors.username}</p>}
-                    <p className="text-[10px] text-muted-foreground">Sadece harf, rakam ve alt çizgi. 30 günde bir değiştirilebilir.</p>
+                    {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
+                    <p className="text-xs text-muted-foreground">Sadece harf, rakam ve alt çizgi. 30 günde bir değiştirilebilir.</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1038,7 +1038,7 @@ export default function AuthPage() {
                 {isSignUp && !emailError && !detectedUniversity && email && (
                   <div className="flex items-start gap-1.5 mt-1">
                     <Info className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Üniversite e-posta adresinizi kullanın (örn: isim@ege.edu.tr)
                     </p>
                   </div>
@@ -1051,9 +1051,9 @@ export default function AuthPage() {
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] font-semibold text-success">✓ Üniversite algılandı: {detectedUniversity}</p>
-                      <p className="text-[9px] text-success/80">{detectedUniversityMetaLabel}</p>
-                      <p className="text-[9px] text-success/80">E-posta domain eşleşmesi ile üniversiteniz otomatik bağlanacaktır.</p>
+                      <p className="text-xs font-semibold text-success">✓ Üniversite algılandı: {detectedUniversity}</p>
+                      <p className="text-xs text-success/80">{detectedUniversityMetaLabel}</p>
+                      <p className="text-xs text-success/80">E-posta domain eşleşmesi ile üniversiteniz otomatik bağlanacaktır.</p>
                     </div>
                   </motion.div>
                 )}
@@ -1065,7 +1065,7 @@ export default function AuthPage() {
                   >
                     <div className="flex items-start gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-warning-foreground">
+                      <p className="text-xs text-warning-foreground">
                         Bu e-posta domaini henüz sistemde kayıtlı değil. Kayda devam etmeden önce talep oluşturmalısınız.
                       </p>
                     </div>
@@ -1089,7 +1089,7 @@ export default function AuthPage() {
                         disabled={requestSending || requestSubmitted}
                       />
                       {requestResultMsg && (
-                        <p className={`text-[10px] ${requestSubmitted ? "text-success" : "text-muted-foreground"}`}>
+                        <p className={`text-xs ${requestSubmitted ? "text-success" : "text-muted-foreground"}`}>
                           {requestResultMsg}
                         </p>
                       )}
@@ -1108,17 +1108,17 @@ export default function AuthPage() {
                           )}
                         </Button>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">Admin onayı olmadan bu domain ile signup tamamlanamaz.</p>
+                      <p className="text-xs text-muted-foreground">Admin onayı olmadan bu domain ile kay?t tamamlanamaz.</p>
                     </div>
                   </motion.div>
                 )}
                 {isSignUp && emailError && (
                   <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 mt-1">
                     <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-destructive">{emailError}</p>
+                    <p className="text-xs text-destructive">{emailError}</p>
                   </div>
                 )}
-                {errors.email && <p className="text-[10px] text-destructive">{errors.email}</p>}
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
               </div>
 
               {/* ── PASSWORD ── */}
@@ -1129,7 +1129,7 @@ export default function AuthPage() {
                 </Label>
                 <PasswordInput id="password" value={password} onChange={setPassword} />
                 {isSignUp && <PasswordStrengthIndicator password={password} />}
-                {errors.password && <p className="text-[10px] text-destructive">{errors.password}</p>}
+                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               </div>
 
               {/* ── CONFIRM PASSWORD (signup) ── */}
@@ -1147,16 +1147,16 @@ export default function AuthPage() {
                     </Label>
                     <PasswordInput id="confirmPassword" value={confirmPassword} onChange={setConfirmPassword} />
                     {passwordsMatch && (
-                      <p className="text-[10px] text-success flex items-center gap-1">
+                      <p className="text-xs text-success flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3" /> Şifreler eşleşiyor
                       </p>
                     )}
                     {passwordsMismatch && (
-                      <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <p className="text-xs text-destructive flex items-center gap-1">
                         <XCircle className="h-3 w-3" /> Şifreler eşleşmiyor
                       </p>
                     )}
-                    {errors.confirmPassword && <p className="text-[10px] text-destructive">{errors.confirmPassword}</p>}
+                    {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1164,7 +1164,7 @@ export default function AuthPage() {
               {/* ── FORGOT PASSWORD (login) ── */}
               {!isSignUp && (
                 <div className="text-right -mt-1">
-                  <Link to="/forgot-password" className="text-[11px] text-primary font-semibold hover:underline">
+                  <Link to="/forgot-password" className="text-xs text-primary font-semibold hover:underline">
                     Şifremi unuttum
                   </Link>
                 </div>
@@ -1180,7 +1180,7 @@ export default function AuthPage() {
                     className="space-y-3 overflow-hidden"
                   >
                     <div className="pt-1">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                         <GraduationCap className="h-3.5 w-3.5" />
                         Akademik Bilgiler
                       </p>
@@ -1194,11 +1194,11 @@ export default function AuthPage() {
                         <span className="text-sm font-medium truncate">{university}</span>
                         <Lock className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                       </div>
-                      <p className="text-[9px] text-muted-foreground flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <ShieldCheck className="h-3 w-3" />
                         E-postadan otomatik algılandı. Admin onayı ile değiştirilebilir.
                       </p>
-                      {errors.university && <p className="text-[10px] text-destructive">{errors.university}</p>}
+                      {errors.university && <p className="text-xs text-destructive">{errors.university}</p>}
                     </div>
 
                     {/* Department */}
@@ -1215,14 +1215,14 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => setShowProgramRequestDialog(true)}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all"
                       >
                         Bölümümü Bulamadım
                       </button>
 
-                      <p className="text-[9px] text-muted-foreground flex items-center gap-1">
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Lock className="h-3 w-3" />
-                        Bölüm talepleri AI yerine admin onaylı request kuyruğuna gönderilir.
+                        Bölüm talepleri otomatik eklenmez; önce yönetici onayına alınır.
                       </p>
                     </div>
 
@@ -1275,7 +1275,7 @@ export default function AuthPage() {
               {isSignUp && !detectedUniversity && !shouldShowUnknownDomainRequest && email && emailDomain && emailError && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                   <Mail className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-warning-foreground">
+                  <p className="text-xs text-warning-foreground">
                     Kayıt olmak için geçerli bir üniversite e-posta adresi gereklidir.
                     E-postanızın <strong>@universite.edu.tr</strong> formatında olduğundan emin olun.
                   </p>
@@ -1292,13 +1292,13 @@ export default function AuthPage() {
                       onCheckedChange={(v) => setAcceptTerms(v === true)}
                       className="mt-0.5"
                     />
-                    <label htmlFor="terms" className="text-[11px] text-muted-foreground leading-tight cursor-pointer">
+                    <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
                       <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-semibold hover:underline">Kullanım Koşulları</button> ve{" "}
                       <button type="button" onClick={() => setShowPrivacy(true)} className="text-primary font-semibold hover:underline">Gizlilik Politikası</button>'nı
                       okudum ve kabul ediyorum.
                     </label>
                   </div>
-                  {errors.terms && <p className="text-[10px] text-destructive">{errors.terms}</p>}
+                  {errors.terms && <p className="text-xs text-destructive">{errors.terms}</p>}
                 </div>
               )}
 
@@ -1326,7 +1326,7 @@ export default function AuthPage() {
               {isSignUp && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
                   <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                  <div className="text-xs text-muted-foreground space-y-0.5">
                     <p className="font-semibold text-foreground">Güvenlik Bilgisi</p>
                     <p>• E-postanıza doğrulama kodu gönderilecektir</p>
                     <p>• Üniversite ve bölüm bilgileriniz kayıt sonrası admin onayı ile değiştirilebilir</p>
@@ -1347,7 +1347,7 @@ export default function AuthPage() {
         </Card>
 
         {/* Footer text */}
-        <p className="text-center text-[10px] text-muted-foreground mt-4 px-4">
+        <p className="text-center text-xs text-muted-foreground mt-4 px-4">
           Verileriniz şifrelenerek güvenli sunucularda saklanır. Şifreniz bcrypt ile hash'lenir.
         </p>
           </motion.div>
@@ -1365,7 +1365,7 @@ export default function AuthPage() {
           </DialogHeader>
           <ScrollArea className="px-6 pb-6 max-h-[65vh]">
             <div className="space-y-4 text-sm text-muted-foreground">
-              <p className="text-[10px]">Son güncelleme: 8 Mart 2026</p>
+              <p className="text-xs">Son güncelleme: 8 Mart 2026</p>
               <h3 className="text-foreground font-semibold text-base">1. Hizmet Tanımı</h3>
               <p>Bu platform, Türkiye'deki üniversite öğrencilerinin ders notlarını, sınav sorularını ve akademik kaynakları paylaşmaları için tasarlanmış bir akademik işbirliği platformudur. Platform, yalnızca geçerli bir üniversite e-posta adresi (.edu.tr) ile kayıt olan kullanıcılara hizmet vermektedir.</p>
               <h3 className="text-foreground font-semibold text-base">2. Kullanıcı Hesabı ve Sorumluluklar</h3>
@@ -1398,7 +1398,7 @@ export default function AuthPage() {
           </DialogHeader>
           <ScrollArea className="px-6 pb-6 max-h-[65vh]">
             <div className="space-y-4 text-sm text-muted-foreground">
-              <p className="text-[10px]">Son güncelleme: 8 Mart 2026</p>
+              <p className="text-xs">Son güncelleme: 8 Mart 2026</p>
               <h3 className="text-foreground font-semibold text-base">1. Toplanan Veriler</h3>
               <p>Kayıt sırasında: e-posta adresi, kullanıcı adı, üniversite, bölüm ve sınıf bilgileri toplanır. Kullanım sırasında: IP adresi, tarayıcı bilgisi, oturum verileri ve platform içi aktiviteler kaydedilir.</p>
               <h3 className="text-foreground font-semibold text-base">2. Verilerin Kullanım Amacı</h3>
