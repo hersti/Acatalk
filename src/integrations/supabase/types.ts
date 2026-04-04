@@ -513,6 +513,143 @@ export type Database = {
           },
         ]
       }
+      course_chat_messages: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          is_deleted: boolean
+          is_pinned: boolean
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          is_pinned?: boolean
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          is_pinned?: boolean
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_chat_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "course_chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_chat_reads: {
+        Row: {
+          created_at: string
+          id: string
+          last_read_at: string
+          last_read_message_id: string | null
+          room_id: string
+          unread_count_cache: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          room_id: string
+          unread_count_cache?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          last_read_message_id?: string | null
+          room_id?: string
+          unread_count_cache?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_chat_reads_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "course_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_chat_reads_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "course_chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_chat_rooms: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          message_count: number
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_chat_rooms_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_wikis: {
         Row: {
           course_id: string

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
+import { MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import DiscussionList from "./DiscussionList";
 import DiscussionDetail from "./DiscussionDetail";
 import CreateDiscussionDialog from "./CreateDiscussionDialog";
-import { MessageSquare } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type DiscussionPost = Tables<"posts"> & {
@@ -16,19 +16,17 @@ export type DiscussionPost = Tables<"posts"> & {
   solved_comment_id?: string | null;
 };
 
-type SortOption = "newest" | "most_voted" | "most_replied" | "solved";
-
 interface DiscussionPanelProps {
   courseId: string;
 }
 
 const DISCUSSION_TYPES = [
-  { value: "all", label: "Tümü" },
+  { value: "all", label: "Tumu" },
   { value: "soru", label: "Soru" },
-  { value: "sinav", label: "Sınav Konuşması" },
-  { value: "kaynak", label: "Kaynak Önerisi" },
-  { value: "hoca", label: "Hoca / İşleniş Yorumu" },
-  { value: "not_sorusu", label: "Not Hakkında Soru" },
+  { value: "sinav", label: "Sinav Konusmasi" },
+  { value: "kaynak", label: "Kaynak Onerisi" },
+  { value: "hoca", label: "Hoca / Islenis Yorumu" },
+  { value: "not_sorusu", label: "Not Hakkinda Soru" },
 ];
 
 export { DISCUSSION_TYPES };
@@ -53,14 +51,15 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
       .order("created_at", { ascending: false });
 
     if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((p) => p.user_id))];
+      const userIds = [...new Set(data.map((post) => post.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-      const newPosts = data.map((p) => ({
-        ...p,
-        profiles: profileMap.get(p.user_id) || null,
-      })) as DiscussionPost[];
-      setPosts(newPosts);
+      const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+      setPosts(
+        data.map((post) => ({
+          ...post,
+          profiles: profileMap.get(post.user_id) || null,
+        })) as DiscussionPost[],
+      );
     } else {
       setPosts([]);
     }
@@ -73,18 +72,16 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
   }, [fetchPosts]);
 
   useEffect(() => {
-    fetchPosts();
-    // Reset selection when course changes
+    void fetchPosts();
     setSelectedId(null);
     setSearch("");
     setSort("newest");
     setFilterType("all");
-  }, [courseId]);
+  }, [courseId, fetchPosts]);
 
-  // Listen for external selection (e.g. from TrendingDiscussions)
   useEffect(() => {
-    const handler = (e: Event) => {
-      const postId = (e as CustomEvent).detail;
+    const handler = (event: Event) => {
+      const postId = (event as CustomEvent).detail;
       if (postId) setSelectedId(postId);
     };
     window.addEventListener("select-discussion", handler);
@@ -92,16 +89,15 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
   }, []);
 
   const filtered = posts
-    .filter((p) => {
-      if (filterType !== "all" && p.discussion_type !== filterType) return false;
+    .filter((post) => {
+      if (filterType !== "all" && post.discussion_type !== filterType) return false;
       if (search.trim()) {
-        const q = search.toLowerCase();
-        return p.title.toLowerCase().includes(q) || (p.content || "").toLowerCase().includes(q);
+        const query = search.toLowerCase();
+        return post.title.toLowerCase().includes(query) || (post.content || "").toLowerCase().includes(query);
       }
       return true;
     })
     .sort((a, b) => {
-      // Pinned always first
       const aPin = a.is_pinned ? 1 : 0;
       const bPin = b.is_pinned ? 1 : 0;
       if (aPin !== bPin) return bPin - aPin;
@@ -118,31 +114,17 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
       }
     });
 
-  // CRITICAL FIX: Get selected post from the LATEST posts array
-  const selectedPost = selectedId ? posts.find((p) => p.id === selectedId) || null : null;
+  const selectedPost = selectedId ? posts.find((post) => post.id === selectedId) || null : null;
 
-  // If selected post was deleted or doesn't exist anymore, clear selection
   useEffect(() => {
-    if (selectedId && !loading && posts.length >= 0 && !posts.find((p) => p.id === selectedId)) {
-      // Only clear if we're done loading and the post genuinely doesn't exist
-      if (!loading) {
-        setSelectedId(null);
-      }
+    if (selectedId && !loading && !posts.find((post) => post.id === selectedId)) {
+      setSelectedId(null);
     }
   }, [posts, selectedId, loading]);
 
-  const handleBack = () => setSelectedId(null);
-
-  // Mobile: show detail or list
   if (isMobile) {
     if (selectedPost) {
-      return (
-        <DiscussionDetail
-          post={selectedPost}
-          onBack={handleBack}
-          onRefresh={fetchPosts}
-        />
-      );
+      return <DiscussionDetail post={selectedPost} onBack={() => setSelectedId(null)} onRefresh={fetchPosts} />;
     }
     return (
       <div className="space-y-3">
@@ -165,7 +147,6 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
     );
   }
 
-  // Desktop: side-by-side
   return (
     <div className="flex gap-4 min-h-[500px]">
       <div className="w-[380px] shrink-0 flex flex-col">
@@ -185,25 +166,26 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
           onFilterChange={setFilterType}
         />
       </div>
+
       <div className="flex-1 min-w-0">
         {selectedPost ? (
-          <DiscussionDetail post={selectedPost} onBack={handleBack} onRefresh={fetchPosts} />
+          <DiscussionDetail post={selectedPost} onBack={() => setSelectedId(null)} onRefresh={fetchPosts} />
         ) : (
           <div className="h-full flex flex-col items-center justify-center bg-secondary/20 rounded-xl border border-dashed border-border px-6 py-12 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-4" />
             {posts.length === 0 && !loading ? (
               <>
-                <h3 className="font-heading font-bold text-base text-foreground mb-2">Henüz tartışma yok</h3>
-                <p className="text-sm text-muted-foreground max-w-[280px] leading-relaxed mb-5">
-                  Bu ders hakkında soru sorabilir, sınav hakkında konuşabilir veya kaynak paylaşabilirsiniz.
+                <h3 className="font-heading font-bold text-base text-foreground mb-2">Henuz tartisma yok</h3>
+                <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">
+                  Bu alanda kavram sorulari, sinav stratejileri ve kaynak degerlendirmeleri gibi kalici akademik tartismalar olusur.
                 </p>
                 {user && <CreateDiscussionDialog courseId={courseId} onCreated={handleCreated} />}
               </>
             ) : (
               <>
-                <h3 className="font-heading font-semibold text-sm text-foreground mb-1">Bir tartışma seçin</h3>
-                <p className="text-xs text-muted-foreground max-w-[240px]">
-                  Soldaki listeden bir tartışma seçerek detaylarını görüntüleyin ve yanıt yazın.
+                <h3 className="font-heading font-semibold text-sm text-foreground mb-1">Bir tartisma secin</h3>
+                <p className="text-xs text-muted-foreground max-w-[260px]">
+                  Soldaki listeden bir baslik secerek detaylari goruntuleyin ve ders odakli yanit ekleyin.
                 </p>
               </>
             )}
