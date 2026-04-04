@@ -164,12 +164,12 @@ export default function AcademicProgramRequestDialog({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Program Seviyesi</Label>
               <Select value={programLevel} onValueChange={(value) => setProgramLevel(value as "lisans" | "onlisans") }>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background text-sm hover:border-primary/30">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lisans">Lisans</SelectItem>
-                  <SelectItem value="onlisans">Önlisans</SelectItem>
+                <SelectContent className="rounded-lg border-border/70 p-1">
+                  <SelectItem value="lisans" className="rounded-md py-2 text-sm">Lisans</SelectItem>
+                  <SelectItem value="onlisans" className="rounded-md py-2 text-sm">Önlisans</SelectItem>
                 </SelectContent>
               </Select>
             </div>

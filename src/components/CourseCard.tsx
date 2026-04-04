@@ -13,12 +13,6 @@ interface CourseCardProps {
 export default function CourseCard({ course, postCounts }: CourseCardProps) {
   const counts = postCounts ?? { notes: 0, past_exams: 0, discussion: 0, kaynaklar: 0 };
   const normalizedCode = normalizeCourseCode(course.code);
-  const yearLabel =
-    (course as any).year === null || (course as any).year === undefined
-      ? undefined
-      : (course as any).year === 0
-        ? "Hazırlık"
-        : `${(course as any).year}. Sınıf`;
 
   return (
     <Link to={`/course/${course.id}`}>
@@ -31,7 +25,7 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
       >
         <div className="p-3">
           <div className="mb-1.5 flex items-start justify-between">
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-1.5">
                 {normalizedCode && (
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">{normalizedCode}</span>
@@ -51,8 +45,16 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
                 wrap={false}
                 className="mt-1"
                 items={[
-                  ...(course.department ? [{ kind: "department" as const, label: "Bölüm", value: course.department, emphasis: "subtle" as const }] : []),
-                  ...(yearLabel ? [{ kind: "semester" as const, label: "Sınıf", value: yearLabel, emphasis: "subtle" as const }] : []),
+                  ...(course.department
+                    ? [
+                        {
+                          kind: "department" as const,
+                          label: "Bölüm",
+                          value: course.department,
+                          emphasis: "subtle" as const,
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </div>
@@ -82,4 +84,3 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
     </Link>
   );
 }
-

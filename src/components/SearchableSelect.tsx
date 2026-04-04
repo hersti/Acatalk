@@ -4,18 +4,29 @@ import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeInput } from "@/lib/sanitize";
 
+type SearchableSelectOption = {
+  label: string;
+  value?: string;
+  sublabel?: string;
+  itemDescription?: string;
+  group?: string;
+};
+
 interface SearchableSelectProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder: string;
   searchPlaceholder?: string;
-  options: { label: string; sublabel?: string; group?: string }[];
+  options: SearchableSelectOption[];
   disabled?: boolean;
   error?: string;
   allowCustom?: boolean;
   customPlaceholder?: string;
+  variant?: "default" | "filter";
   className?: string;
 }
+
+const normalizeForSearch = (input: string) => input.toLowerCase().replace(/i̇/g, "i");
 
 export default function SearchableSelect({
   value,
@@ -27,6 +38,7 @@ export default function SearchableSelect({
   error,
   allowCustom = false,
   customPlaceholder = "Listede yoksa yazın...",
+  variant = "default",
   className,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
@@ -35,72 +47,86 @@ export default function SearchableSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFilterVariant = variant === "filter";
+
+  const getOptionDescription = (option: SearchableSelectOption) => option.itemDescription || option.sublabel || "";
+  const getOptionValue = (option: SearchableSelectOption) => sanitizeInput(option.value ?? option.label);
 
   const filtered = search.trim()
-    ? options.filter((o) => {
-        const q = search.toLowerCase().replace(/i̇/g, "i");
+    ? options.filter((option) => {
+        const q = normalizeForSearch(search);
+        const description = getOptionDescription(option);
         return (
-          o.label.toLowerCase().replace(/i̇/g, "i").includes(q) ||
-          (o.sublabel && o.sublabel.toLowerCase().replace(/i̇/g, "i").includes(q))
+          normalizeForSearch(option.label).includes(q) ||
+          (description && normalizeForSearch(description).includes(q))
         );
       })
     : options;
 
-  // Group options
-  const grouped = filtered.reduce<Record<string, typeof options>>((acc, opt) => {
-    const group = opt.group || "";
+  const grouped = filtered.reduce<Record<string, SearchableSelectOption[]>>((acc, option) => {
+    const group = option.group || "";
     if (!acc[group]) acc[group] = [];
-    acc[group].push(opt);
+    acc[group].push(option);
     return acc;
   }, {});
 
   const flatFiltered = filtered;
+  const selectedOption = options.find((option) => getOptionValue(option) === value) || null;
+  const triggerValueLabel = selectedOption?.label || (allowCustom && value ? value : "");
 
-  const handleSelect = useCallback(
-    (label: string) => {
-      onValueChange(sanitizeInput(label));
-      setOpen(false);
-      setSearch("");
-      setHighlightIndex(-1);
+  const closeDropdown = () => {
+    setOpen(false);
+    setSearch("");
+    setHighlightIndex(-1);
+  };
+
+  const handleSelectOption = useCallback(
+    (option: SearchableSelectOption) => {
+      onValueChange(getOptionValue(option));
+      closeDropdown();
     },
     [onValueChange]
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleSelectCustom = useCallback(() => {
+    const customValue = sanitizeInput(search.trim());
+    if (!customValue) return;
+    onValueChange(customValue);
+    closeDropdown();
+  }, [onValueChange, search]);
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!open) {
-      if (e.key === "Enter" || e.key === "ArrowDown" || e.key === " ") {
-        e.preventDefault();
+      if (event.key === "Enter" || event.key === "ArrowDown" || event.key === " ") {
+        event.preventDefault();
         setOpen(true);
       }
       return;
     }
 
-    switch (e.key) {
+    switch (event.key) {
       case "ArrowDown":
-        e.preventDefault();
+        event.preventDefault();
         setHighlightIndex((prev) => Math.min(prev + 1, flatFiltered.length - 1));
         break;
       case "ArrowUp":
-        e.preventDefault();
+        event.preventDefault();
         setHighlightIndex((prev) => Math.max(prev - 1, 0));
         break;
       case "Enter":
-        e.preventDefault();
+        event.preventDefault();
         if (highlightIndex >= 0 && highlightIndex < flatFiltered.length) {
-          handleSelect(flatFiltered[highlightIndex].label);
+          handleSelectOption(flatFiltered[highlightIndex]);
         } else if (allowCustom && search.trim()) {
-          handleSelect(search.trim());
+          handleSelectCustom();
         }
         break;
       case "Escape":
-        setOpen(false);
-        setSearch("");
-        setHighlightIndex(-1);
+        closeDropdown();
         break;
     }
   };
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (highlightIndex >= 0 && listRef.current) {
       const items = listRef.current.querySelectorAll("[data-option]");
@@ -108,20 +134,16 @@ export default function SearchableSelect({
     }
   }, [highlightIndex]);
 
-  // Close on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-        setHighlightIndex(-1);
+    const handler = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Focus search input when opened
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -132,28 +154,30 @@ export default function SearchableSelect({
 
   return (
     <div ref={containerRef} className={cn("relative", className)} onKeyDown={handleKeyDown}>
-      {/* Trigger button */}
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex h-10 w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm ring-offset-background transition-colors",
+          "flex w-full items-center justify-between border py-2 text-sm ring-offset-background transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          error ? "border-destructive" : "border-input hover:border-primary/40",
-          value ? "text-foreground" : "text-muted-foreground"
+          isFilterVariant
+            ? "h-9 rounded-xl border-border/70 bg-muted/35 px-3.5 shadow-sm hover:border-primary/35 hover:bg-muted/60"
+            : "h-10 rounded-lg border-input bg-background px-3",
+          open && "border-primary/40 ring-2 ring-primary/15",
+          error ? "border-destructive" : "",
+          triggerValueLabel ? "text-foreground" : "text-muted-foreground"
         )}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <span className="min-w-0 flex-1 truncate text-left">{value || placeholder}</span>
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        <span className="min-w-0 flex-1 truncate text-left">{triggerValueLabel || placeholder}</span>
+        <ChevronsUpDown className={cn("ml-2 h-4 w-4 shrink-0", isFilterVariant ? "opacity-70" : "opacity-50")} />
       </button>
 
-      {error && <p className="text-[10px] text-destructive mt-1">{error}</p>}
+      {error && <p className="mt-1 text-[10px] text-destructive">{error}</p>}
 
-      {/* Dropdown */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -161,17 +185,19 @@ export default function SearchableSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg"
+            className={cn(
+              "absolute z-50 mt-1 w-full overflow-hidden border bg-popover text-popover-foreground shadow-xl",
+              isFilterVariant ? "rounded-xl border-border/80" : "rounded-lg border-border"
+            )}
           >
-            {/* Search input */}
             <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 ref={inputRef}
                 type="text"
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                onChange={(event) => {
+                  setSearch(event.target.value);
                   setHighlightIndex(-1);
                 }}
                 placeholder={searchPlaceholder}
@@ -193,8 +219,7 @@ export default function SearchableSelect({
               )}
             </div>
 
-            {/* Options list */}
-            <div ref={listRef} className="max-h-56 overflow-y-auto p-1" role="listbox">
+            <div ref={listRef} className={cn("overflow-y-auto p-1.5", isFilterVariant ? "max-h-64" : "max-h-56")} role="listbox">
               {flatFiltered.length === 0 && !allowCustom && (
                 <p className="py-4 text-center text-xs text-muted-foreground">Sonuç bulunamadı</p>
               )}
@@ -203,49 +228,65 @@ export default function SearchableSelect({
                 <button
                   type="button"
                   data-option
-                  onClick={() => handleSelect(search.trim())}
-                  className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent/10 text-primary font-medium"
+                  onClick={handleSelectCustom}
+                  className={cn(
+                    "w-full text-left font-medium text-primary transition-colors",
+                    isFilterVariant ? "rounded-lg px-3 py-2.5 text-sm hover:bg-primary/10" : "rounded-md px-3 py-2 text-sm hover:bg-accent/10"
+                  )}
                 >
-                  "{search.trim()}" olarak ekle
+                  {customPlaceholder}
                 </button>
               )}
 
               {groupKeys.map((group) => (
                 <div key={group}>
                   {group && (
-                    <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       {group}
                     </div>
                   )}
                   {grouped[group].map((option) => {
                     const globalIndex = flatFiltered.indexOf(option);
-                    const isSelected = value === option.label;
+                    const optionValue = getOptionValue(option);
+                    const isSelected = value === optionValue;
                     const isHighlighted = globalIndex === highlightIndex;
+                    const description = getOptionDescription(option);
+
                     return (
                       <button
-                        key={option.label}
+                        key={`${optionValue}-${option.label}`}
                         type="button"
                         data-option
-                        onClick={() => handleSelect(option.label)}
+                        onClick={() => handleSelectOption(option)}
                         className={cn(
-                          "w-full rounded-md px-3 py-2 text-left text-sm flex items-center justify-between transition-colors",
-                          isHighlighted && "bg-accent/10",
+                          "flex w-full items-start justify-between gap-2 text-left transition-colors",
+                          isFilterVariant ? "rounded-lg px-3 py-2.5 text-sm" : "rounded-md px-3 py-2 text-sm",
+                          isHighlighted && (isFilterVariant ? "bg-muted/85" : "bg-accent/10"),
                           isSelected
-                            ? "bg-primary/5 text-primary font-medium"
-                            : "hover:bg-accent/5 text-foreground"
+                            ? isFilterVariant
+                              ? "bg-primary/10 text-primary ring-1 ring-primary/25"
+                              : "bg-primary/5 font-medium text-primary"
+                            : "text-foreground hover:bg-accent/5"
                         )}
                         role="option"
                         aria-selected={isSelected}
                       >
                         <div className="min-w-0">
-                          <span className="block truncate">{option.label}</span>
-                          {option.sublabel && (
-                            <span className="block text-[10px] text-muted-foreground truncate">
-                              {option.sublabel}
+                          <span className={cn("block truncate", isSelected && isFilterVariant ? "font-semibold" : "")}>
+                            {option.label}
+                          </span>
+                          {description && (
+                            <span
+                              className={cn(
+                                "block truncate text-muted-foreground",
+                                isFilterVariant ? "mt-0.5 text-xs" : "text-[10px]"
+                              )}
+                            >
+                              {description}
                             </span>
                           )}
                         </div>
-                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0 ml-2" />}
+                        {isSelected && <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
                       </button>
                     );
                   })}

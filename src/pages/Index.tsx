@@ -10,7 +10,6 @@ import SuggestAcademicDialog from "@/components/SuggestAcademicDialog";
 import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
 import { AcademicMeta } from "@/components/ui/academic-meta";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -315,6 +314,45 @@ export default function Index() {
   });
 
   const courseOptions = ["Tümü", ...filteredCourses.map((c: any) => c.name)];
+  const ALL_UNIVERSITIES_VALUE = "__all_universities__";
+
+  const universityFilterOptions = [
+    {
+      label: "Tüm Üniversiteler",
+      value: ALL_UNIVERSITIES_VALUE,
+      itemDescription: "Tüm üniversitelerdeki dersleri görüntüle",
+    },
+    ...universityOptions.map((option) => ({
+      label: option.label,
+      value: option.label,
+      itemDescription: option.sublabel,
+      group: option.group,
+    })),
+  ];
+
+  const departmentFilterOptions = browseDepartments.map((department) => ({
+    label: department === "Tümü" ? "Tüm Bölümler" : department,
+    value: department,
+    itemDescription: department === "Tümü" ? "Bölüm filtresi uygulanmaz" : undefined,
+  }));
+
+  const yearFilterOptions = filteredYears.map((year) => ({
+    label: year === "Tümü" ? "Tüm Sınıflar" : year,
+    value: year,
+    itemDescription: year === "Tümü" ? "Sınıf filtresi uygulanmaz" : undefined,
+  }));
+
+  const courseFilterOptions = courseOptions.map((course) => ({
+    label: course === "Tümü" ? "Tüm Dersler" : course,
+    value: course,
+    itemDescription: course === "Tümü" ? "Ders filtresi uygulanmaz" : undefined,
+  }));
+
+  const contentTypeFilterOptions = CONTENT_TYPES.map((contentType) => ({
+    label: contentType.value === "all" ? "Tüm Türler" : contentType.label,
+    value: contentType.value,
+    itemDescription: contentType.value === "all" ? "İçerik türü filtresi uygulanmaz" : undefined,
+  }));
 
   const canAddContent = user && userUniversity && browseUniversity === userUniversity;
   const isViewingOtherUniversity = browseUniversity && userUniversity && browseUniversity !== userUniversity;
@@ -408,42 +446,59 @@ export default function Index() {
                   )}
                 </div>
                 <SearchableSelect
-                  value={browseUniversity || "Tüm Üniversiteler"}
-                  onValueChange={(val) => {
-                    if (val === "Tüm Üniversiteler") {
+                  value={browseUniversity || ALL_UNIVERSITIES_VALUE}
+                  onValueChange={(value) => {
+                    if (value === ALL_UNIVERSITIES_VALUE) {
                       setBrowseUniversity("");
                       localStorage.removeItem("browse-university");
                     } else {
-                      setBrowseUniversity(val);
-                      localStorage.setItem("browse-university", val);
+                      setBrowseUniversity(value);
+                      localStorage.setItem("browse-university", value);
                     }
                   }}
                   placeholder="Üniversite seçin..."
                   searchPlaceholder="Üniversite veya şehir ara..."
-                  options={[
-                    { label: "Tüm Üniversiteler", sublabel: "Tüm üniversitelerin derslerini görüntüle" },
-                    ...universityOptions,
-                  ]}
+                  options={universityFilterOptions}
+                  variant="filter"
+                  className="h-9"
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                  <Select value={selectedDept} onValueChange={setSelectedDept}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedDept !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Bölüm" /></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {browseDepartments.map((d) => <SelectItem key={d} value={d}>{d === "Tümü" ? "Tüm Bölümler" : d}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedYear !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Sınıf" /></SelectTrigger>
-                    <SelectContent>{filteredYears.map((y) => <SelectItem key={y} value={y}>{y === "Tümü" ? "Tüm Sınıflar" : y}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedCourse !== "Tümü" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Ders" /></SelectTrigger>
-                    <SelectContent>{courseOptions.map((c) => <SelectItem key={c} value={c}>{c === "Tümü" ? "Tüm Dersler" : c}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <Select value={selectedContentType} onValueChange={setSelectedContentType}>
-                    <SelectTrigger className={`text-xs h-8 rounded-md ${selectedContentType !== "all" ? "border-primary/30 text-primary font-semibold" : "bg-muted border-transparent"}`}><SelectValue placeholder="Tür" /></SelectTrigger>
-                    <SelectContent>{CONTENT_TYPES.map((ct) => <SelectItem key={ct.value} value={ct.value}>{ct.value === "all" ? "Tüm Türler" : ct.label}</SelectItem>)}</SelectContent>
-                  </Select>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <SearchableSelect
+                    value={selectedDept}
+                    onValueChange={setSelectedDept}
+                    placeholder="Bölüm"
+                    searchPlaceholder="Bölüm ara..."
+                    options={departmentFilterOptions}
+                    variant="filter"
+                    className="h-9"
+                  />
+                  <SearchableSelect
+                    value={selectedYear}
+                    onValueChange={setSelectedYear}
+                    placeholder="Sınıf"
+                    searchPlaceholder="Sınıf ara..."
+                    options={yearFilterOptions}
+                    variant="filter"
+                    className="h-9"
+                  />
+                  <SearchableSelect
+                    value={selectedCourse}
+                    onValueChange={setSelectedCourse}
+                    placeholder="Ders"
+                    searchPlaceholder="Ders ara..."
+                    options={courseFilterOptions}
+                    variant="filter"
+                    className="h-9"
+                  />
+                  <SearchableSelect
+                    value={selectedContentType}
+                    onValueChange={setSelectedContentType}
+                    placeholder="Tür"
+                    searchPlaceholder="Tür ara..."
+                    options={contentTypeFilterOptions}
+                    variant="filter"
+                    className="h-9"
+                  />
                 </div>
                 {(selectedDept !== "Tümü" || selectedYear !== "Tümü" || selectedCourse !== "Tümü" || selectedContentType !== "all") && (
                   <Button
@@ -802,6 +857,7 @@ function HomepageCreateButton({
                 placeholder="Bölüm seçin..."
                 searchPlaceholder="Bölüm ara..."
                 options={departments.map((d) => ({ label: d }))}
+                variant="default"
               />
               <button
                 type="button"
@@ -837,6 +893,7 @@ function HomepageCreateButton({
                 searchPlaceholder="Ders ara..."
                 options={courseSelectOptions}
                 disabled={!department}
+                variant="default"
               />
               {department && (
                 <button
@@ -907,6 +964,7 @@ function DiscoveryPostItem({ post, showDownloads, showVotes, showComments }: {
     </Link>
   );
 }
+
 
 
 
