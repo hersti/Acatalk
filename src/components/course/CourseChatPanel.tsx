@@ -2,10 +2,10 @@ import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import { MessageCircle, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { MessageCircle, RefreshCcw, Send, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Textarea } from "@/components/ui/textarea";
 import { Surface } from "@/components/ui/surface";
@@ -34,12 +34,21 @@ export default function CourseChatPanel({
   onOpenDiscussionTab,
 }: CourseChatPanelProps) {
   const [message, setMessage] = useState("");
-  const { messages, loading, sending, featureUnavailable, sendMessage } = useCourseChat({
+  const { messages, room, loading, sending, featureUnavailable, error, sendMessage, refresh } = useCourseChat({
     courseId,
     enabled: true,
+    userId,
   });
 
-  const canSend = useMemo(() => !!message.trim() && !sending && canWrite && !!userId, [canWrite, message, sending, userId]);
+  const canSend = useMemo(
+    () => !!message.trim() && !sending && canWrite && !!userId,
+    [canWrite, message, sending, userId],
+  );
+
+  const lastActivityAt = useMemo(
+    () => messages[messages.length - 1]?.created_at || room?.lastMessageAt || null,
+    [messages, room?.lastMessageAt],
+  );
 
   const handleSend = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -49,19 +58,19 @@ export default function CourseChatPanel({
 
     const quickCheck = quickContentCheck(content);
     if (!quickCheck.safe) {
-      toast.error(quickCheck.reason || "Mesajınız platform kurallarını ihlal ediyor.");
+      toast.error(quickCheck.reason || "Mesajiniz platform kurallarini ihlal ediyor.");
       return;
     }
 
     const status = await checkUserModerationStatus(userId);
     if (!status.canPost) {
-      toast.error(status.reason || "Mesaj göndermeniz engellenmiştir.");
+      toast.error(status.reason || "Mesaj gondermeniz engellenmistir.");
       return;
     }
 
     const urlCheck = checkTextUrls(content);
     if (!urlCheck.safe) {
-      toast.error(urlCheck.reason || "Mesajınızdaki bağlantı platform kurallarını ihlal ediyor.");
+      toast.error(urlCheck.reason || "Mesajinizdaki baglanti platform kurallarini ihlal ediyor.");
       return;
     }
 
@@ -73,7 +82,7 @@ export default function CourseChatPanel({
 
     const result = await sendMessage(userId, content);
     if (!result.ok) {
-      toast.error(result.message || "Mesaj gönderilemedi.");
+      toast.error(result.message || "Mesaj gonderilemedi.");
       return;
     }
 
@@ -90,11 +99,15 @@ export default function CourseChatPanel({
               Ders Sohbeti
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {courseName} dersi için hızlı koordinasyon ve anlık yardımlaşma alanı.
+              {courseName} dersi icin hizli koordinasyon ve anlik yardimlasma alani.
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {room ? `Toplam mesaj: ${room.messageCount}` : "Bu ders icin sohbet odasi hazir."}
+              {lastActivityAt ? `  Son aktivite: ${formatDistanceToNow(new Date(lastActivityAt), { addSuffix: true, locale: tr })}` : ""}
             </p>
           </div>
           <div className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
-            Beta
+            MVP
           </div>
         </div>
       </div>
@@ -105,11 +118,11 @@ export default function CourseChatPanel({
             variant="empty"
             size="section"
             icon={<Sparkles className="h-4 w-4" />}
-            title="Ders sohbeti hazırlanıyor"
-            description="Altyapı bu ders için henüz tamamlanmadı. Kısa süre içinde canlı sohbet açılacak."
+            title="Ders sohbeti hazirlaniyor"
+            description="Altyapi bu ders icin henuz tamamlanmadi. Kisa sure icinde canli sohbet acilacak."
             primaryAction={
               <Button size="sm" variant="outline" onClick={onOpenDiscussionTab}>
-                Tartışmalara Geç
+                Tartismalara Gec
               </Button>
             }
           />
@@ -121,19 +134,32 @@ export default function CourseChatPanel({
               <StateBlock
                 variant="loading"
                 size="inline"
-                title="Sohbet yükleniyor"
-                description="Mesaj akışı hazırlanıyor."
+                title="Sohbet yukleniyor"
+                description="Mesaj akisiniz hazirlaniyor."
+              />
+            ) : error ? (
+              <StateBlock
+                variant="error"
+                size="section"
+                title="Sohbet yuklenemedi"
+                description={error}
+                primaryAction={
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void refresh()}>
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Tekrar Dene
+                  </Button>
+                }
               />
             ) : messages.length === 0 ? (
               <StateBlock
                 variant="empty"
                 size="section"
                 icon={<MessageCircle className="h-4 w-4" />}
-                title="Henüz mesaj yok"
-                description="İlk mesajı yazıp ders için hızlı iletişimi başlatabilirsiniz."
+                title="Henuz mesaj yok"
+                description="Ilk mesaji yazip ders icin hizli iletisimi baslatabilirsiniz."
                 primaryAction={
                   <Button size="sm" variant="outline" onClick={onOpenDiscussionTab}>
-                    Akademik Tartışma Aç
+                    Akademik Tartisma Ac
                   </Button>
                 }
               />
@@ -141,13 +167,15 @@ export default function CourseChatPanel({
               messages.map((chatMessage) => (
                 <div key={chatMessage.id} className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-card/70 px-3 py-2">
                   <Avatar className="h-7 w-7 shrink-0">
+                    {chatMessage.avatarUrl ? <AvatarImage src={chatMessage.avatarUrl} alt={chatMessage.displayName} /> : null}
                     <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
-                      {(chatMessage.username || "?")[0].toUpperCase()}
+                      {(chatMessage.displayName || "?")[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-semibold truncate">{chatMessage.username}</p>
+                      <p className="text-xs font-semibold truncate">{chatMessage.displayName}</p>
+                      <span className="text-[10px] text-muted-foreground">@{chatMessage.username}</span>
                       <span className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(chatMessage.created_at), { addSuffix: true, locale: tr })}
                       </span>
@@ -166,18 +194,18 @@ export default function CourseChatPanel({
                   <Textarea
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
-                    placeholder="Ders için kısa bir mesaj yazın..."
+                    placeholder="Ders icin kisa bir mesaj yazin..."
                     rows={2}
                     maxLength={1000}
                     className="min-h-[72px] resize-none"
                   />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] text-muted-foreground">
-                      Akademik sohbet kısa ve odaklı ilerler, kalıcı bilgi için Tartışmalar sekmesini kullanın.
+                      Akademik sohbet kisa ve odakli ilerler; kalici bilgi icin Tartismalar sekmesini kullanin.
                     </p>
-                    <Button type="submit" size="sm" className="gap-1.5" disabled={!canSend}>
+                    <Button type="submit" size="sm" className="gap-1.5 shrink-0" disabled={!canSend}>
                       <Send className="h-3.5 w-3.5" />
-                      Gönder
+                      Gonder
                     </Button>
                   </div>
                 </form>
@@ -186,11 +214,11 @@ export default function CourseChatPanel({
                   variant="forbidden"
                   size="inline"
                   icon={<ShieldCheck className="h-4 w-4" />}
-                  title="Yazma yetkisi sınırlı"
-                  description={`Ders sohbetine mesaj yazmak için ${courseUniversity} öğrencisi olmalısınız.`}
+                  title="Yazma yetkisi sinirli"
+                  description={`Ders sohbetine mesaj yazmak icin ${courseUniversity} ogrencisi olmalisiniz.`}
                   primaryAction={
                     <Button size="sm" variant="outline" asChild>
-                      <Link to="/settings">Profili Düzenle</Link>
+                      <Link to="/settings">Profili Duzenle</Link>
                     </Button>
                   }
                 />
@@ -199,11 +227,11 @@ export default function CourseChatPanel({
               <StateBlock
                 variant="forbidden"
                 size="inline"
-                title="Mesaj yazmak için giriş yapın"
-                description="Sohbete katılmak için hesabınıza giriş yapabilirsiniz."
+                title="Mesaj yazmak icin giris yapin"
+                description="Sohbete katilmak icin hesabiniza giris yapabilirsiniz."
                 primaryAction={
                   <Button size="sm" variant="outline" asChild>
-                    <Link to="/auth">Giriş Yap</Link>
+                    <Link to="/auth">Giris Yap</Link>
                   </Button>
                 }
               />
