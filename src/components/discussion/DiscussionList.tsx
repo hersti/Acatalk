@@ -9,7 +9,7 @@ import { DISCUSSION_TYPES, type DiscussionPost } from "./DiscussionPanel";
 
 const typeLabels: Record<string, string> = {
   soru: "Soru",
-  sinav: "Sınav",
+  sinav: "Sinav",
   kaynak: "Kaynak",
   hoca: "Hoca",
   not_sorusu: "Not",
@@ -37,9 +37,16 @@ interface DiscussionListProps {
 }
 
 export default function DiscussionList({
-  posts, loading, selectedId, onSelect,
-  search, onSearchChange, sort, onSortChange,
-  filterType, onFilterChange,
+  posts,
+  loading,
+  selectedId,
+  onSelect,
+  search,
+  onSearchChange,
+  sort,
+  onSortChange,
+  filterType,
+  onFilterChange,
 }: DiscussionListProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -47,8 +54,8 @@ export default function DiscussionList({
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Tartışmalarda ara..."
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Tartismalarda ara..."
           className="pl-8 h-8 text-xs bg-secondary/50 border-transparent"
         />
       </div>
@@ -60,9 +67,9 @@ export default function DiscussionList({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">En Yeni</SelectItem>
-            <SelectItem value="most_voted">En Çok Oy</SelectItem>
-            <SelectItem value="most_replied">En Çok Yanıt</SelectItem>
-            <SelectItem value="solved">Çözülenler</SelectItem>
+            <SelectItem value="most_voted">En Cok Oy</SelectItem>
+            <SelectItem value="most_replied">En Cok Yanit</SelectItem>
+            <SelectItem value="solved">Cozulenler</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={onFilterChange}>
@@ -70,8 +77,10 @@ export default function DiscussionList({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DISCUSSION_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+            {DISCUSSION_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -86,19 +95,20 @@ export default function DiscussionList({
           ) : posts.length === 0 ? (
             <div className="text-center py-10 px-4">
               <MessageCircle className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Tartışma bulunamadı</p>
+              <p className="text-sm font-medium text-muted-foreground">Tartisma bulunamadi</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                Arama veya filtreleri değiştirmeyi deneyin.
+                Filtreleri sadeleştirin veya bu ders icin yeni bir akademik tartisma baslatin.
               </p>
             </div>
           ) : (
             posts.map((post) => {
-              const dt = (post as any).discussion_type;
-              const solved = (post as any).is_solved;
-              const pinned = (post as any).is_pinned;
+              const discussionType = post.discussion_type;
+              const solved = post.is_solved;
+              const pinned = post.is_pinned;
               const isSelected = post.id === selectedId;
-              const displayName = post.is_anonymous ? "Anonim" : (post.profiles?.username || "Anonim");
+              const displayName = post.is_anonymous ? "Anonim" : post.profiles?.username || "Anonim";
               const initial = displayName[0]?.toUpperCase() || "?";
+
               return (
                 <button
                   key={post.id}
@@ -112,9 +122,11 @@ export default function DiscussionList({
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
-                    <div className={`flex flex-col items-center justify-center min-w-[36px] py-1 rounded-lg text-center ${
-                      (post.helpful_count ?? 0) > 0 ? "bg-primary/10" : "bg-secondary/60"
-                    }`}>
+                    <div
+                      className={`flex flex-col items-center justify-center min-w-[36px] py-1 rounded-lg text-center ${
+                        (post.helpful_count ?? 0) > 0 ? "bg-primary/10" : "bg-secondary/60"
+                      }`}
+                    >
                       <ChevronUp className={`h-3 w-3 ${(post.helpful_count ?? 0) > 0 ? "text-primary" : "text-muted-foreground"}`} />
                       <span className={`text-xs font-bold ${(post.helpful_count ?? 0) > 0 ? "text-primary" : "text-muted-foreground"}`}>
                         {post.helpful_count ?? 0}
@@ -130,21 +142,19 @@ export default function DiscussionList({
                         )}
                         {solved && (
                           <span className="flex items-center gap-0.5 text-[10px] font-bold text-success bg-success/10 px-1.5 py-0.5 rounded-md">
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Çözüldü
+                            <CheckCircle2 className="h-2.5 w-2.5" /> Cozuldu
                           </span>
                         )}
-                        {dt && typeLabels[dt] && (
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${typeBadgeColor[dt] || "bg-secondary text-muted-foreground"}`}>
-                            {typeLabels[dt]}
+                        {discussionType && typeLabels[discussionType] && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${typeBadgeColor[discussionType] || "bg-secondary text-muted-foreground"}`}>
+                            {typeLabels[discussionType]}
                           </span>
                         )}
                       </div>
 
                       <p className="text-[13px] font-semibold leading-snug line-clamp-2">{post.title}</p>
 
-                      {post.content && (
-                        <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 leading-relaxed">{post.content}</p>
-                      )}
+                      {post.content && <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 leading-relaxed">{post.content}</p>}
 
                       <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
                         <div className="flex items-center gap-1">
@@ -157,7 +167,7 @@ export default function DiscussionList({
                           )}
                           <span className="font-medium truncate max-w-[80px]">{displayName}</span>
                         </div>
-                        <span className="text-muted-foreground/50">·</span>
+                        <span className="text-muted-foreground/50">.</span>
                         <span className="flex items-center gap-0.5">
                           <MessageCircle className="h-3 w-3" />
                           {post.comment_count ?? 0}
