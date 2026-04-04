@@ -23,6 +23,7 @@ interface SearchableSelectProps {
   allowCustom?: boolean;
   customPlaceholder?: string;
   variant?: "default" | "filter";
+  panelSize?: "trigger" | "wide" | "xwide";
   className?: string;
 }
 
@@ -39,6 +40,7 @@ export default function SearchableSelect({
   allowCustom = false,
   customPlaceholder = "Listede yoksa yazın...",
   variant = "default",
+  panelSize = "trigger",
   className,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
@@ -151,6 +153,12 @@ export default function SearchableSelect({
   }, [open]);
 
   const groupKeys = Object.keys(grouped);
+  const panelWidthClass =
+    panelSize === "xwide"
+      ? "min-w-full sm:min-w-[34rem] max-w-[calc(100vw-1.5rem)]"
+      : panelSize === "wide"
+        ? "min-w-full sm:min-w-[28rem] max-w-[calc(100vw-1.5rem)]"
+        : "w-full";
 
   return (
     <div ref={containerRef} className={cn("relative", className)} onKeyDown={handleKeyDown}>
@@ -186,7 +194,8 @@ export default function SearchableSelect({
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              "absolute z-50 mt-1 w-full overflow-hidden border bg-popover text-popover-foreground shadow-xl",
+              "absolute left-0 z-50 mt-1 overflow-hidden border bg-popover text-popover-foreground shadow-xl",
+              panelWidthClass,
               isFilterVariant ? "rounded-xl border-border/80" : "rounded-lg border-border"
             )}
           >
@@ -219,7 +228,7 @@ export default function SearchableSelect({
               )}
             </div>
 
-            <div ref={listRef} className={cn("overflow-y-auto p-1.5", isFilterVariant ? "max-h-64" : "max-h-56")} role="listbox">
+            <div ref={listRef} className={cn("overflow-y-auto", isFilterVariant ? "max-h-64 p-2" : "max-h-56 p-1.5")} role="listbox">
               {flatFiltered.length === 0 && !allowCustom && (
                 <p className="py-4 text-center text-xs text-muted-foreground">Sonuç bulunamadı</p>
               )}
@@ -260,7 +269,7 @@ export default function SearchableSelect({
                         onClick={() => handleSelectOption(option)}
                         className={cn(
                           "flex w-full items-start justify-between gap-2 text-left transition-colors",
-                          isFilterVariant ? "rounded-lg px-3 py-2.5 text-sm" : "rounded-md px-3 py-2 text-sm",
+                          isFilterVariant ? "rounded-lg px-3.5 py-3 text-sm" : "rounded-md px-3 py-2 text-sm",
                           isHighlighted && (isFilterVariant ? "bg-muted/85" : "bg-accent/10"),
                           isSelected
                             ? isFilterVariant
@@ -272,14 +281,20 @@ export default function SearchableSelect({
                         aria-selected={isSelected}
                       >
                         <div className="min-w-0">
-                          <span className={cn("block truncate", isSelected && isFilterVariant ? "font-semibold" : "")}>
+                          <span
+                            className={cn(
+                              "block",
+                              isFilterVariant ? "whitespace-normal break-words leading-5" : "truncate",
+                              isSelected && isFilterVariant ? "font-semibold" : ""
+                            )}
+                          >
                             {option.label}
                           </span>
                           {description && (
                             <span
                               className={cn(
-                                "block truncate text-muted-foreground",
-                                isFilterVariant ? "mt-0.5 text-xs" : "text-[10px]"
+                                "block text-muted-foreground",
+                                isFilterVariant ? "mt-1 whitespace-normal break-words text-xs leading-5" : "truncate text-[10px]"
                               )}
                             >
                               {description}

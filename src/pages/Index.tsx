@@ -460,6 +460,7 @@ export default function Index() {
                   searchPlaceholder="Üniversite veya şehir ara..."
                   options={universityFilterOptions}
                   variant="filter"
+                  panelSize="wide"
                   className="h-9"
                 />
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -470,6 +471,7 @@ export default function Index() {
                     searchPlaceholder="Bölüm ara..."
                     options={departmentFilterOptions}
                     variant="filter"
+                    panelSize="xwide"
                     className="h-9"
                   />
                   <SearchableSelect
@@ -488,6 +490,7 @@ export default function Index() {
                     searchPlaceholder="Ders ara..."
                     options={courseFilterOptions}
                     variant="filter"
+                    panelSize="xwide"
                     className="h-9"
                   />
                   <SearchableSelect
