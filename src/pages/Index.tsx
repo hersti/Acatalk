@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,18 +9,17 @@ import SearchableSelect from "@/components/SearchableSelect";
 import SuggestAcademicDialog from "@/components/SuggestAcademicDialog";
 import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
 import { AcademicMeta } from "@/components/ui/academic-meta";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import {
-  Search, GraduationCap, BookOpen, Clock, Trophy, FileText,
-  MessageSquare, Filter, Download, ThumbsUp, TrendingUp, Plus, Building2, Globe, Lock, Users, ArrowRight, Layers, Hash
+  Search, GraduationCap, BookOpen, Trophy, FileText,
+  MessageSquare, Filter, Download, ThumbsUp, Plus, Building2, Globe, Lock, Users, ArrowRight, Layers, Hash
 } from "lucide-react";
 import type { Tables, Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
@@ -59,36 +58,14 @@ const typeLabels: Record<string, string> = {
   kaynaklar: "Kaynak",
 };
 
-/* ─── Stat Card (same style as admin panel) ─── */
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
-  return (
-    <Surface className="p-4" border="subtle">
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
-          <Icon className={`h-4 w-4 ${color}`} />
-        </div>
-      </div>
-      <p className="text-2xl font-extrabold tracking-tight">{value}</p>
-      <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
-    </Surface>
-  );
-}
-
 export default function Index() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const searchQuery = searchParams.get("search") || "";
 
   const [courses, setCourses] = useState<any[]>([]);
   const [postCounts, setPostCounts] = useState<Record<string, any>>({});
-  const [stats, setStats] = useState({ courses: 0, posts: 0, users: 0 });
-
-  const [discoveryLoading, setDiscoveryLoading] = useState(true);
-  const [recentNotes, setRecentNotes] = useState<PostWithProfile[]>([]);
-  const [topDownloaded, setTopDownloaded] = useState<PostWithProfile[]>([]);
-  const [topVoted, setTopVoted] = useState<PostWithProfile[]>([]);
-  const [activeDiscussions, setActiveDiscussions] = useState<PostWithProfile[]>([]);
   const [topContributors, setTopContributors] = useState<Tables<"profiles">[]>([]);
 
   const [browseUniversity, setBrowseUniversity] = useState("");
@@ -96,7 +73,6 @@ export default function Index() {
   const [selectedYear, setSelectedYear] = useState("Tümü");
   const [selectedCourse, setSelectedCourse] = useState("Tümü");
   const [selectedContentType, setSelectedContentType] = useState("all");
-  const [localSearch, setLocalSearch] = useState(searchQuery);
   const [searchResults, setSearchResults] = useState<PostWithProfile[]>([]);
   const [searchCourseResults, setSearchCourseResults] = useState<any[]>([]);
   const [searchUserResults, setSearchUserResults] = useState<any[]>([]);
@@ -145,8 +121,6 @@ export default function Index() {
   useEffect(() => {
     const savedUni = localStorage.getItem("browse-university");
     if (savedUni) setBrowseUniversity(savedUni);
-    fetchStats();
-    fetchDiscoverySections();
     fetchTopContributors();
     void loadCatalogUniversities();
   }, []);
@@ -173,7 +147,6 @@ export default function Index() {
   }, [user]);
 
   useEffect(() => {
-    setLocalSearch(searchQuery);
     if (searchQuery) {
       performSearch(searchQuery);
     } else {
@@ -220,14 +193,6 @@ export default function Index() {
       setSelectedYear("Tümü");
     }
   }, [selectedDept, filteredYears]);
-  const fetchStats = async () => {
-    const [c, p, u] = await Promise.all([
-      supabase.from("courses").select("id", { count: "exact", head: true }),
-      supabase.from("posts").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-    ]);
-    setStats({ courses: c.count ?? 0, posts: p.count ?? 0, users: u.count ?? 0 });
-  };
 
   const fetchCourses = async () => {
     const requestId = ++coursesFetchRequestRef.current;
@@ -289,32 +254,6 @@ export default function Index() {
     return posts.map((p) => ({ ...p, profiles: profileMap.get(p.user_id) || null, course_name: courseMap.get(p.course_id) || "" }));
   };
 
-  const fetchDiscoverySections = async () => {
-    setDiscoveryLoading(true);
-    try {
-      const [recentRes, downloadedRes, votedRes, discussionRes] = await Promise.all([
-        supabase.from("posts").select("*").in("content_type", ["notes", "past_exams", "kaynaklar"]).order("created_at", { ascending: false }).limit(5),
-        supabase.from("posts").select("*").in("content_type", ["notes", "past_exams", "kaynaklar"]).order("download_count", { ascending: false }).limit(5),
-        supabase.from("posts").select("*").order("helpful_count", { ascending: false }).limit(5),
-        supabase.from("posts").select("*").eq("content_type", "discussion").order("comment_count", { ascending: false }).limit(5),
-      ]);
-      const [r1, r2, r3, r4] = await Promise.all([
-        enrichPosts(recentRes.data || []),
-        enrichPosts(downloadedRes.data || []),
-        enrichPosts(votedRes.data || []),
-        enrichPosts(discussionRes.data || []),
-      ]);
-      setRecentNotes(r1);
-      setTopDownloaded(r2);
-      setTopVoted(r3);
-      setActiveDiscussions(r4);
-    } catch (err) {
-      console.error("Discovery fetch error:", err);
-    } finally {
-      setDiscoveryLoading(false);
-    }
-  };
-
   const fetchTopContributors = async () => {
     const { data } = await supabase.from("profiles").select("*").order("reputation_points", { ascending: false }).limit(5);
     if (data) setTopContributors(data as any);
@@ -343,24 +282,7 @@ export default function Index() {
     }
   };
 
-  const localSearchDebounceRef = useRef<ReturnType<typeof setTimeout>>();
   const coursesFetchRequestRef = useRef(0);
-
-  const handleLocalSearchChange = (value: string) => {
-    setLocalSearch(value);
-    if (localSearchDebounceRef.current) clearTimeout(localSearchDebounceRef.current);
-    localSearchDebounceRef.current = setTimeout(() => {
-      if (value.trim()) {
-        setSearchParams({ search: value.trim() }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
-    }, 300);
-  };
-
-  const handleLocalSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
 
   const filteredCourses = courses.filter((c) => {
     if (selectedDept !== "Tümü") {
@@ -406,37 +328,20 @@ export default function Index() {
       <Layout>
         <div className="border-b border-border">
           <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-            <Surface variant="soft" border="subtle" padding="lg" radius="xl">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <Surface variant="soft" border="subtle" padding="md" radius="xl">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="max-w-2xl">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                    Home Feed
-                  </p>
-                  <h1 className="mt-1 font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Ana Akış</p>
+                  <h1 className="mt-1 font-heading text-xl font-extrabold tracking-tight sm:text-2xl">
                     Akademik içerikleri tek akışta takip et
                   </h1>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Ders notları, çıkmış sorular ve tartışmaları üniversite ve bölüm bağlamıyla keşfet.
-                  </p>
-                  <form onSubmit={handleLocalSearch} className="mt-4 max-w-md">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Ders, not veya kaynak ara..."
-                        value={localSearch}
-                        onChange={(e) => handleLocalSearchChange(e.target.value)}
-                        className="h-10 rounded-lg border-border/70 bg-background pl-9"
-                      />
-                    </div>
-                  </form>
                   {!canAddContent && user && !isViewingOtherUniversity && (
-                    <p className="mt-3 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
+                    <p className="mt-2 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
                   )}
                 </div>
 
                 {canAddContent && (
-                  <div className="hidden sm:flex flex-col items-center gap-1 shrink-0">
+                  <div className="hidden shrink-0 sm:block">
                     <HomepageCreateButton
                       courses={courses}
                       university={browseUniversity || userUniversity || ""}
@@ -447,9 +352,6 @@ export default function Index() {
                         setHomeCreateOpen(true);
                       }}
                     />
-                    <p className="text-xs text-muted-foreground text-center leading-tight">
-                      Not, sınav, kaynak veya tartışma paylaş
-                    </p>
                   </div>
                 )}
               </div>
@@ -470,18 +372,13 @@ export default function Index() {
               </div>
             )}
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <StatCard icon={BookOpen} label="Toplam Ders" value={stats.courses} color="text-primary" />
-              <StatCard icon={FileText} label="Toplam İçerik" value={stats.posts} color="text-emerald-500" />
-              <StatCard icon={Users} label="Toplam Üye" value={stats.users} color="text-amber-500" />
-            </div>
           </div>
         </div>
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-12 gap-6">
             {/* Main Content */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
+            <div className="col-span-12 lg:col-span-9 space-y-6">
               {/* University Selector + Filters */}
               <Surface variant="base" border="subtle" padding="md" radius="xl">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -635,7 +532,7 @@ export default function Index() {
                       size="section"
                       icon={<Search className="h-5 w-5" />}
                       title="Sonuç bulunamadı"
-                      description={`"${searchQuery || localSearch}" için eşleşen sonuç bulunamadı.`}
+                      description={`"${searchQuery}" için eşleşen sonuç bulunamadı.`}
                     />
                   )}
                 </div>
@@ -685,78 +582,45 @@ export default function Index() {
             </div>
 
             {/* Sidebar */}
-            <div className="col-span-12 lg:col-span-4">
+            <div className="col-span-12 lg:col-span-3">
               <div className="space-y-5 lg:sticky lg:top-20">
-              <Surface variant="soft" border="subtle" padding="md" radius="xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h3 className="font-heading text-sm font-bold">Hızlı Görünüm</h3>
-                </div>
-                <AcademicMeta
-                  size="sm"
-                  tone="muted"
-                  items={[
-                    { kind: "custom", label: "Ders", value: String(stats.courses), emphasis: "subtle" },
-                    { kind: "custom", label: "İçerik", value: String(stats.posts), emphasis: "subtle" },
-                    { kind: "custom", label: "Üye", value: String(stats.users), emphasis: "subtle" },
-                  ]}
-                />
-              </Surface>
-
-              {/* Top Contributors */}
-              <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
-                <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-                    <Trophy className="h-3 w-3 text-amber-500" />
-                  </div>
-                  <h3 className="font-heading text-sm font-bold flex-1">Katkıda Bulunanlar</h3>
-                  <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
-                    Tümü <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-                <div className="p-4 space-y-3">
-                  {topContributors.length > 0 ? topContributors.map((p: any, i) => (
-                    <Link key={p.id} to={`/user/${p.user_id}`} className="flex items-center gap-3 group">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        i === 0 ? "bg-primary text-primary-foreground" : i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                      }`}>{i + 1}</span>
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback className="text-xs font-bold bg-muted text-muted-foreground">{(p.username || "?")[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.username || "Anonim"}</p>
-                        <AcademicMeta
-                          size="sm"
-                          tone="muted"
-                          wrap={false}
-                          className="mt-0.5"
-                          items={[
-                            ...(p.university ? [{ kind: "university" as const, label: "Üniversite", value: p.university, emphasis: "subtle" as const }] : []),
-                            ...(p.department ? [{ kind: "department" as const, label: "Bölüm", value: p.department, emphasis: "subtle" as const }] : []),
-                          ]}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-muted-foreground">{p.reputation_points ?? 0}</span>
+                <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                      <Trophy className="h-3 w-3 text-amber-500" />
+                    </div>
+                    <h3 className="font-heading text-sm font-bold flex-1">Katkıda Bulunanlar</h3>
+                    <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
+                      Tümü <ArrowRight className="h-3 w-3" />
                     </Link>
-                  )) : (<p className="text-xs text-muted-foreground py-4 text-center">Henüz katkı sağlayan yok.</p>)}
-                </div>
-              </Surface>
-
-              {/* Discovery Sections */}
-              {!searchQuery && (
-                discoveryLoading ? (
-                  <StateBlock variant="loading" size="inline" title="Keşif yükleniyor" description="İkincil içerikler hazırlanıyor." />
-                ) : (
-                  <>
-                    <DiscoverySection icon={Download} title="En Çok İndirilenler" posts={topDownloaded} showDownloads emptyText="Henüz indirilen içerik yok." color="text-notes" />
-                    <DiscoverySection icon={ThumbsUp} title="En Faydalı İçerikler" posts={topVoted} showVotes emptyText="Henüz oylanan içerik yok." color="text-primary" />
-                    <DiscoverySection icon={MessageSquare} title="Aktif Tartışmalar" posts={activeDiscussions} showComments emptyText="Henüz tartışma yok." color="text-discussion" />
-                    <DiscoverySection icon={Clock} title="Son Eklenenler" posts={recentNotes} emptyText="Henüz not eklenmemiş." color="text-notes" />
-                  </>
-                )
-              )}
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {topContributors.length > 0 ? topContributors.map((p: any, i) => (
+                      <Link key={p.id} to={`/user/${p.user_id}`} className="flex items-center gap-3 group">
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                          i === 0 ? "bg-primary text-primary-foreground" : i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                        }`}>{i + 1}</span>
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-xs font-bold bg-muted text-muted-foreground">{(p.username || "?")[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.username || "Anonim"}</p>
+                          <AcademicMeta
+                            size="sm"
+                            tone="muted"
+                            wrap={false}
+                            className="mt-0.5"
+                            items={[
+                              ...(p.university ? [{ kind: "university" as const, label: "Üniversite", value: p.university, emphasis: "subtle" as const }] : []),
+                              ...(p.department ? [{ kind: "department" as const, label: "Bölüm", value: p.department, emphasis: "subtle" as const }] : []),
+                            ]}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-muted-foreground">{p.reputation_points ?? 0}</span>
+                      </Link>
+                    )) : (<p className="text-xs text-muted-foreground py-4 text-center">Henüz katkı sağlayan yok.</p>)}
+                  </div>
+                </Surface>
               </div>
             </div>
           </div>
@@ -767,7 +631,7 @@ export default function Index() {
         <CreatePostDialog
           courseId={homeCreateCourseId}
           defaultType={homeCreateType}
-          onCreated={() => { setHomeCreateOpen(false); setHomeCreateCourseId(""); fetchDiscoverySections(); fetchCourses(); }}
+          onCreated={() => { setHomeCreateOpen(false); setHomeCreateCourseId(""); fetchCourses(); }}
           externalOpen={homeCreateOpen}
           onOpenChange={(open) => { if (!open) { setHomeCreateOpen(false); setHomeCreateCourseId(""); } }}
         />
@@ -1015,34 +879,6 @@ function HomepageCreateButton({
   );
 }
 
-/* Discovery Section Component */
-function DiscoverySection({ icon: Icon, title, posts, showDownloads, showVotes, showComments, emptyText, color = "text-primary" }: {
-  icon: any; title: string; posts: PostWithProfile[]; emptyText: string;
-  showDownloads?: boolean; showVotes?: boolean; showComments?: boolean; color?: string;
-}) {
-  const iconBgClass = color === "text-discussion" || color === "text-primary" ? "bg-primary/10" : "bg-emerald-500/10";
-
-  return (
-    <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
-      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <div className={`h-6 w-6 rounded-md bg-opacity-10 flex items-center justify-center ${iconBgClass}`}>
-          <Icon className={`h-3 w-3 ${color}`} />
-        </div>
-        <h3 className="font-heading text-sm font-bold">{title}</h3>
-      </div>
-      {posts.length > 0 ? (
-        <div className="divide-y divide-border/30">
-          {posts.slice(0, 4).map((post) => (
-            <DiscoveryPostItem key={post.id} post={post} showDownloads={showDownloads} showVotes={showVotes} showComments={showComments} />
-          ))}
-        </div>
-      ) : (
-        <StateBlock variant="empty" size="inline" title={emptyText} description="Yeni içerikler geldikçe burada listelenecek." className="rounded-none border-0" />
-      )}
-    </Surface>
-  );
-}
-
 /* Post Item for discovery sections */
 function DiscoveryPostItem({ post, showDownloads, showVotes, showComments }: {
   post: PostWithProfile; showDownloads?: boolean; showVotes?: boolean; showComments?: boolean;
@@ -1071,4 +907,7 @@ function DiscoveryPostItem({ post, showDownloads, showVotes, showComments }: {
     </Link>
   );
 }
+
+
+
 

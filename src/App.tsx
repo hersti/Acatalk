@@ -6,6 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import RootPage from "./pages/RootPage";
+import ProfilePage from "./pages/ProfilePage";
+import MessagesPage from "./pages/MessagesPage";
+import SettingsPage from "./pages/SettingsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import { StateBlock } from "@/components/ui/state-blocks";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -15,12 +19,9 @@ const PostPage = lazy(() => import("./pages/PostPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
-const MessagesPage = lazy(() => import("./pages/MessagesPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const UniversityChatPage = lazy(() => import("./pages/UniversityChatPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
@@ -29,18 +30,17 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const CommunityRulesPage = lazy(() => import("./pages/CommunityRulesPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CopyrightPage = lazy(() => import("./pages/CopyrightPage"));
-const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-function RouteLoadingFallback() {
+function RouteInlineFallback() {
   return (
-    <div className="min-h-screen bg-background px-4 py-10">
-      <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="rounded-xl border border-border/70 bg-card p-6">
         <StateBlock
           variant="loading"
-          size="page"
-          title="Sayfa hazırlanıyor"
-          description="İçerik yükleniyor, lütfen bekleyin."
+          size="section"
+          title="İçerik yükleniyor"
+          description="Lütfen bekleyin."
         />
       </div>
     </div>
@@ -48,7 +48,7 @@ function RouteLoadingFallback() {
 }
 
 function withRouteFallback(node: ReactNode) {
-  return <Suspense fallback={<RouteLoadingFallback />}>{node}</Suspense>;
+  return <Suspense fallback={<RouteInlineFallback />}>{node}</Suspense>;
 }
 
 const App = () => (
@@ -66,13 +66,13 @@ const App = () => (
             <Route path="/auth" element={withRouteFallback(<AuthPage />)} />
             <Route path="/forgot-password" element={withRouteFallback(<ForgotPasswordPage />)} />
             <Route path="/reset-password" element={withRouteFallback(<ResetPasswordPage />)} />
-            <Route path="/profile" element={withRouteFallback(<ProfilePage />)} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/user/:id" element={withRouteFallback(<UserProfilePage />)} />
             <Route path="/leaderboard" element={withRouteFallback(<LeaderboardPage />)} />
             <Route path="/admin" element={withRouteFallback(<AdminPage />)} />
-            <Route path="/messages" element={withRouteFallback(<MessagesPage />)} />
-            <Route path="/settings" element={withRouteFallback(<SettingsPage />)} />
-            <Route path="/notifications" element={withRouteFallback(<NotificationsPage />)} />
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/community" element={withRouteFallback(<CommunityPage />)} />
             <Route path="/university-chat" element={withRouteFallback(<UniversityChatPage />)} />
             <Route path="/about" element={withRouteFallback(<AboutPage />)} />
@@ -90,3 +90,4 @@ const App = () => (
 );
 
 export default App;
+

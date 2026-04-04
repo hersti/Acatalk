@@ -1,9 +1,9 @@
 import { lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StateBlock } from "@/components/ui/state-blocks";
+import IndexPage from "@/pages/Index";
 
 const GuestLandingPage = lazy(() => import("@/pages/GuestLandingPage"));
-const IndexPage = lazy(() => import("@/pages/Index"));
 
 function RootContentFallback() {
   return (
@@ -38,9 +38,14 @@ export default function RootPage() {
     );
   }
 
+  if (user) {
+    return <IndexPage />;
+  }
+
   return (
     <Suspense fallback={<RootContentFallback />}>
-      {user ? <IndexPage /> : <GuestLandingPage />}
+      <GuestLandingPage />
     </Suspense>
   );
 }
+

@@ -38,7 +38,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <AppSidebar />
         </div>
 
-        <div className="flex min-h-screen flex-col lg:pl-72">
+        <div className="flex min-h-screen flex-col lg:pl-64">
           <AppTopbar />
           <main className="flex-1">{children}</main>
         </div>
@@ -101,3 +101,4 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
