@@ -21,17 +21,19 @@ import PostCard from "@/components/PostCard";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import DiscussionPanel from "@/components/discussion/DiscussionPanel";
 import CourseChatPanel from "@/components/course/CourseChatPanel";
+import CourseActiveContributorsCard from "@/components/course/CourseActiveContributorsCard";
+import CourseFeaturedContentCard from "@/components/course/CourseFeaturedContentCard";
 import CourseWiki from "@/components/course/CourseWiki";
 import CourseResources from "@/components/course/CourseResources";
 import TrendingDiscussions from "@/components/course/TrendingDiscussions";
 import RecentContent from "@/components/course/RecentContent";
-import CoursePulse from "@/components/course/CoursePulse";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { normalizeCourseCode } from "@/lib/course-code";
+import { useCourseSocialSignalsV1 } from "@/hooks/useCourseSocialSignalsV1";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
 type ContentType = Database["public"]["Enums"]["content_type"];
@@ -104,6 +106,10 @@ export default function CoursePage() {
   });
 
   const canAddContent = !!user && !!course && userProfile?.university === course.university;
+  const { data: socialSignals, isLoading: socialSignalsLoading, isError: socialSignalsError, refetch: refetchSocialSignals } = useCourseSocialSignalsV1(
+    id,
+    user?.id,
+  );
 
   const fetchCourse = useCallback(async () => {
     if (!id) return;
@@ -451,7 +457,22 @@ export default function CoursePage() {
           {id && (
             <aside className="hidden lg:block">
               <div className="sticky top-16 space-y-3 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-none pb-4">
-                <CoursePulse posts={posts} />
+                <CourseActiveContributorsCard
+                  contributors={socialSignals?.contributors || []}
+                  loading={socialSignalsLoading}
+                  hasError={socialSignalsError}
+                  onRetry={() => {
+                    void refetchSocialSignals();
+                  }}
+                />
+                <CourseFeaturedContentCard
+                  featuredContent={socialSignals?.featured_content || []}
+                  loading={socialSignalsLoading}
+                  hasError={socialSignalsError}
+                  onRetry={() => {
+                    void refetchSocialSignals();
+                  }}
+                />
                 <CourseWiki courseId={id} />
                 <TrendingDiscussions courseId={id} onSelect={handleTrendingSelect} />
                 <RecentContent courseId={id} />
@@ -463,7 +484,22 @@ export default function CoursePage() {
 
         {id && (
           <div className="lg:hidden space-y-3 mt-6">
-            <CoursePulse posts={posts} />
+            <CourseActiveContributorsCard
+              contributors={socialSignals?.contributors || []}
+              loading={socialSignalsLoading}
+              hasError={socialSignalsError}
+              onRetry={() => {
+                void refetchSocialSignals();
+              }}
+            />
+            <CourseFeaturedContentCard
+              featuredContent={socialSignals?.featured_content || []}
+              loading={socialSignalsLoading}
+              hasError={socialSignalsError}
+              onRetry={() => {
+                void refetchSocialSignals();
+              }}
+            />
             <CourseWiki courseId={id} />
             <TrendingDiscussions courseId={id} onSelect={handleTrendingSelect} />
             <RecentContent courseId={id} />

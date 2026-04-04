@@ -1655,6 +1655,15 @@ export type Database = {
         Args: { p_direction: number; p_post_id: string; p_user_id: string }
         Returns: Json
       }
+      get_course_social_signals_v1: {
+        Args: {
+          p_course_id: string
+          p_days?: number
+          p_limit?: number
+          p_viewer_user_id?: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
