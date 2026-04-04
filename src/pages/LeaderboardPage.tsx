@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AcademicMeta } from "@/components/ui/academic-meta";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import { Trophy, Medal, Award, Search, Crown, Flame, TrendingUp, Users, Star } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -30,7 +32,7 @@ interface LeaderUser {
 /* ─── Stat Card ─── */
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
   return (
-    <Card className="p-4">
+    <Surface className="p-4" border="subtle">
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${color}`} />
@@ -38,7 +40,7 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
       </div>
       <p className="text-2xl font-extrabold tracking-tight">{value}</p>
       <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
-    </Card>
+    </Surface>
   );
 }
 
@@ -139,7 +141,7 @@ export default function LeaderboardPage() {
           </div>
           <div>
             <h1 className="font-heading text-lg font-extrabold tracking-tight">Sıralama</h1>
-            <p className="text-[11px] text-muted-foreground">En çok katkı sağlayan öğrenciler</p>
+            <p className="text-xs text-muted-foreground">En çok katkı sağlayan öğrenciler</p>
           </div>
         </div>
 
@@ -157,24 +159,24 @@ export default function LeaderboardPage() {
         {/* My rank banner */}
         {myRank > 0 && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
-            <Card className="p-4 mb-4 border-primary/20 bg-primary/5">
+            <Surface className="p-4 mb-4 border-primary/20 bg-primary/5" border="default">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-bold">Sıralamanız: <span className="text-primary">#{myRank}</span></p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {users.find(u => u.user_id === user?.id)?.reputation_points ?? 0} puan ile {users.length} kullanıcı arasında
                   </p>
                 </div>
               </div>
-            </Card>
+            </Surface>
           </motion.div>
         )}
 
         {/* Filters - Admin Panel Style */}
-        <Card className="p-3 mb-4">
+        <Surface variant="soft" border="subtle" padding="sm" className="mb-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -195,10 +197,10 @@ export default function LeaderboardPage() {
                   <SelectItem key={u} value={u}>{`${u} (${getUniversityMetaLabel(u)})`}</SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
-            <Badge variant="secondary" className="text-[10px] shrink-0 self-center">{filtered.length} sonuç</Badge>
+            </Select>
+            <Badge variant="secondary" className="text-xs shrink-0 self-center">{filtered.length} sonuç</Badge>
           </div>
-        </Card>
+        </Surface>
 
         {/* Top 3 podium */}
         {filtered.length >= 3 && !search.trim() && uniFilter === "all" && (
@@ -210,7 +212,13 @@ export default function LeaderboardPage() {
               const order = [1, 0, 2];
               return (
                 <Link to={`/user/${u.user_id}`} key={u.id} className="flex flex-col items-center">
-                  <Card className={`w-full flex flex-col items-center justify-end p-3 ${idx === 0 ? "border-gold/30 bg-gold/5" : ""} ${heights[order.indexOf(idx)]}`}>
+                  <Surface
+                    variant="soft"
+                    border="subtle"
+                    padding="sm"
+                    radius="lg"
+                    className={`w-full flex flex-col items-center justify-end ${idx === 0 ? "border-gold/30 bg-gold/5" : ""} ${heights[order.indexOf(idx)]}`}
+                  >
                     <Avatar className={`${idx === 0 ? "h-12 w-12" : "h-10 w-10"} mb-1.5`}>
                       <AvatarFallback className={`font-bold text-sm ${idx === 0 ? "gradient-hero text-primary-foreground" : "bg-primary/10 text-primary"}`}>
                         {(u.username || "?")[0].toUpperCase()}
@@ -219,7 +227,7 @@ export default function LeaderboardPage() {
                     {getRankDisplay(idx)}
                     <p className="font-heading font-bold text-xs mt-1 truncate max-w-full">{u.username || "Anonim"}</p>
                     <p className="text-primary font-extrabold text-sm">{u.reputation_points ?? 0}</p>
-                  </Card>
+                  </Surface>
                 </Link>
               );
             })}
@@ -227,12 +235,16 @@ export default function LeaderboardPage() {
         )}
 
         {/* List */}
-        <Card className="overflow-hidden" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+        <Surface className="overflow-hidden" variant="raised" padding="none" border="default" radius="lg">
           <div className="p-1">
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <Flame className="h-6 w-6 text-muted-foreground/30 animate-pulse" />
-              </div>
+              <StateBlock
+                variant="loading"
+                size="section"
+                icon={<Flame className="h-5 w-5" />}
+                title="Sıralama yükleniyor"
+                description="Liderlik listesi hazırlanıyor."
+              />
             ) : filtered.length > 0 ? filtered.map((u, i) => (
               <motion.div
                 key={u.id}
@@ -256,27 +268,41 @@ export default function LeaderboardPage() {
                         <BadgeDisplay badges={badgeMap.get(u.user_id)!} maxShow={3} size="xs" />
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {u.university
-                        ? `${u.university} (${getUniversityMetaLabel(u.university)})${u.department ? ` · ${u.department}` : ""}`
-                        : (u.department || "—")}
-                    </p>
+                    <AcademicMeta
+                      size="sm"
+                      tone="muted"
+                      wrap={false}
+                      items={[
+                        ...(u.university
+                          ? [{ kind: "university" as const, label: "Üniversite", value: `${u.university} (${getUniversityMetaLabel(u.university)})`, emphasis: "subtle" as const }]
+                          : []),
+                        ...(u.department
+                          ? [{ kind: "department" as const, label: "Bölüm", value: u.department, emphasis: "subtle" as const }]
+                          : []),
+                        ...(!u.university && !u.department
+                          ? [{ kind: "custom" as const, label: "Profil", value: "Akademik bilgi yok", emphasis: "subtle" as const }]
+                          : []),
+                      ]}
+                      className="mt-0.5"
+                    />
                   </div>
                   <div className="text-right shrink-0">
                     <span className="font-heading font-extrabold text-lg text-primary">{u.reputation_points ?? 0}</span>
-                    <p className="text-[10px] text-muted-foreground font-medium">puan</p>
+                    <p className="text-xs text-muted-foreground font-medium">puan</p>
                   </div>
                 </Link>
               </motion.div>
             )) : (
-              <div className="text-center py-12 rounded-lg bg-muted/30">
-                <Search className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-foreground mb-1">Sonuç bulunamadı</p>
-                <p className="text-xs text-muted-foreground">Farklı filtrelerle tekrar deneyin.</p>
-              </div>
+              <StateBlock
+                variant="noResults"
+                size="section"
+                icon={<Search className="h-5 w-5" />}
+                title="Sonuç bulunamadı"
+                description="Farklı filtrelerle tekrar deneyin."
+              />
             )}
           </div>
-        </Card>
+        </Surface>
       </div>
     </Layout>
   );

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Surface } from "@/components/ui/surface";
 import { toast } from "sonner";
 import { HelpCircle, Send, Loader2 } from "lucide-react";
 import { quickContentCheck } from "@/lib/profanity-filter";
@@ -68,7 +69,10 @@ export default function SupportButton() {
               Destek Talebi
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <Surface variant="soft" border="subtle" padding="md" radius="lg" className="space-y-4">
+            <p className="text-[11px] text-muted-foreground">
+              Talebiniz hesabınızla ilişkilendirilir ve en kısa sürede yanıtlanır.
+            </p>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Konu <span className="text-destructive">*</span></Label>
               <Input
@@ -99,7 +103,7 @@ export default function SupportButton() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {loading ? "Gönderiliyor..." : "Gönder"}
             </Button>
-          </div>
+          </Surface>
         </DialogContent>
       </Dialog>
     </>

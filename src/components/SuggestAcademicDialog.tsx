@@ -300,12 +300,15 @@ export default function SuggestAcademicDialog({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Sınıf</Label>
               <Select value={classYear} onValueChange={setClassYear}>
-                <SelectTrigger className="h-9 text-sm" disabled={!department}>
+                <SelectTrigger
+                  className="h-9 rounded-lg border-border/70 bg-background text-sm hover:border-primary/30"
+                  disabled={!department}
+                >
                   <SelectValue placeholder={department ? `0-${maxClassYear} arası seçin` : "Önce bölüm seçin"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-lg border-border/70 p-1">
                   {classYearOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem key={option.value} value={option.value} className="rounded-md py-2 text-sm">
                       {option.label}
                     </SelectItem>
                   ))}

@@ -5,10 +5,12 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import MentionInput from "@/components/MentionInput";
 import { renderMentions } from "@/components/MentionInput";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
+import { AcademicMeta } from "@/components/ui/academic-meta";
 import { toast } from "sonner";
 import { Send, Lock, GraduationCap, Loader2, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -143,8 +145,13 @@ export default function UniversityChatPage() {
   if (loadingProfile) {
     return (
       <Layout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <StateBlock
+            variant="loading"
+            size="section"
+            title="Üniversite bilgisi yükleniyor"
+            description="Sohbet erişimi kontrol ediliyor."
+          />
         </div>
       </Layout>
     );
@@ -153,13 +160,19 @@ export default function UniversityChatPage() {
   if (!university) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16 max-w-md text-center">
-          <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="font-heading text-xl font-bold mb-2">Üniversite Sohbeti</h1>
-          <p className="text-sm text-muted-foreground mb-4">
-            Üniversite sohbetine katılmak için profilinizde üniversitenizi belirtmelisiniz.
-          </p>
-          <Button onClick={() => navigate("/settings")}>Profili Düzenle</Button>
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <StateBlock
+            variant="forbidden"
+            size="section"
+            icon={<Lock className="h-5 w-5" />}
+            title="Üniversite Sohbeti"
+            description="Üniversite sohbetine katılmak için profilinizde üniversite bilgisi belirtmelisiniz."
+            primaryAction={
+              <Button onClick={() => navigate("/settings")} size="sm">
+                Profili Düzenle
+              </Button>
+            }
+          />
         </div>
       </Layout>
     );
@@ -168,38 +181,54 @@ export default function UniversityChatPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Card className="overflow-hidden border-border/70 surface-soft">
+        <Surface className="overflow-hidden" variant="soft" border="subtle" padding="none" radius="lg">
           <div className="px-4 py-3 border-b border-border/70 bg-secondary/30 flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-primary" />
-            <h1 className="font-heading text-sm font-bold">{university} Sohbet</h1>
+            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <h1 className="font-heading text-sm font-bold">{university} Sohbet</h1>
+              <AcademicMeta
+                size="sm"
+                tone="muted"
+                wrap={false}
+                className="mt-1"
+                items={[
+                  { kind: "verified", label: "Doğrulanmış öğrenci", emphasis: "default" },
+                  { kind: "university", label: "Üniversite", value: university, emphasis: "subtle" },
+                ]}
+              />
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/70 px-2 py-1 rounded-full">
                 <Users className="h-3 w-3 text-primary" />
                 <span className="font-medium">{onlineCount} çevrimiçi</span>
               </div>
               <Lock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Sadece {university} öğrencileri</span>
+              <span className="text-xs text-muted-foreground">Sadece {university} öğrencileri</span>
             </div>
           </div>
 
           <ScrollArea className="h-[60vh]">
             <div className="p-4 space-y-3">
               {messages.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-8">
-                  Henüz mesaj yok. İlk mesajı siz yazın!
-                </p>
+                <StateBlock
+                  variant="empty"
+                  size="inline"
+                  title="Henüz mesaj yok"
+                  description="İlk mesajı siz yazın."
+                  className="py-8"
+                />
               )}
               {messages.map((msg) => {
                 const isOwn = msg.user_id === user?.id;
                 return (
                   <div key={msg.id} className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
                     <Avatar className="h-7 w-7 shrink-0">
-                      <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
+                      <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
                         {(msg.profiles?.username || "?")[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className={`max-w-[75%] ${isOwn ? "text-right" : ""}`}>
-                      <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">
+                      <p className="text-xs text-muted-foreground mb-0.5 font-medium">
                         {msg.profiles?.username || "Anonim"} · {formatDistanceToNow(new Date(msg.created_at!), { addSuffix: true, locale: tr })}
                       </p>
                       <div className={`inline-block px-3 py-2 rounded-xl text-sm ${isOwn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
@@ -237,7 +266,7 @@ export default function UniversityChatPage() {
               </Button>
             </div>
           </div>
-        </Card>
+        </Surface>
       </div>
     </Layout>
   );

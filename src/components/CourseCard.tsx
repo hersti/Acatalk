@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Card } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
+import { AcademicMeta } from "@/components/ui/academic-meta";
 import { FileText, MessageSquare, BookOpen, BookMarked, ArrowRight } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { normalizeCourseCode } from "@/lib/course-code";
@@ -15,50 +16,71 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
 
   return (
     <Link to={`/course/${course.id}`}>
-      <Card className="group overflow-hidden rounded-lg hover:border-primary/30 transition-all duration-200 cursor-pointer h-full hover-lift">
-        <div className="p-4">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+      <Surface
+        className="group h-full cursor-pointer overflow-hidden transition-colors duration-200 hover:border-primary/30"
+        variant="raised"
+        border="default"
+        padding="none"
+        radius="xl"
+      >
+        <div className="p-3">
+          <div className="mb-1.5 flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center gap-1.5">
                 {normalizedCode && (
-                  <span className="text-[10px] font-semibold tracking-wide uppercase text-primary">{normalizedCode}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">{normalizedCode}</span>
                 )}
                 {(course as any).year !== null && (course as any).year !== undefined && (
-                  <span className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                     {(course as any).year === 0 ? "Hazırlık" : `${(course as any).year}. Sınıf`}
                   </span>
                 )}
               </div>
-              <h3 className="font-heading text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+              <h3 className="line-clamp-2 font-heading text-sm font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
                 {course.name}
               </h3>
-              {course.department && (
-                <p className="text-xs text-muted-foreground mt-1">{course.department}</p>
-              )}
+              <AcademicMeta
+                size="sm"
+                tone="muted"
+                wrap={false}
+                className="mt-1"
+                items={[
+                  ...(course.department
+                    ? [
+                        {
+                          kind: "department" as const,
+                          label: "Bölüm",
+                          value: course.department,
+                          emphasis: "subtle" as const,
+                        },
+                      ]
+                    : []),
+                ]}
+              />
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0 ml-3 mt-1" />
+            <ArrowRight className="ml-2 mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-primary" />
           </div>
 
-          <div className="flex items-center gap-3 pt-3 mt-2 border-t border-border flex-wrap">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-border pt-2">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <FileText className="h-3 w-3" />
               <span className="font-medium text-foreground">{counts.notes}</span> not
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <BookOpen className="h-3 w-3" />
               <span className="font-medium text-foreground">{counts.past_exams}</span> çıkmış
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <MessageSquare className="h-3 w-3" />
               <span className="font-medium text-foreground">{counts.discussion}</span> tartışma
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <BookMarked className="h-3 w-3" />
               <span className="font-medium text-foreground">{counts.kaynaklar}</span> kaynak
             </div>
           </div>
         </div>
-      </Card>
+      </Surface>
     </Link>
   );
 }

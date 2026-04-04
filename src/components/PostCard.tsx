@@ -4,9 +4,9 @@ import { tr } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, FileText, MessageCircle, EyeOff, Download, Trash2, Flag } from "lucide-react";
+import { Surface } from "@/components/ui/surface";
+import { AcademicMeta } from "@/components/ui/academic-meta";
+import { ChevronUp, ChevronDown, FileText, MessageCircle, EyeOff, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import BookmarkButton from "@/components/BookmarkButton";
 import ReportDialog from "@/components/ReportDialog";
@@ -87,10 +87,21 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
   const canShowProfile = !(post as any).is_anonymous && post.profiles?.user_id;
   const fileName = (post as any).file_name || "Dosya";
   const fileLabel = getFileTypeLabel(fileName);
+  const metaItems = [
+    ...(post.profiles?.university ? [{ kind: "university" as const, label: "Üniversite", value: post.profiles.university, emphasis: "subtle" as const }] : []),
+    ...(post.profiles?.department ? [{ kind: "department" as const, label: "Bölüm", value: post.profiles.department, emphasis: "subtle" as const }] : []),
+    ...(post.content_type ? [{ kind: "contentType" as const, label: "İçerik", value: typeLabels[post.content_type], emphasis: "subtle" as const }] : []),
+  ];
 
   return (
     <Link to={`/post/${post.id}`}>
-      <Card className="overflow-hidden rounded-xl hover:border-primary/20 transition-all duration-200 cursor-pointer hover-lift">
+      <Surface
+        className="overflow-hidden hover:border-primary/20 transition-all duration-200 cursor-pointer hover-lift"
+        variant="raised"
+        border="default"
+        padding="none"
+        radius="xl"
+      >
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="flex flex-col items-center gap-0.5 min-w-[40px] pt-0.5">
@@ -120,6 +131,14 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
               </div>
 
               <h3 className="font-heading font-bold text-sm sm:text-base leading-snug text-foreground mb-1.5 line-clamp-2">{post.title}</h3>
+              {metaItems.length > 0 && (
+                <AcademicMeta
+                  items={metaItems}
+                  size="sm"
+                  tone="muted"
+                  className="mb-2"
+                />
+              )}
               {post.content && <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{post.content}</p>}
 
               {post.file_url && (
@@ -154,7 +173,7 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
             </div>
           </div>
         </div>
-      </Card>
+      </Surface>
     </Link>
   );
 }

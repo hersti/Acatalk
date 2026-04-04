@@ -8,6 +8,8 @@ import MentionInput, { renderMentions } from "@/components/MentionInput";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import { toast } from "sonner";
 import { Send, Globe, Trash2, Users } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -142,14 +144,16 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        <Card className="flex flex-col overflow-hidden border-border/70 surface-soft" style={{ height: "calc(100vh - 220px)" }}>
+        <Surface variant="soft" border="subtle" padding="none" radius="lg" className="flex flex-col overflow-hidden" style={{ height: "calc(100vh - 220px)" }}>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
-              <div className="text-center py-16">
-                <Globe className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground font-medium">Henüz mesaj yok</p>
-                <p className="text-xs text-muted-foreground mt-1">İlk mesajı siz yazın!</p>
-              </div>
+              <StateBlock
+                variant="empty"
+                size="inline"
+                icon={<Globe className="h-4 w-4" />}
+                title="Heniz mesaj yok"
+                description="Ilk mesaji siz yazin."
+              />
             )}
             {messages.map((m, i) => {
               const isOwn = m.user_id === user?.id;
@@ -224,7 +228,7 @@ export default function CommunityPage() {
               </p>
             </div>
           )}
-        </Card>
+        </Surface>
       </div>
     </Layout>
   );

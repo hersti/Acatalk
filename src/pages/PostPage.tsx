@@ -7,9 +7,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import CommentSection from "@/components/CommentSection";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import {
   ChevronUp, ChevronDown, Download, FileText,
   MessageCircle, EyeOff, Calendar, BookOpen
@@ -112,8 +113,13 @@ export default function PostPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="inline-block h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <StateBlock
+            variant="loading"
+            size="section"
+            title="Gönderi yükleniyor"
+            description="Gönderi detayları hazırlanıyor."
+          />
         </div>
       </Layout>
     );
@@ -122,9 +128,18 @@ export default function PostPage() {
   if (!post) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16 text-center">
-          <p className="text-muted-foreground">Gönderi bulunamadı.</p>
-          <Link to="/" className="text-primary hover:underline text-sm mt-2 inline-block">Ana sayfaya dön</Link>
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <StateBlock
+            variant="noResults"
+            size="section"
+            title="Gönderi bulunamadı"
+            description="Gönderi kaldırılmış olabilir veya bağlantı geçersiz olabilir."
+            primaryAction={
+              <Button asChild variant="outline" size="sm">
+                <Link to="/">Ana sayfaya dön</Link>
+              </Button>
+            }
+          />
         </div>
       </Layout>
     );
@@ -159,7 +174,7 @@ export default function PostPage() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="overflow-hidden border-0" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+          <Surface className="overflow-hidden" variant="raised" padding="none" border="none" radius="xl">
             <div className="p-5 sm:p-6 border-b">
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${typeBadgeClass[post.content_type]}`}>
@@ -261,7 +276,7 @@ export default function PostPage() {
               </h3>
               <CommentSection postId={post.id} />
             </div>
-          </Card>
+          </Surface>
         </motion.div>
       </div>
     </Layout>

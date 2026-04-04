@@ -1,18 +1,55 @@
 import { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import Navbar from "./Navbar";
+import { Link, useLocation } from "react-router-dom";
 import SupportButton from "./SupportButton";
 import { GraduationCap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalPresence } from "@/hooks/useGlobalPresence";
+import AppSidebar from "@/components/shell/AppSidebar";
+import AppTopbar from "@/components/shell/AppTopbar";
+import PublicTopbar from "@/components/shell/PublicTopbar";
+
+function shouldUseAuthenticatedShell(pathname: string) {
+  if (pathname === "/") return true;
+  if (pathname.startsWith("/course/")) return true;
+  if (pathname.startsWith("/post/")) return true;
+  if (pathname === "/profile") return true;
+  if (pathname.startsWith("/user/")) return true;
+  if (pathname === "/leaderboard") return true;
+  if (pathname === "/messages") return true;
+  if (pathname === "/settings") return true;
+  if (pathname === "/notifications") return true;
+  if (pathname === "/community") return true;
+  if (pathname === "/university-chat") return true;
+  if (pathname === "/admin") return true;
+
+  return false;
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const location = useLocation();
   useGlobalPresence(user?.id);
+  const isAuthenticatedAppShell = !!user && shouldUseAuthenticatedShell(location.pathname);
+
+  if (isAuthenticatedAppShell) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:block">
+          <AppSidebar />
+        </div>
+
+        <div className="flex min-h-screen flex-col lg:pl-64">
+          <AppTopbar />
+          <main className="flex-1">{children}</main>
+        </div>
+        <SupportButton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+      <PublicTopbar />
       <main className="flex-1">{children}</main>
       <SupportButton />
       <footer className="border-t border-border bg-muted/30 mt-12">
@@ -64,3 +101,4 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+

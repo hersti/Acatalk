@@ -7,9 +7,10 @@ import { tr } from "date-fns/locale";
 import Layout from "@/components/Layout";
 import UserSearchDialog from "@/components/UserSearchDialog";
 import MentionInput, { renderMentions } from "@/components/MentionInput";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Surface } from "@/components/ui/surface";
 import { ArrowLeft, Send, MessageCircle, MoreVertical, Ban, EyeOff, Link2, Link2Off } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
@@ -303,7 +304,7 @@ export default function MessagesPage() {
           </div>
           <div>
             <h1 className="font-heading text-xl font-extrabold">Mesajlar</h1>
-            <p className="text-[11px] text-muted-foreground">Bağlantılarınızla mesajlaşın</p>
+            <p className="text-xs text-muted-foreground">Bağlantılarınızla mesajlaşın</p>
           </div>
           <div className="ml-auto">
             <UserSearchDialog onUserSelected={handleUserSelected} />
@@ -312,7 +313,13 @@ export default function MessagesPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ minHeight: "64vh" }}>
           {/* Conversation List */}
-          <Card className={`overflow-hidden border-border/70 surface-soft ${activeConv ? "hidden md:block" : ""}`}>
+          <Surface
+            variant="soft"
+            border="subtle"
+            padding="none"
+            radius="lg"
+            className={`overflow-hidden ${activeConv ? "hidden md:block" : ""}`}
+          >
             <div className="p-3 border-b border-border/70 flex items-center gap-2">
               <Link2 className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs font-semibold">Sohbetler</span>
@@ -334,23 +341,32 @@ export default function MessagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{c.other_username}</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: true, locale: tr })}
                     </p>
                   </div>
                 </button>
               )) : (
-                <div className="text-center py-10">
-                  <Link2Off className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Henüz sohbet yok.</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Bağlantı kurduğunuz kullanıcılara mesaj gönderebilirsiniz.</p>
-                </div>
+                <StateBlock
+                  variant="empty"
+                  size="inline"
+                  icon={<Link2Off className="h-4 w-4" />}
+                  title="Henüz sohbet yok"
+                  description="Bağlantı kurduğunuz kullanıcılarla burada sohbet başlatabilirsiniz."
+                  className="m-3"
+                />
               )}
             </div>
-          </Card>
+          </Surface>
 
           {/* Chat Area */}
-          <Card className={`md:col-span-2 flex flex-col overflow-hidden border-border/70 surface-soft ${!activeConv ? "hidden md:flex" : ""}`}>
+          <Surface
+            variant="soft"
+            border="subtle"
+            padding="none"
+            radius="lg"
+            className={`md:col-span-2 flex flex-col overflow-hidden ${!activeConv ? "hidden md:flex" : ""}`}
+          >
             {activeConv && activeConvData ? (
               <>
                 <div className="p-3 border-b border-border/70 flex items-center gap-3">
@@ -368,7 +384,7 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{activeConvData.other_username}</p>
                     {typingUsers.length > 0 ? (
-                      <p className="text-[11px] text-primary animate-pulse flex items-center gap-1">
+                      <p className="text-xs text-primary animate-pulse flex items-center gap-1">
                         <span className="flex gap-0.5">
                           <span className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                           <span className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -410,7 +426,7 @@ export default function MessagesPage() {
                           : "bg-secondary rounded-bl-md"
                       }`}>
                         <p className="text-sm leading-relaxed">{renderMentions(m.content)}</p>
-                        <p className={`text-[10px] mt-1 ${m.sender_id === user.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        <p className={`text-xs mt-1 ${m.sender_id === user.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: tr })}
                         </p>
                       </div>
@@ -437,15 +453,17 @@ export default function MessagesPage() {
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <MessageCircle className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Bir konuşma seçin veya yeni bir sohbet başlatın.</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Bağlantılarınıza mesaj gönderebilirsiniz.</p>
-                </div>
+              <div className="flex-1 p-4">
+                <StateBlock
+                  variant="empty"
+                  size="section"
+                  icon={<MessageCircle className="h-5 w-5" />}
+                  title="Bir konusma secin"
+                  description="Sol listeden sohbet secin veya yeni sohbet baslatin."
+                />
               </div>
             )}
-          </Card>
+          </Surface>
         </div>
       </div>
     </Layout>
@@ -464,7 +482,7 @@ function OnlineDot({ userId }: { userId: string }) {
 function OnlineStatusText({ userId }: { userId: string }) {
   const online = useIsUserOnline(userId);
   return (
-    <p className={`text-[11px] ${online ? "text-emerald-500" : "text-muted-foreground"}`}>
+    <p className={`text-xs ${online ? "text-emerald-500" : "text-muted-foreground"}`}>
       {online ? "Çevrimiçi" : "Çevrimdışı"}
     </p>
   );
