@@ -174,8 +174,12 @@ export default function CourseChatPanel({
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-semibold truncate">{chatMessage.displayName}</p>
-                      <span className="text-[10px] text-muted-foreground">@{chatMessage.username}</span>
+                      <Link to={`/user/${chatMessage.user_id}`} className="text-xs font-semibold truncate hover:text-primary transition-colors">
+                        {chatMessage.displayName}
+                      </Link>
+                      <Link to={`/user/${chatMessage.user_id}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors">
+                        @{chatMessage.username}
+                      </Link>
                       <span className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(chatMessage.created_at), { addSuffix: true, locale: tr })}
                       </span>
