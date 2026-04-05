@@ -8,7 +8,11 @@ import CreatePostDialog from "@/components/CreatePostDialog";
 import SearchableSelect from "@/components/SearchableSelect";
 import SuggestAcademicDialog from "@/components/SuggestAcademicDialog";
 import AcademicProgramRequestDialog from "@/components/AcademicProgramRequestDialog";
-import { AcademicMeta } from "@/components/ui/academic-meta";
+import FeedRecommendedCoursesBlock from "@/components/feed/FeedRecommendedCoursesBlock";
+import FeedActiveCoursesBlock from "@/components/feed/FeedActiveCoursesBlock";
+import FeedResumeCoursesBlock from "@/components/feed/FeedResumeCoursesBlock";
+import FeedUsefulContentBlock from "@/components/feed/FeedUsefulContentBlock";
+import FeedQuickActionsCard from "@/components/feed/FeedQuickActionsCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,11 +22,12 @@ import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import {
   Search, GraduationCap, BookOpen, Trophy, FileText,
-  MessageSquare, Filter, Download, ThumbsUp, Plus, Building2, Globe, Lock, Users, ArrowRight, Layers, Hash
+  MessageSquare, Filter, Download, ThumbsUp, Plus, Building2, Lock, Layers, Hash
 } from "lucide-react";
 import type { Tables, Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { buildCourseSelectLabel, normalizeCourseCode } from "@/lib/course-code";
+import { useFeedSnapshotV1 } from "@/hooks/useFeedSnapshotV1";
 import {
   fetchAcademicProgramsForUniversity,
   fetchUniversitiesCatalog,
@@ -65,7 +70,6 @@ export default function Index() {
 
   const [courses, setCourses] = useState<any[]>([]);
   const [postCounts, setPostCounts] = useState<Record<string, any>>({});
-  const [topContributors, setTopContributors] = useState<Tables<"profiles">[]>([]);
 
   const [browseUniversity, setBrowseUniversity] = useState("");
   const [selectedDept, setSelectedDept] = useState("Tümü");
@@ -85,6 +89,7 @@ export default function Index() {
   const [homeCreateOpen, setHomeCreateOpen] = useState(false);
   const [homeCreateCourseId, setHomeCreateCourseId] = useState("");
   const [homeCreateType, setHomeCreateType] = useState<ContentType>("notes");
+  const { data: feedSnapshot, isLoading: feedLoading } = useFeedSnapshotV1(user?.id, 8, 8, 30);
 
   const universityOptions = catalogUniversities.map((u) => ({
     label: u.name,
@@ -120,7 +125,6 @@ export default function Index() {
   useEffect(() => {
     const savedUni = localStorage.getItem("browse-university");
     if (savedUni) setBrowseUniversity(savedUni);
-    fetchTopContributors();
     void loadCatalogUniversities();
   }, []);
 
@@ -253,11 +257,6 @@ export default function Index() {
     return posts.map((p) => ({ ...p, profiles: profileMap.get(p.user_id) || null, course_name: courseMap.get(p.course_id) || "" }));
   };
 
-  const fetchTopContributors = async () => {
-    const { data } = await supabase.from("profiles").select("*").order("reputation_points", { ascending: false }).limit(5);
-    if (data) setTopContributors(data as any);
-  };
-
   const performSearch = async (query: string) => {
     setSearching(true);
     const [postsRes, coursesRes, usersRes] = await Promise.all([
@@ -356,6 +355,7 @@ export default function Index() {
 
   const canAddContent = user && userUniversity && browseUniversity === userUniversity;
   const isViewingOtherUniversity = browseUniversity && userUniversity && browseUniversity !== userUniversity;
+  const isSearchMode = !!searchQuery.trim();
   const currentUniversityId =
     catalogUniversities.find((u) => u.name === (browseUniversity || userUniversity || ""))?.id ||
     userUniversityId ||
@@ -417,6 +417,14 @@ export default function Index() {
           <div className="grid grid-cols-12 gap-6">
             {/* Main Content */}
             <div className="col-span-12 lg:col-span-9 space-y-6">
+              {!isSearchMode && (
+                <>
+                  <FeedRecommendedCoursesBlock items={feedSnapshot?.recommended_courses || []} loading={feedLoading} />
+                  <FeedActiveCoursesBlock items={feedSnapshot?.active_courses || []} loading={feedLoading} />
+                  <FeedUsefulContentBlock items={feedSnapshot?.useful_posts || []} loading={feedLoading} />
+                </>
+              )}
+
               {/* University Selector + Filters */}
               <Surface variant="base" border="subtle" padding="md" radius="xl">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -642,42 +650,30 @@ export default function Index() {
             {/* Sidebar */}
             <div className="col-span-12 lg:col-span-3">
               <div className="space-y-5 lg:sticky lg:top-20">
-                <Surface variant="base" border="subtle" padding="none" radius="xl" className="overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-                      <Trophy className="h-3 w-3 text-amber-500" />
-                    </div>
-                    <h3 className="font-heading text-sm font-bold flex-1">Katkıda Bulunanlar</h3>
-                    <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
-                      Tümü <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {topContributors.length > 0 ? topContributors.map((p: any, i) => (
-                      <Link key={p.id} to={`/user/${p.user_id}`} className="flex items-center gap-3 group">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                          i === 0 ? "bg-primary text-primary-foreground" : i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        }`}>{i + 1}</span>
-                        <Avatar className="h-7 w-7">
-                          <AvatarFallback className="text-xs font-bold bg-muted text-muted-foreground">{(p.username || "?")[0].toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.username || "Anonim"}</p>
-                          <AcademicMeta
-                            size="sm"
-                            tone="muted"
-                            wrap={false}
-                            className="mt-0.5"
-                            items={[
-                              ...(p.university ? [{ kind: "university" as const, label: "Üniversite", value: p.university, emphasis: "subtle" as const }] : []),
-                              ...(p.department ? [{ kind: "department" as const, label: "Bölüm", value: p.department, emphasis: "subtle" as const }] : []),
-                            ]}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-muted-foreground">{p.reputation_points ?? 0}</span>
-                      </Link>
-                    )) : (<p className="text-xs text-muted-foreground py-4 text-center">Henüz katkı sağlayan yok.</p>)}
-                  </div>
+                <FeedResumeCoursesBlock items={feedSnapshot?.resume_courses || []} loading={feedLoading} />
+                <FeedQuickActionsCard
+                  canAddContent={!!canAddContent}
+                  isViewingOtherUniversity={!!isViewingOtherUniversity}
+                  onOpenCreate={() => {
+                    if (!canAddContent || courses.length === 0) return;
+                    const targetCourse = courses[0];
+                    setHomeCreateCourseId(targetCourse.id);
+                    setHomeCreateType("notes");
+                    setHomeCreateOpen(true);
+                  }}
+                  onSwitchToOwnUniversity={
+                    userUniversity
+                      ? () => {
+                          setBrowseUniversity(userUniversity);
+                          localStorage.setItem("browse-university", userUniversity);
+                        }
+                      : undefined
+                  }
+                />
+                <Surface variant="base" border="subtle" padding="sm" radius="lg" className="text-center">
+                  <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1">
+                    Katki siralamasini gor
+                  </Link>
                 </Surface>
               </div>
             </div>

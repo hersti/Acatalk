@@ -34,6 +34,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { normalizeCourseCode } from "@/lib/course-code";
 import { useCourseSocialSignalsV1 } from "@/hooks/useCourseSocialSignalsV1";
+import { recordCourseVisitLocal } from "@/lib/course-visits";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
 type ContentType = Database["public"]["Enums"]["content_type"];
@@ -138,6 +139,19 @@ export default function CoursePage() {
     void fetchCourse();
     void fetchPosts();
   }, [id, fetchCourse, fetchPosts]);
+
+  useEffect(() => {
+    if (!id) return;
+    recordCourseVisitLocal(id, "course");
+    if (!user) return;
+
+    void (async () => {
+      const { error } = await supabase.rpc("touch_course_visit", { p_course_id: id, p_source: "course" });
+      if (!error) return;
+      if (error.code === "42883" || error.code === "42P01") return;
+      console.error("touch_course_visit failed", error);
+    })();
+  }, [id, user]);
 
   useEffect(() => {
     if (!course) return;
