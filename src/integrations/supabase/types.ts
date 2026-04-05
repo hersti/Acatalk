@@ -1664,6 +1664,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_feed_snapshot_v1: {
+        Args: { p_days?: number; p_limit_courses?: number; p_limit_posts?: number }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1704,6 +1708,10 @@ export type Database = {
       safe_increment_download: {
         Args: { p_post_id: string; p_user_id: string }
         Returns: boolean
+      }
+      touch_course_visit: {
+        Args: { p_course_id: string; p_source?: string }
+        Returns: undefined
       }
     }
     Enums: {
