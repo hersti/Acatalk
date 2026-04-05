@@ -89,7 +89,7 @@ export default function Index() {
   const [homeCreateOpen, setHomeCreateOpen] = useState(false);
   const [homeCreateCourseId, setHomeCreateCourseId] = useState("");
   const [homeCreateType, setHomeCreateType] = useState<ContentType>("notes");
-  const { data: feedSnapshot, isLoading: feedLoading } = useFeedSnapshotV1(user?.id, 8, 8, 30);
+  const { data: feedSnapshot, isLoading: feedLoading, isError: feedError } = useFeedSnapshotV1(user?.id, 8, 8, 30);
 
   const universityOptions = catalogUniversities.map((u) => ({
     label: u.name,
@@ -365,14 +365,15 @@ export default function Index() {
     <>
       <Layout>
         <div className="border-b border-border">
-          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
             <Surface variant="soft" border="subtle" padding="md" radius="xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="max-w-2xl">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">Ana Akış</p>
                   <h1 className="mt-1 font-heading text-xl font-extrabold tracking-tight sm:text-2xl">
-                    Akademik içerikleri tek akışta takip et
+                    Dersleri kesfet, harekete don, Course Hub'a gec
                   </h1>
+                  <p className="mt-1 text-xs text-muted-foreground">Kesif yuzeyi: dogru dersi bul, hareketi yakala, derse gec.</p>
                   {!canAddContent && user && !isViewingOtherUniversity && (
                     <p className="mt-2 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
                   )}
@@ -413,12 +414,17 @@ export default function Index() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-12 gap-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-5">
+          <div className="grid grid-cols-12 gap-4">
             {/* Main Content */}
-            <div className="col-span-12 lg:col-span-9 space-y-6">
+            <div className="col-span-12 lg:col-span-9 space-y-4">
               {!isSearchMode && (
                 <>
+                  {feedError ? (
+                    <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="text-[11px] text-muted-foreground">
+                      Kesif verisi su an alinamadi. Filtreler ve ders listesi kullanilabilir.
+                    </Surface>
+                  ) : null}
                   <FeedRecommendedCoursesBlock items={feedSnapshot?.recommended_courses || []} loading={feedLoading} />
                   <FeedActiveCoursesBlock items={feedSnapshot?.active_courses || []} loading={feedLoading} />
                   <FeedUsefulContentBlock items={feedSnapshot?.useful_posts || []} loading={feedLoading} />
@@ -426,7 +432,7 @@ export default function Index() {
               )}
 
               {/* University Selector + Filters */}
-              <Surface variant="base" border="subtle" padding="md" radius="xl">
+              <Surface id="feed-filters" variant="base" border="subtle" padding="md" radius="xl">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Filter className="h-3.5 w-3.5 text-primary" />
@@ -605,7 +611,7 @@ export default function Index() {
               )}
 
               {/* Courses */}
-              <div>
+              <div id="courses-grid">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -649,7 +655,7 @@ export default function Index() {
 
             {/* Sidebar */}
             <div className="col-span-12 lg:col-span-3">
-              <div className="space-y-5 lg:sticky lg:top-20">
+              <div className="space-y-3 lg:sticky lg:top-20">
                 <FeedResumeCoursesBlock items={feedSnapshot?.resume_courses || []} loading={feedLoading} />
                 <FeedQuickActionsCard
                   canAddContent={!!canAddContent}
