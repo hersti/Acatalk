@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import type { FeedUsefulPostItem } from "@/hooks/useFeedSnapshotV1";
@@ -19,6 +19,8 @@ const typeLabels: Record<FeedUsefulPostItem["content_type"], string> = {
 };
 
 export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulContentBlockProps) {
+  const navigate = useNavigate();
+
   return (
     <Card className="rounded-xl border border-border/80 bg-card shadow-sm p-2.5">
       <div className="mb-1.5">
@@ -42,7 +44,19 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
             const firstLetter = (authorName[0] || "K").toUpperCase();
             const courseCode = normalizeCourseCode(item.course_code || "");
             return (
-              <div key={item.post_id} className="rounded-lg border border-border/70 px-2 py-1.5 hover:border-primary/30 hover:bg-secondary/30 hover-lift transition-colors">
+              <article
+                key={item.post_id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/post/${item.post_id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/post/${item.post_id}`);
+                  }
+                }}
+                className="cursor-pointer rounded-lg border border-border/70 px-2 py-1.5 transition-colors hover:border-primary/30 hover:bg-secondary/30 hover-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                     {typeLabels[item.content_type]}
@@ -58,7 +72,11 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                 </p>
 
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <Link to={`/user/${item.author_user_id}`} className="inline-flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors">
+                  <Link
+                    to={`/user/${item.author_user_id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex min-w-0 items-center gap-1.5 transition-colors hover:text-primary"
+                  >
                     <Avatar className="h-5 w-5">
                       {item.author_avatar_url ? <AvatarImage src={item.author_avatar_url} alt={authorName} /> : null}
                       <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">{firstLetter}</AvatarFallback>
@@ -72,13 +90,15 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                 </div>
 
                 <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-                  <Link to={`/course/${item.course_id}`} className="font-semibold text-primary hover:underline">
+                  <Link
+                    to={`/course/${item.course_id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="font-semibold text-primary hover:underline"
+                  >
                     Derse git
                   </Link>
-                  <span className="text-muted-foreground">|</span>
-                  <Link to={`/post/${item.post_id}`} className="text-muted-foreground hover:text-foreground hover:underline">
-                    İçeriği aç
-                  </Link>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">İçeriğe git</span>
                 </div>
 
                 {item.same_university || item.same_department ? (
@@ -86,7 +106,7 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                     {item.same_university ? "Aynı üniversite" : "Aynı bölüm"}
                   </div>
                 ) : null}
-              </div>
+              </article>
             );
           })}
         </div>

@@ -174,7 +174,8 @@ export default function AppSidebar() {
                 Ayarlar
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() => {
+                onSelect={(event) => {
+                  event.preventDefault();
                   handleThemeToggle();
                 }}
                 className="gap-2"

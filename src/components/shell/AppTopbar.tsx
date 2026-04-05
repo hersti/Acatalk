@@ -61,7 +61,7 @@ export default function AppTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm lg:hidden">
       <div className="flex h-12 items-center gap-3 px-4 sm:px-6">
         <div className="lg:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
