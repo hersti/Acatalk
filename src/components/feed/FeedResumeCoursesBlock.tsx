@@ -11,7 +11,7 @@ export default function FeedResumeCoursesBlock({ items, loading }: FeedResumeCou
     <FeedCourseBlockBase
       title="Nereye Donmelisin"
       description="Son ziyaret ettigin derslere hizli donus alani."
-      emptyText="Henuz donus gecmisi yok. Bir dersi actiginda burada gorunecek."
+      emptyText="Heniz ziyaret gecmisi yok. Bir ders actiginda burada gorunecek."
       items={items}
       loading={loading}
       emphasizeResume
