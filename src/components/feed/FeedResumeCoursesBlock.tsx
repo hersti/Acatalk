@@ -9,9 +9,9 @@ interface FeedResumeCoursesBlockProps {
 export default function FeedResumeCoursesBlock({ items, loading }: FeedResumeCoursesBlockProps) {
   return (
     <FeedCourseBlockBase
-      title="Nereye Donmelisin"
-      description="Son ziyaret ettigin derslere hizli donus alani."
-      emptyText="Heniz ziyaret gecmisi yok. Bir ders actiginda burada gorunecek."
+      title="Son Baktığın Dersler"
+      description="Kaldığın yerden devam etmek için hızlı dönüş listesi."
+      emptyText="Henüz ziyaret geçmişin yok. Bir ders açtığında burada görünür."
       items={items}
       loading={loading}
       emphasizeResume

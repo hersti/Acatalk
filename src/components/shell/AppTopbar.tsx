@@ -34,7 +34,7 @@ export default function AppTopbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+      <div className="flex h-12 items-center gap-3 px-4 sm:px-6">
         <div className="lg:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
@@ -124,7 +124,9 @@ export default function AppTopbar() {
           ACATALK
         </Link>
 
-        <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+        <div className="hidden lg:block text-sm font-medium text-muted-foreground">Keşif yüzeyi</div>
+
+        <form onSubmit={handleSearch} className="flex-1 max-w-xl lg:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -137,11 +139,10 @@ export default function AppTopbar() {
           </div>
         </form>
 
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
         </div>
       </div>
     </header>
   );
 }
-

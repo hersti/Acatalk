@@ -365,15 +365,17 @@ export default function Index() {
     <>
       <Layout>
         <div className="border-b border-border">
-          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-            <Surface variant="soft" border="subtle" padding="md" radius="xl">
+          <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
+            <Surface variant="soft" border="subtle" padding="sm" radius="xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="max-w-2xl">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">Ana Akış</p>
-                  <h1 className="mt-1 font-heading text-xl font-extrabold tracking-tight sm:text-2xl">
-                    Dersleri kesfet, harekete don, Course Hub'a gec
+                  <h1 className="mt-1 font-heading text-xl font-extrabold tracking-tight sm:text-[1.7rem]">
+                    Dersleri keşfet, hareketi yakala
                   </h1>
-                  <p className="mt-1 text-xs text-muted-foreground">Kesif yuzeyi: dogru dersi bul, hareketi yakala, derse gec.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Doğru dersi bul, kaldığın yerden devam et ve Course Hub'a geç.
+                  </p>
                   {!canAddContent && user && !isViewingOtherUniversity && (
                     <p className="mt-2 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
                   )}
@@ -414,15 +416,15 @@ export default function Index() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-5">
-          <div className="grid grid-cols-12 gap-4">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4">
+          <div className="grid grid-cols-12 gap-3">
             {/* Main Content */}
-            <div className="col-span-12 lg:col-span-9 space-y-4">
+            <div className="col-span-12 lg:col-span-9 space-y-3">
               {!isSearchMode && (
                 <>
                   {feedError ? (
                     <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="text-[11px] text-muted-foreground">
-                      Kesif verisi su an alinamadi. Filtreler ve ders listesi kullanilabilir.
+                      Akış verisi şu an alınamadı. Filtreler ve ders listesi kullanılabilir.
                     </Surface>
                   ) : null}
                   <FeedRecommendedCoursesBlock items={feedSnapshot?.recommended_courses || []} loading={feedLoading} />
@@ -655,7 +657,7 @@ export default function Index() {
 
             {/* Sidebar */}
             <div className="col-span-12 lg:col-span-3">
-              <div className="space-y-3 lg:sticky lg:top-20">
+              <div className="space-y-2.5 lg:sticky lg:top-16">
                 <FeedResumeCoursesBlock items={feedSnapshot?.resume_courses || []} loading={feedLoading} />
                 <FeedQuickActionsCard
                   canAddContent={!!canAddContent}
@@ -677,8 +679,8 @@ export default function Index() {
                   }
                 />
                 <Surface variant="base" border="subtle" padding="sm" radius="lg" className="text-center">
-                  <Link to="/leaderboard" className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1">
-                    Katki siralamasini gor
+                  <Link to="/leaderboard" className="text-[11px] text-muted-foreground font-medium hover:text-primary hover:underline inline-flex items-center gap-1">
+                    Katkı sıralamasını gör
                   </Link>
                 </Surface>
               </div>

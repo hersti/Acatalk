@@ -13,36 +13,36 @@ interface FeedUsefulContentBlockProps {
 
 const typeLabels: Record<FeedUsefulPostItem["content_type"], string> = {
   notes: "Not",
-  past_exams: "Cikmis",
-  discussion: "Tartisma",
+  past_exams: "Çıkmış",
+  discussion: "Tartışma",
   kaynaklar: "Kaynak",
 };
 
 export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulContentBlockProps) {
   return (
-    <Card className="border shadow-sm p-3">
-      <div className="mb-2">
-        <h3 className="font-heading text-sm font-bold leading-tight">Yeni Faydali Icerikler</h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5">Yakin zamanda etkisi yuksek icerikler.</p>
+    <Card className="border shadow-sm p-2.5">
+      <div className="mb-1.5">
+        <h3 className="font-heading text-sm font-bold leading-tight">Öne Çıkan İçerikler</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Son günlerde en çok fayda üreten içerikler.</p>
       </div>
 
       {loading ? (
-        <p className="text-[11px] text-muted-foreground">Icerikler yukleniyor...</p>
+        <p className="text-[11px] text-muted-foreground">İçerikler yükleniyor...</p>
       ) : items.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/70 px-2.5 py-2">
-          <p className="text-[11px] text-muted-foreground">Su an one cikan icerik yok.</p>
+        <div className="rounded-md border border-dashed border-border/70 px-2 py-1.5">
+          <p className="text-[11px] text-muted-foreground">Şu an öne çıkan içerik yok.</p>
           <Link to="/#courses-grid" className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline">
             Dersleri incele
           </Link>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {items.map((item) => {
-            const authorName = item.author_display_name || item.author_username || "Kullanici";
+            const authorName = item.author_display_name || item.author_username || "Kullanıcı";
             const firstLetter = (authorName[0] || "K").toUpperCase();
             const courseCode = normalizeCourseCode(item.course_code || "");
             return (
-              <div key={item.post_id} className="rounded-md border border-border/70 px-2.5 py-2">
+              <div key={item.post_id} className="rounded-md border border-border/70 px-2 py-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                     {typeLabels[item.content_type]}
@@ -52,12 +52,12 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                   </span>
                 </div>
 
-                <p className="mt-1 text-[13px] font-medium line-clamp-2">{item.title}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground line-clamp-1">
+                <p className="mt-1 text-[12px] font-medium line-clamp-2">{item.title}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-1">
                   {[courseCode, item.course_name].filter(Boolean).join(" · ")}
                 </p>
 
-                <div className="mt-1.5 flex items-center justify-between gap-2">
+                <div className="mt-1 flex items-center justify-between gap-2">
                   <Link to={`/user/${item.author_user_id}`} className="inline-flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors">
                     <Avatar className="h-5 w-5">
                       {item.author_avatar_url ? <AvatarImage src={item.author_avatar_url} alt={authorName} /> : null}
@@ -73,19 +73,19 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
 
                 <div className="mt-1.5 flex items-center gap-2 text-[11px]">
                   <Link to={`/course/${item.course_id}`} className="font-semibold text-primary hover:underline">
-                    Derse Git
+                    Derse git
                   </Link>
                   <span className="text-muted-foreground">|</span>
                   <Link to={`/post/${item.post_id}`} className="text-muted-foreground hover:text-foreground hover:underline">
-                    Icerigi Ac
+                    İçeriği aç
                   </Link>
-                  {item.same_university ? (
-                    <span className="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">Ayni uni</span>
-                  ) : null}
-                  {!item.same_university && item.same_department ? (
-                    <span className="ml-auto rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-accent">Ayni bolum</span>
-                  ) : null}
                 </div>
+
+                {item.same_university || item.same_department ? (
+                  <div className="mt-0.5 text-[10px] text-muted-foreground">
+                    {item.same_university ? "Aynı üniversite" : "Aynı bölüm"}
+                  </div>
+                ) : null}
               </div>
             );
           })}

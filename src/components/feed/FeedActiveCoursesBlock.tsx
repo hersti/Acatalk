@@ -10,8 +10,8 @@ export default function FeedActiveCoursesBlock({ items, loading }: FeedActiveCou
   return (
     <FeedCourseBlockBase
       title="Hareketli Dersler"
-      description="Post ve sohbet hareketi son gunlerde artan dersler."
-      emptyText="Su an hareketli ders yok. Ders listesinden bir hub acarak hareket baslatabilirsin."
+      description="Son günlerde içerik ve sohbeti artan dersler."
+      emptyText="Şu an hareketli ders görünmüyor. Ders listesine gidip bir hub açabilirsin."
       emptyActionLabel="Dersleri incele"
       emptyActionHref="/#courses-grid"
       items={items}

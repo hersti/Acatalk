@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronUp, GraduationCap, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ChevronUp, GraduationCap, LayoutDashboard, LogOut, Search, Settings, User } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +38,11 @@ function SidebarLink({ item }: { item: AppNavItem }) {
 
 export default function AppSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
   const [displayName, setDisplayName] = useState("Hesap");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -54,11 +57,31 @@ export default function AppSidebar() {
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
-        const name = (data as any).display_name || (data as any).username || fallbackName;
+        const name = data.display_name || data.username || fallbackName;
         setDisplayName(name);
-        setAvatarUrl((data as any).avatar_url || null);
+        setAvatarUrl(data.avatar_url || null);
       });
   }, [user]);
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      setQuery("");
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    setQuery(params.get("search") || "");
+  }, [location.pathname, location.search]);
+
+  const handleSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const value = query.trim();
+    if (value) {
+      navigate(`/?search=${encodeURIComponent(value)}`);
+    } else {
+      navigate("/");
+    }
+  };
 
   return (
     <aside className="h-screen w-64 border-r border-border bg-card">
@@ -72,6 +95,19 @@ export default function AppSidebar() {
             <p className="text-xs text-muted-foreground">Akademik Sosyal Ağ</p>
           </div>
         </Link>
+
+        <form onSubmit={handleSearch} className="mb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Ders, içerik veya kullanıcı ara..."
+              className="h-9 rounded-lg border-transparent bg-muted pl-9 text-sm focus:border-border focus:bg-background"
+            />
+          </div>
+        </form>
 
         <nav className="space-y-1">
           {APP_PRIMARY_ITEMS.map((item) => (
@@ -131,4 +167,3 @@ export default function AppSidebar() {
     </aside>
   );
 }
-

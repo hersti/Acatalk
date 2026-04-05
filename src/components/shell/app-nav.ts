@@ -23,4 +23,3 @@ export const APP_PRIMARY_ITEMS: AppNavItem[] = [
   { to: "/community", label: "Topluluk", icon: Users },
   { to: "/university-chat", label: "Üni Sohbet", icon: GraduationCap },
 ];
-
