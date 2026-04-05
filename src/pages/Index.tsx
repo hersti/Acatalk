@@ -12,7 +12,6 @@ import FeedRecommendedCoursesBlock from "@/components/feed/FeedRecommendedCourse
 import FeedActiveCoursesBlock from "@/components/feed/FeedActiveCoursesBlock";
 import FeedResumeCoursesBlock from "@/components/feed/FeedResumeCoursesBlock";
 import FeedUsefulContentBlock from "@/components/feed/FeedUsefulContentBlock";
-import FeedQuickActionsCard from "@/components/feed/FeedQuickActionsCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -380,57 +379,32 @@ export default function Index() {
                     <p className="mt-2 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
                   )}
                 </div>
-
-                {canAddContent && (
-                  <div className="hidden shrink-0 sm:block">
-                    <HomepageCreateButton
-                      courses={courses}
-                      university={browseUniversity || userUniversity || ""}
-                      universityId={currentUniversityId}
-                      onSelectCourse={(courseId, type) => {
-                        setHomeCreateCourseId(courseId);
-                        setHomeCreateType(type);
-                        setHomeCreateOpen(true);
-                      }}
-                    />
-                  </div>
-                )}
               </div>
             </Surface>
-
-            {canAddContent && (
-              <div className="sm:hidden fixed bottom-20 right-4 z-40">
-                <HomepageCreateButton
-                  courses={courses}
-                  university={browseUniversity || userUniversity || ""}
-                  universityId={currentUniversityId}
-                  onSelectCourse={(courseId, type) => {
-                    setHomeCreateCourseId(courseId);
-                    setHomeCreateType(type);
-                    setHomeCreateOpen(true);
-                  }}
-                />
-              </div>
-            )}
-
           </div>
         </div>
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4">
+          {!isSearchMode && (
+            <div className="mb-3 space-y-2">
+              {feedError ? (
+                <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="text-[11px] text-muted-foreground">
+                  Akış verisi şu an alınamadı. Filtreler ve ders listesi kullanılabilir.
+                </Surface>
+              ) : null}
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <FeedRecommendedCoursesBlock items={(feedSnapshot?.recommended_courses || []).slice(0, 3)} loading={feedLoading} />
+                <FeedResumeCoursesBlock items={(feedSnapshot?.resume_courses || []).slice(0, 3)} loading={feedLoading} />
+                <FeedUsefulContentBlock items={(feedSnapshot?.useful_posts || []).slice(0, 3)} loading={feedLoading} />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-12 gap-3">
             {/* Main Content */}
             <div className="col-span-12 lg:col-span-9 space-y-3">
               {!isSearchMode && (
-                <>
-                  {feedError ? (
-                    <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="text-[11px] text-muted-foreground">
-                      Akış verisi şu an alınamadı. Filtreler ve ders listesi kullanılabilir.
-                    </Surface>
-                  ) : null}
-                  <FeedRecommendedCoursesBlock items={feedSnapshot?.recommended_courses || []} loading={feedLoading} />
-                  <FeedActiveCoursesBlock items={feedSnapshot?.active_courses || []} loading={feedLoading} />
-                  <FeedUsefulContentBlock items={feedSnapshot?.useful_posts || []} loading={feedLoading} />
-                </>
+                <FeedActiveCoursesBlock items={(feedSnapshot?.active_courses || []).slice(0, 3)} loading={feedLoading} />
               )}
 
               {/* University Selector + Filters */}
@@ -658,28 +632,12 @@ export default function Index() {
             {/* Sidebar */}
             <div className="col-span-12 lg:col-span-3">
               <div className="space-y-2.5 lg:sticky lg:top-16">
-                <FeedResumeCoursesBlock items={feedSnapshot?.resume_courses || []} loading={feedLoading} />
-                <FeedQuickActionsCard
-                  canAddContent={!!canAddContent}
-                  isViewingOtherUniversity={!!isViewingOtherUniversity}
-                  onOpenCreate={() => {
-                    if (!canAddContent || courses.length === 0) return;
-                    const targetCourse = courses[0];
-                    setHomeCreateCourseId(targetCourse.id);
-                    setHomeCreateType("notes");
-                    setHomeCreateOpen(true);
-                  }}
-                  onSwitchToOwnUniversity={
-                    userUniversity
-                      ? () => {
-                          setBrowseUniversity(userUniversity);
-                          localStorage.setItem("browse-university", userUniversity);
-                        }
-                      : undefined
-                  }
-                />
-                <Surface variant="base" border="subtle" padding="sm" radius="lg" className="text-center">
-                  <Link to="/leaderboard" className="text-[11px] text-muted-foreground font-medium hover:text-primary hover:underline inline-flex items-center gap-1">
+                <Surface variant="base" border="subtle" padding="sm" radius="lg" className="overflow-hidden">
+                  <p className="text-[11px] font-semibold text-foreground mb-1">Katkı Sıralaması</p>
+                  <Link
+                    to="/leaderboard"
+                    className="block rounded-md px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-primary"
+                  >
                     Katkı sıralamasını gör
                   </Link>
                 </Surface>
@@ -688,6 +646,22 @@ export default function Index() {
           </div>
         </div>
       </Layout>
+
+      {canAddContent && (
+        <div className="fixed bottom-20 right-6 z-40">
+          <HomepageCreateButton
+            courses={courses}
+            university={browseUniversity || userUniversity || ""}
+            universityId={currentUniversityId}
+            floating
+            onSelectCourse={(courseId, type) => {
+              setHomeCreateCourseId(courseId);
+              setHomeCreateType(type);
+              setHomeCreateOpen(true);
+            }}
+          />
+        </div>
+      )}
 
       {user && homeCreateCourseId && (
         <CreatePostDialog
@@ -707,11 +681,13 @@ function HomepageCreateButton({
   courses,
   university,
   universityId,
+  floating = false,
   onSelectCourse,
 }: {
   courses: any[];
   university: string;
   universityId: string | null;
+  floating?: boolean;
   onSelectCourse: (courseId: string, type: ContentType) => void;
 }) {
   const [dropupOpen, setDropupOpen] = useState(false);
@@ -813,15 +789,26 @@ function HomepageCreateButton({
       <div className="relative" ref={dropupRef}>
         <Button
           onClick={() => setDropupOpen(!dropupOpen)}
-          className="h-12 gap-2 shrink-0 rounded-xl px-6 text-sm font-bold"
+          className={
+            floating
+              ? "h-11 w-11 rounded-full p-0 shadow-lg"
+              : "h-12 gap-2 shrink-0 rounded-xl px-6 text-sm font-bold"
+          }
           style={{ boxShadow: 'var(--shadow-warm)' }}
+          aria-label="İçerik ekle"
         >
           <Plus className={`h-5 w-5 transition-transform ${dropupOpen ? "rotate-45" : ""}`} />
-          İçerik Ekle
+          {!floating ? "İçerik Ekle" : null}
         </Button>
 
         {dropupOpen && (
-          <div className="absolute top-full mt-2 right-0 w-48 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            className={
+              floating
+                ? "absolute bottom-full mb-2 right-0 w-48 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                : "absolute top-full mt-2 right-0 w-48 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+            }
+          >
             {CONTENT_TYPE_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               return (

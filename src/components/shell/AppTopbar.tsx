@@ -1,9 +1,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Menu, Search, Settings, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Moon, Search, Settings, Sun, User } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -15,12 +14,34 @@ export default function AppTopbar() {
   const location = useLocation();
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return document.documentElement.classList.contains("dark");
+  });
 
   useEffect(() => {
     if (location.pathname !== "/") return;
     const params = new URLSearchParams(location.search);
     setQuery(params.get("search") || "");
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+      return;
+    }
+    if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+      setIsDark(false);
+      return;
+    }
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
+  }, []);
 
   const handleSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -30,6 +51,13 @@ export default function AppTopbar() {
     } else {
       navigate("/");
     }
+  };
+
+  const handleThemeToggle = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
   };
 
   return (
@@ -90,6 +118,16 @@ export default function AppTopbar() {
                     <Settings className="h-4 w-4" />
                     Ayarlar
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleThemeToggle();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    {isDark ? "Açık Tema" : "Koyu Tema"}
+                  </button>
                   {isAdmin && (
                     <button
                       type="button"
@@ -124,8 +162,6 @@ export default function AppTopbar() {
           ACATALK
         </Link>
 
-        <div className="hidden lg:block text-sm font-medium text-muted-foreground">Keşif yüzeyi</div>
-
         <form onSubmit={handleSearch} className="flex-1 max-w-xl lg:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -139,9 +175,6 @@ export default function AppTopbar() {
           </div>
         </form>
 
-        <div className="ml-auto flex items-center gap-1">
-          <ThemeToggle />
-        </div>
       </div>
     </header>
   );

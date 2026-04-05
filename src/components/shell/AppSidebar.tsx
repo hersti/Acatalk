@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, GraduationCap, LayoutDashboard, LogOut, Search, Settings, User } from "lucide-react";
+import { ChevronUp, GraduationCap, LayoutDashboard, LogOut, Moon, Search, Settings, Sun, User } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +43,10 @@ export default function AppSidebar() {
   const [displayName, setDisplayName] = useState("Hesap");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return document.documentElement.classList.contains("dark");
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -73,6 +77,24 @@ export default function AppSidebar() {
     setQuery(params.get("search") || "");
   }, [location.pathname, location.search]);
 
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+      return;
+    }
+    if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+      setIsDark(false);
+      return;
+    }
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
+  }, []);
+
   const handleSearch = (event: FormEvent) => {
     event.preventDefault();
     const value = query.trim();
@@ -81,6 +103,13 @@ export default function AppSidebar() {
     } else {
       navigate("/");
     }
+  };
+
+  const handleThemeToggle = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
   };
 
   return (
@@ -143,6 +172,15 @@ export default function AppSidebar() {
               <DropdownMenuItem onSelect={() => navigate("/settings")} className="gap-2">
                 <Settings className="h-4 w-4" />
                 Ayarlar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  handleThemeToggle();
+                }}
+                className="gap-2"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {isDark ? "Açık Tema" : "Koyu Tema"}
               </DropdownMenuItem>
               {isAdmin && (
                 <DropdownMenuItem onSelect={() => navigate("/admin")} className="gap-2">
