@@ -20,7 +20,7 @@ const typeLabels: Record<FeedUsefulPostItem["content_type"], string> = {
 
 export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulContentBlockProps) {
   return (
-    <Card className="border shadow-sm p-2.5">
+    <Card className="rounded-xl border border-border/80 bg-card shadow-sm p-2.5">
       <div className="mb-1.5">
         <h3 className="font-heading text-sm font-bold leading-tight">Öne Çıkan İçerikler</h3>
         <p className="text-[11px] text-muted-foreground mt-0.5">Son günlerde en çok fayda üreten içerikler.</p>
@@ -42,7 +42,7 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
             const firstLetter = (authorName[0] || "K").toUpperCase();
             const courseCode = normalizeCourseCode(item.course_code || "");
             return (
-              <div key={item.post_id} className="rounded-md border border-border/70 px-2 py-1.5">
+              <div key={item.post_id} className="rounded-lg border border-border/70 px-2 py-1.5 hover:border-primary/30 hover:bg-secondary/30 hover-lift transition-colors">
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                     {typeLabels[item.content_type]}

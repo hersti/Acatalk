@@ -34,7 +34,7 @@ export default function FeedCourseBlockBase({
   emptyActionHref,
 }: FeedCourseBlockBaseProps) {
   return (
-    <Card className="border shadow-sm p-2.5">
+    <Card className="rounded-xl border border-border/80 bg-card shadow-sm p-2.5">
       <div className="mb-1.5">
         <h3 className="font-heading text-sm font-bold leading-tight">{title}</h3>
         <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
@@ -60,7 +60,7 @@ export default function FeedCourseBlockBase({
               <Link
                 key={item.course_id}
                 to={`/course/${item.course_id}`}
-                className="block rounded-md border border-border/70 px-2 py-1.5 hover:border-primary/30 hover:bg-secondary/30 transition-colors"
+                className="block rounded-lg border border-border/70 px-2 py-1.5 transition-colors hover:border-primary/30 hover:bg-secondary/30 hover-lift"
               >
                 <div className="flex items-start gap-2">
                   <div className="min-w-0">

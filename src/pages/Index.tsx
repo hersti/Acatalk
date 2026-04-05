@@ -379,6 +379,20 @@ export default function Index() {
                     <p className="mt-2 text-xs text-muted-foreground">İçerik eklemek için üniversitenizi seçin.</p>
                   )}
                 </div>
+                {canAddContent && (
+                  <div className="hidden shrink-0 sm:block">
+                    <HomepageCreateButton
+                      courses={courses}
+                      university={browseUniversity || userUniversity || ""}
+                      universityId={currentUniversityId}
+                      onSelectCourse={(courseId, type) => {
+                        setHomeCreateCourseId(courseId);
+                        setHomeCreateType(type);
+                        setHomeCreateOpen(true);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </Surface>
           </div>
@@ -392,10 +406,9 @@ export default function Index() {
                   Akış verisi şu an alınamadı. Filtreler ve ders listesi kullanılabilir.
                 </Surface>
               ) : null}
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <FeedRecommendedCoursesBlock items={(feedSnapshot?.recommended_courses || []).slice(0, 3)} loading={feedLoading} />
-                <FeedResumeCoursesBlock items={(feedSnapshot?.resume_courses || []).slice(0, 3)} loading={feedLoading} />
-                <FeedUsefulContentBlock items={(feedSnapshot?.useful_posts || []).slice(0, 3)} loading={feedLoading} />
+                <FeedUsefulContentBlock items={(feedSnapshot?.useful_posts || []).slice(0, 2)} loading={feedLoading} />
               </div>
             </div>
           )}
@@ -403,10 +416,6 @@ export default function Index() {
           <div className="grid grid-cols-12 gap-3">
             {/* Main Content */}
             <div className="col-span-12 lg:col-span-9 space-y-3">
-              {!isSearchMode && (
-                <FeedActiveCoursesBlock items={(feedSnapshot?.active_courses || []).slice(0, 3)} loading={feedLoading} />
-              )}
-
               {/* University Selector + Filters */}
               <Surface id="feed-filters" variant="base" border="subtle" padding="md" radius="xl">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -632,15 +641,12 @@ export default function Index() {
             {/* Sidebar */}
             <div className="col-span-12 lg:col-span-3">
               <div className="space-y-2.5 lg:sticky lg:top-16">
-                <Surface variant="base" border="subtle" padding="sm" radius="lg" className="overflow-hidden">
-                  <p className="text-[11px] font-semibold text-foreground mb-1">Katkı Sıralaması</p>
-                  <Link
-                    to="/leaderboard"
-                    className="block rounded-md px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-primary"
-                  >
-                    Katkı sıralamasını gör
-                  </Link>
-                </Surface>
+                {!isSearchMode ? (
+                  <>
+                    <FeedResumeCoursesBlock items={(feedSnapshot?.resume_courses || []).slice(0, 3)} loading={feedLoading} />
+                    <FeedActiveCoursesBlock items={(feedSnapshot?.active_courses || []).slice(0, 3)} loading={feedLoading} />
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -791,7 +797,7 @@ function HomepageCreateButton({
           onClick={() => setDropupOpen(!dropupOpen)}
           className={
             floating
-              ? "h-11 w-11 rounded-full p-0 shadow-lg"
+              ? "h-10 w-10 rounded-full p-0 shadow-lg"
               : "h-12 gap-2 shrink-0 rounded-xl px-6 text-sm font-bold"
           }
           style={{ boxShadow: 'var(--shadow-warm)' }}
