@@ -51,7 +51,7 @@ const getErrorMessage = (error: unknown): string => {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) return message;
   }
-  return "Ders sohbeti su anda yuklenemiyor.";
+  return "Ders sohbeti şu anda yüklenemiyor.";
 };
 
 const toRoomSnapshot = (room: RawCourseChatRoom): CourseChatRoomSnapshot => ({
@@ -88,7 +88,7 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
     const profileMap = new Map(
       (profiles || []).map((profile) => {
         const username = profile.username || "kullanici";
-        const displayName = profile.display_name || profile.username || "Kullanici";
+        const displayName = profile.display_name || profile.username || "Kullanıcı";
         return [profile.user_id, { username, displayName, avatarUrl: profile.avatar_url }];
       }),
     );
@@ -98,7 +98,7 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
       return {
         ...row,
         username: sender?.username || "kullanici",
-        displayName: sender?.displayName || "Kullanici",
+        displayName: sender?.displayName || "Kullanıcı",
         avatarUrl: sender?.avatarUrl || null,
       };
     });
@@ -267,7 +267,7 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
         )
         .subscribe((status) => {
           if (status === "CHANNEL_ERROR") {
-            setError("Canli sohbet baglantisi kesildi. Sayfayi yenileyerek tekrar deneyin.");
+            setError("Canlı sohbet bağlantısı kesildi. Sayfayı yenileyerek tekrar deneyin.");
           }
         });
     });
@@ -290,7 +290,7 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
         let resolvedRoom = room ?? (await fetchRoom());
         if (resolvedRoom === FEATURE_UNAVAILABLE) {
           setFeatureUnavailable(true);
-          return { ok: false, message: "Ders sohbeti yakinda acilacak." };
+          return { ok: false, message: "Ders sohbeti yakında açılacak." };
         }
 
         if (!resolvedRoom) {
@@ -305,9 +305,9 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
               const retryRoom = await fetchRoom();
               if (retryRoom === FEATURE_UNAVAILABLE) {
                 setFeatureUnavailable(true);
-                return { ok: false, message: "Ders sohbeti yakinda acilacak." };
+                return { ok: false, message: "Ders sohbeti yakında açılacak." };
               }
-              if (!retryRoom) return { ok: false, message: "Sohbet odasi bulunamadi." };
+              if (!retryRoom) return { ok: false, message: "Sohbet odası bulunamadı." };
               resolvedRoom = retryRoom;
             } else {
               return { ok: false, message: roomError.message };
@@ -333,7 +333,7 @@ export function useCourseChat({ courseId, enabled, userId }: UseCourseChatOption
         if (insertError) {
           if (getErrorCode(insertError) === TABLE_MISSING_CODE) {
             setFeatureUnavailable(true);
-            return { ok: false, message: "Ders sohbeti yakinda acilacak." };
+            return { ok: false, message: "Ders sohbeti yakında açılacak." };
           }
           return { ok: false, message: insertError.message };
         }

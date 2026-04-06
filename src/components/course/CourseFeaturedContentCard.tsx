@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { BookMarked, MessageSquare, RefreshCcw, Sparkles, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import type { CourseSocialSignalsV1 } from "@/hooks/useCourseSocialSignalsV1";
 
 interface CourseFeaturedContentCardProps {
@@ -15,8 +15,8 @@ interface CourseFeaturedContentCardProps {
 
 const typeLabels: Record<CourseSocialSignalsV1["featured_content"][number]["content_type"], string> = {
   notes: "Not",
-  past_exams: "Cikmis",
-  discussion: "Tartisma",
+  past_exams: "Çıkmış",
+  discussion: "Tartışma",
   kaynaklar: "Kaynak",
 };
 
@@ -34,25 +34,25 @@ export default function CourseFeaturedContentCard({
   onRetry,
 }: CourseFeaturedContentCardProps) {
   return (
-    <Card className="p-3 border shadow-sm">
-      <h3 className="font-heading text-xs font-bold flex items-center gap-1.5 mb-2">
+    <Surface variant="base" border="subtle" padding="sm" radius="lg">
+      <h3 className="mb-2 flex items-center gap-1.5 font-heading text-xs font-bold">
         <BookMarked className="h-3.5 w-3.5 text-primary" />
-        En Faydali Icerikler
+        En Faydalı İçerikler
       </h3>
 
       {loading ? (
-        <p className="text-[11px] text-muted-foreground">Icerik sinyalleri yukleniyor...</p>
+        <p className="text-[11px] text-muted-foreground">İçerik sinyalleri yükleniyor...</p>
       ) : hasError ? (
         <div className="space-y-2">
-          <p className="text-[11px] text-muted-foreground">Faydali icerikler su an listelenemiyor.</p>
-          <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={onRetry}>
+          <p className="text-[11px] text-muted-foreground">Faydalı içerikler şu an listelenemiyor.</p>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={onRetry}>
             <RefreshCcw className="h-3 w-3" />
             Tekrar Dene
           </Button>
         </div>
       ) : featuredContent.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">
-          Bu ders icin one cikan icerik henuz yok. Ilk faydali katkilar geldikce bu liste olusur.
+          Bu ders için öne çıkan içerik henüz yok. Faydalı katkılar geldikçe bu liste oluşur.
         </p>
       ) : (
         <div className="space-y-1.5">
@@ -67,7 +67,7 @@ export default function CourseFeaturedContentCard({
                 </span>
               </div>
 
-              <Link to={`/post/${item.post_id}`} className="mt-1 block text-[11px] font-medium leading-snug hover:text-primary transition-colors line-clamp-2">
+              <Link to={`/post/${item.post_id}`} className="mt-1 block line-clamp-2 text-[11px] font-medium leading-snug transition-colors hover:text-primary">
                 {item.title}
               </Link>
 
@@ -82,27 +82,27 @@ export default function CourseFeaturedContentCard({
               </div>
 
               <div className="mt-1 flex items-center justify-between gap-2">
-                <Link to={`/user/${item.author_user_id}`} className="text-[10px] font-semibold hover:text-primary transition-colors truncate">
-                  {item.author_display_name}
+                <Link to={`/user/${item.author_user_id}`} className="truncate text-[10px] font-semibold transition-colors hover:text-primary">
+                  {item.author_display_name || "Kullanıcı"}
                 </Link>
                 <div className="flex items-center gap-1">
                   {item.same_university ? (
-                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">Ayni uni</span>
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">Aynı üniversite</span>
                   ) : null}
                   {item.same_department ? (
-                    <span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-accent">Ayni bolum</span>
+                    <span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-accent">Aynı bölüm</span>
                   ) : null}
                 </div>
               </div>
             </div>
           ))}
 
-          <p className="text-[10px] text-muted-foreground pt-1 flex items-center gap-1">
+          <p className="flex items-center gap-1 pt-1 text-[10px] text-muted-foreground">
             <Sparkles className="h-2.5 w-2.5" />
-            Liste helpful + yorum + guncellik sinyalleriyle uretilir.
+            Liste, helpful + yorum + güncellik sinyalleriyle üretilir.
           </p>
         </div>
       )}
-    </Card>
+    </Surface>
   );
 }

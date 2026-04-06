@@ -4,15 +4,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  FileText,
-  ClipboardList,
-  MessageSquare,
   BookMarked,
-  Download,
-  ThumbsUp,
+  ClipboardList,
   Clock,
-  Plus,
+  Download,
+  FileText,
   MessageCircle,
+  MessageSquare,
+  Plus,
+  ThumbsUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,8 +44,8 @@ type PostWithProfile = Tables<"posts"> & { profiles: Tables<"profiles"> | null }
 
 const CONTENT_ACTIONS = [
   { type: "notes" as ContentType, label: "Not Ekle", icon: FileText },
-  { type: "past_exams" as ContentType, label: "Cikmis Soru Ekle", icon: ClipboardList },
-  { type: "discussion" as ContentType, label: "Tartisma Ac", icon: MessageSquare },
+  { type: "past_exams" as ContentType, label: "Çıkmış Soru Ekle", icon: ClipboardList },
+  { type: "discussion" as ContentType, label: "Tartışma Aç", icon: MessageSquare },
   { type: "kaynaklar" as ContentType, label: "Kaynak Ekle", icon: BookMarked },
 ];
 
@@ -59,30 +59,30 @@ const EMPTY_COPY: Record<
 > = {
   notes: {
     title: "Henüz ders notu yok",
-    helper: "Bu alanda ders ozetleri, formuller ve calisma notlari birikir.",
-    createAction: "Ilk Notu Paylas",
+    helper: "Bu alanda ders özetleri, formüller ve çalışma notları birikir.",
+    createAction: "İlk Notu Paylaş",
   },
   past_exams: {
     title: "Henüz çıkmış soru yok",
-    helper: "Vize ve final sorularini ekleyerek sinav hazirligini hizlandirabilirsiniz.",
-    createAction: "Ilk Soruyu Ekle",
+    helper: "Vize ve final sorularını ekleyerek sınav hazırlığını hızlandırabilirsiniz.",
+    createAction: "İlk Soruyu Ekle",
   },
   discussion: {
     title: "Henüz tartışma yok",
-    helper: "Kavram sorulari, sinav stratejileri ve kaynak yorumlari icin tartisma baslatin.",
-    createAction: "Ilk Tartismayi Ac",
+    helper: "Kavram soruları, sınav stratejileri ve kaynak yorumları için tartışma başlatın.",
+    createAction: "İlk Tartışmayı Aç",
   },
   kaynaklar: {
     title: "Henüz kaynak paylaşımı yok",
-    helper: "Kitap, video ve faydali baglantilar bu dersin calisma kalitesini arttirir.",
-    createAction: "Ilk Kaynagi Ekle",
+    helper: "Kitap, video ve bağlantılar bu dersin çalışma kalitesini güçlendirir.",
+    createAction: "İlk Kaynağı Ekle",
   },
 };
 
 const tabLabelMap: Record<ContentType, string> = {
   notes: "not",
-  past_exams: "cikmis soru",
-  discussion: "tartisma",
+  past_exams: "çıkmış soru",
+  discussion: "tartışma",
   kaynaklar: "kaynak",
 };
 
@@ -107,10 +107,12 @@ export default function CoursePage() {
   });
 
   const canAddContent = !!user && !!course && userProfile?.university === course.university;
-  const { data: socialSignals, isLoading: socialSignalsLoading, isError: socialSignalsError, refetch: refetchSocialSignals } = useCourseSocialSignalsV1(
-    id,
-    user?.id,
-  );
+  const {
+    data: socialSignals,
+    isLoading: socialSignalsLoading,
+    isError: socialSignalsError,
+    refetch: refetchSocialSignals,
+  } = useCourseSocialSignalsV1(id, user?.id);
 
   const fetchCourse = useCallback(async () => {
     if (!id) return;
@@ -156,12 +158,13 @@ export default function CoursePage() {
   useEffect(() => {
     if (!course) return;
     const normalizedCode = normalizeCourseCode(course.code);
-    document.title = `${course.name} Notlari ve Tartismalari | ACATALK`;
-    const description = `${course.name}${normalizedCode ? ` (${normalizedCode})` : ""} - ${course.department} dersi icin notlar, cikmis sorular, tartismalar, kaynaklar ve ders sohbeti.`;
+    document.title = `${course.name} Notları ve Tartışmaları | ACATALK`;
+    const description = `${course.name}${normalizedCode ? ` (${normalizedCode})` : ""} - ${course.department} dersi için notlar, çıkmış sorular, tartışmalar, kaynaklar ve ders sohbeti.`;
 
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute("content", description);
-    else {
+    if (metaDesc) {
+      metaDesc.setAttribute("content", description);
+    } else {
       const meta = document.createElement("meta");
       meta.name = "description";
       meta.content = description;
@@ -197,12 +200,15 @@ export default function CoursePage() {
       });
   }, [posts, selectedContentType, sortBy]);
 
-  const tabCounts = useMemo(() => ({
-    notes: posts.filter((post) => post.content_type === "notes").length,
-    past_exams: posts.filter((post) => post.content_type === "past_exams").length,
-    discussion: posts.filter((post) => post.content_type === "discussion").length,
-    kaynaklar: posts.filter((post) => post.content_type === "kaynaklar").length,
-  }), [posts]);
+  const tabCounts = useMemo(
+    () => ({
+      notes: posts.filter((post) => post.content_type === "notes").length,
+      past_exams: posts.filter((post) => post.content_type === "past_exams").length,
+      discussion: posts.filter((post) => post.content_type === "discussion").length,
+      kaynaklar: posts.filter((post) => post.content_type === "kaynaklar").length,
+    }),
+    [posts],
+  );
 
   const tabs: Array<{
     value: CourseTab;
@@ -213,11 +219,50 @@ export default function CoursePage() {
     tooltip: string;
   }> = [
     { value: "notes", label: "Notlar", icon: FileText, count: tabCounts.notes, tooltip: `${tabCounts.notes} not` },
-    { value: "past_exams", label: "Cikmis Sorular", icon: ClipboardList, count: tabCounts.past_exams, tooltip: `${tabCounts.past_exams} sinav sorusu` },
-    { value: "discussion", label: "Tartismalar", icon: MessageSquare, count: tabCounts.discussion, tooltip: `${tabCounts.discussion} tartisma` },
+    {
+      value: "past_exams",
+      label: "Çıkmış Sorular",
+      icon: ClipboardList,
+      count: tabCounts.past_exams,
+      tooltip: `${tabCounts.past_exams} sınav sorusu`,
+    },
+    {
+      value: "discussion",
+      label: "Tartışmalar",
+      icon: MessageSquare,
+      count: tabCounts.discussion,
+      tooltip: `${tabCounts.discussion} tartışma`,
+    },
     { value: "kaynaklar", label: "Kaynaklar", icon: BookMarked, count: tabCounts.kaynaklar, tooltip: `${tabCounts.kaynaklar} kaynak` },
-    { value: "chat", label: "Sohbet", icon: MessageCircle, badge: "Yeni", tooltip: "Ders sohbeti" },
+    { value: "chat", label: "Sohbet", icon: MessageCircle, badge: "Canlı", tooltip: "Ders sohbeti" },
   ];
+
+  const tabGuidance = useMemo(() => {
+    if (activeTab === "chat") {
+      return {
+        title: "Sohbet hızlı koordinasyon alanıdır",
+        description: "Kalıcı bilgi için Tartışmalar sekmesinde başlık açın veya mevcut tartışmalara yanıt verin.",
+        ctaLabel: "Tartışmalara Geç",
+        ctaTab: "discussion" as CourseTab,
+      };
+    }
+
+    if (activeTab === "discussion") {
+      return {
+        title: "Tartışmalar dersin kalıcı akademik hafızasıdır",
+        description: "Kısa koordinasyon ve anlık yardım için Sohbet sekmesine geçebilirsiniz.",
+        ctaLabel: "Sohbete Geç",
+        ctaTab: "chat" as CourseTab,
+      };
+    }
+
+    return {
+      title: "Bu sekme ders içeriği üretim alanıdır",
+      description: "Not, çıkmış soru ve kaynak katkıları dersi yaşayan bir bilgi merkezi haline getirir.",
+      ctaLabel: selectedContentType && canAddContent ? EMPTY_COPY[selectedContentType].createAction : undefined,
+      ctaTab: undefined,
+    };
+  }, [activeTab, canAddContent, selectedContentType]);
 
   const handleTrendingSelect = (postId: string) => {
     setActiveTab("discussion");
@@ -229,15 +274,15 @@ export default function CoursePage() {
   if (!course && !loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-12 max-w-3xl">
+        <div className="container mx-auto max-w-3xl px-4 py-12">
           <StateBlock
             variant="noResults"
             size="section"
-            title="Ders bulunamadi"
-            description="Ders kaldirilmis olabilir veya baglanti gecersiz olabilir."
+            title="Ders bulunamadı"
+            description="Ders kaldırılmış olabilir veya bağlantı geçersiz olabilir."
             primaryAction={
               <Button asChild variant="outline" size="sm">
-                <Link to="/">Derslere Don</Link>
+                <Link to="/courses">Derslere Dön</Link>
               </Button>
             }
           />
@@ -250,9 +295,12 @@ export default function CoursePage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-4 max-w-6xl">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-3 font-medium">
-          <ArrowLeft className="h-4 w-4" /> Tum Dersler
+      <div className="container mx-auto max-w-6xl px-4 py-4">
+        <Link
+          to="/courses"
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" /> Derslere Dön
         </Link>
 
         {course && (
@@ -261,50 +309,72 @@ export default function CoursePage() {
               <div className="gradient-hero px-6 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground/75">
+                      {course.university} · {course.department}
+                    </p>
+                    <div className="mb-1 flex items-center gap-2">
                       {normalizeCourseCode(course.code) && (
-                        <span className="text-xs font-bold tracking-wider uppercase text-primary-foreground/80">{normalizeCourseCode(course.code)}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/85">
+                          {normalizeCourseCode(course.code)}
+                        </span>
                       )}
                       {course.year !== null && course.year !== undefined && (
-                        <span className="text-[10px] font-semibold bg-primary-foreground/15 px-2 py-0.5 rounded-full text-primary-foreground/90">
-                          {course.year === 0 ? "Hazirlik" : `${course.year}. Sinif`}
+                        <span className="rounded-full bg-primary-foreground/15 px-2 py-0.5 text-[10px] font-semibold text-primary-foreground/90">
+                          {course.year === 0 ? "Hazırlık" : `${course.year}. Sınıf`}
                         </span>
                       )}
                     </div>
-                    <h1 className="font-heading text-xl sm:text-2xl font-extrabold text-primary-foreground tracking-tight">{course.name}</h1>
-                    <p className="text-xs text-primary-foreground/60 mt-0.5 font-medium">{course.department}</p>
-                    {course.description && <p className="text-xs text-primary-foreground/50 mt-1.5 max-w-xl leading-relaxed">{course.description}</p>}
+                    <h1 className="font-heading text-xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl">{course.name}</h1>
+                    <p className="mt-0.5 text-xs font-medium text-primary-foreground/70">
+                      Course Hub: notlar, çıkmış sorular, tartışmalar, kaynaklar ve ders sohbeti.
+                    </p>
+                    {course.description && <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-primary-foreground/55">{course.description}</p>}
                   </div>
 
                   {canAddContent && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="sm" className="gap-1.5 shrink-0 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground border-0">
-                          <Plus className="h-4 w-4" /> Icerik Ekle
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="gap-1.5 border-0 bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                          >
+                            <Plus className="h-4 w-4" /> Katkı Ekle
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          {CONTENT_ACTIONS.map((action) => {
+                            const Icon = action.icon;
+                            return (
+                              <DropdownMenuItem
+                                key={action.type}
+                                onClick={() => {
+                                  if (action.type === "discussion") {
+                                    setActiveTab("discussion");
+                                  } else {
+                                    setCreateType(action.type);
+                                  }
+                                }}
+                                className="cursor-pointer gap-2"
+                              >
+                                <Icon className="h-4 w-4 text-primary" />
+                                {action.label}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {activeTab === "chat" ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[11px] text-primary-foreground/90 hover:bg-primary-foreground/15 hover:text-primary-foreground"
+                          onClick={() => setActiveTab("discussion")}
+                        >
+                          Tartışmaya Geç
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {CONTENT_ACTIONS.map((action) => {
-                          const Icon = action.icon;
-                          return (
-                            <DropdownMenuItem
-                              key={action.type}
-                              onClick={() => {
-                                if (action.type === "discussion") {
-                                  setActiveTab("discussion");
-                                } else {
-                                  setCreateType(action.type);
-                                }
-                              }}
-                              className="gap-2 cursor-pointer"
-                            >
-                              <Icon className="h-4 w-4 text-primary" />
-                              {action.label}
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      ) : null}
+                    </div>
                   )}
                 </div>
               </div>
@@ -312,9 +382,9 @@ export default function CoursePage() {
           </motion.div>
         )}
 
-        <div className="sticky top-[56px] z-30 -mx-4 px-4 mb-4">
-          <div className="bg-card border border-t-0 border-border rounded-b-xl" style={{ boxShadow: "var(--shadow-warm)" }}>
-            <div className="flex items-stretch overflow-x-auto scrollbar-none">
+        <div className="-mx-4 mb-4 sticky top-[56px] z-30 px-4">
+          <div className="rounded-b-xl border border-t-0 border-border bg-card" style={{ boxShadow: "var(--shadow-warm)" }}>
+            <div className="scrollbar-none flex items-stretch overflow-x-auto">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.value;
@@ -322,15 +392,15 @@ export default function CoursePage() {
                   <button
                     key={tab.value}
                     onClick={() => setActiveTab(tab.value)}
-                    className={`relative flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-semibold transition-colors ${
-                      isActive ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                    className={`relative flex min-w-0 flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-semibold transition-colors ${
+                      isActive ? "text-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{tab.label}</span>
                     {typeof tab.count === "number" ? (
                       <span
-                        className={`ml-0.5 text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                        className={`ml-0.5 min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold ${
                           isActive ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
                         }`}
                         title={tab.tooltip}
@@ -338,7 +408,10 @@ export default function CoursePage() {
                         {tab.count}
                       </span>
                     ) : (
-                      <span className="ml-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-primary/10 text-primary" title={tab.tooltip}>
+                      <span
+                        className="ml-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                        title={tab.tooltip}
+                      >
                         {tab.badge}
                       </span>
                     )}
@@ -356,16 +429,28 @@ export default function CoursePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4">
-          <div className="min-w-0 min-h-[440px]">
+        <div className="mb-3">
+          <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-foreground">{tabGuidance.title}</p>
+              <p className="text-[11px] text-muted-foreground">{tabGuidance.description}</p>
+            </div>
+            {tabGuidance.ctaTab ? (
+              <Button size="sm" variant="outline" className="h-8" onClick={() => setActiveTab(tabGuidance.ctaTab)}>
+                {tabGuidance.ctaLabel}
+              </Button>
+            ) : selectedContentType && canAddContent ? (
+              <Button size="sm" className="h-8" onClick={() => setCreateType(selectedContentType)}>
+                {tabGuidance.ctaLabel}
+              </Button>
+            ) : null}
+          </Surface>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+          <div className="min-h-[440px] min-w-0">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
+              <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                 {activeTab === "discussion" ? (
                   <DiscussionPanel courseId={id!} />
                 ) : activeTab === "chat" ? (
@@ -380,50 +465,52 @@ export default function CoursePage() {
                   />
                 ) : (
                   <>
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <p className="text-xs text-muted-foreground font-medium">
-                        {filteredPosts.length} {selectedContentType ? tabLabelMap[selectedContentType] : "icerik"}
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {filteredPosts.length} {selectedContentType ? tabLabelMap[selectedContentType] : "içerik"}
                       </p>
-                      <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                        <SelectTrigger className="w-36 h-8 text-xs rounded-lg bg-secondary/50 border-transparent">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="newest">
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="h-3 w-3" /> En Yeni
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="most_voted">
-                            <span className="flex items-center gap-1.5">
-                              <ThumbsUp className="h-3 w-3" /> En Cok Oylanan
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="most_downloaded">
-                            <span className="flex items-center gap-1.5">
-                              <Download className="h-3 w-3" /> En Cok Indirilen
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="most_discussed">
-                            <span className="flex items-center gap-1.5">
-                              <MessageSquare className="h-3 w-3" /> En Cok Tartisilan
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                          <SelectTrigger className="h-8 w-40 rounded-lg border-transparent bg-secondary/50 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="newest">
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="h-3 w-3" /> En Yeni
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="most_voted">
+                              <span className="flex items-center gap-1.5">
+                                <ThumbsUp className="h-3 w-3" /> En Çok Oylanan
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="most_downloaded">
+                              <span className="flex items-center gap-1.5">
+                                <Download className="h-3 w-3" /> En Çok İndirilen
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="most_discussed">
+                              <span className="flex items-center gap-1.5">
+                                <MessageSquare className="h-3 w-3" /> En Çok Tartışılan
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
                       {loading ? (
-                        <StateBlock
-                          variant="loading"
-                          size="section"
-                          title="Icerikler yukleniyor"
-                          description="Ders icerikleri hazirlaniyor."
-                        />
+                        <StateBlock variant="loading" size="section" title="İçerikler yükleniyor" description="Ders içerikleri hazırlanıyor." />
                       ) : filteredPosts.length > 0 ? (
                         filteredPosts.map((post, index) => (
-                          <motion.div key={post.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: index * 0.03 }}>
+                          <motion.div
+                            key={post.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: index * 0.03 }}
+                          >
                             <PostCard post={post} onVoted={fetchPosts} showAdminActions={isAdmin} />
                           </motion.div>
                         ))
@@ -434,29 +521,29 @@ export default function CoursePage() {
                           title={emptyConfig?.title || "Henüz içerik yok"}
                           description={
                             !user
-                              ? `${emptyConfig?.helper || ""} Katki icin giris yapabilirsiniz.`
+                              ? `${emptyConfig?.helper || ""} Katkı için giriş yapabilirsiniz.`
                               : canAddContent
-                                ? `${emptyConfig?.helper || ""} Ilk katkıyı siz başlatabilirsiniz.`
-                                : "Sadece kendi universitenizin derslerine icerik ekleyebilirsiniz."
+                                ? `${emptyConfig?.helper || ""} İlk katkıyı siz başlatabilirsiniz.`
+                                : "Bu derse yalnızca kendi üniversitenizin öğrencileri içerik ekleyebilir."
                           }
                           primaryAction={
                             !user ? (
                               <Button asChild variant="outline" size="sm">
-                                <Link to="/auth">Giris Yap</Link>
+                                <Link to="/auth">Giriş Yap</Link>
                               </Button>
                             ) : canAddContent && selectedContentType ? (
                               <Button size="sm" onClick={() => setCreateType(selectedContentType)}>
-                                {emptyConfig?.createAction || "Ilk Katkiyi Ekle"}
+                                {emptyConfig?.createAction || "İlk Katkıyı Ekle"}
                               </Button>
                             ) : (
                               <Button asChild variant="outline" size="sm">
-                                <Link to="/settings">Profili Duzenle</Link>
+                                <Link to="/settings">Profili Düzenle</Link>
                               </Button>
                             )
                           }
                           secondaryAction={
                             <Button size="sm" variant="ghost" onClick={() => setActiveTab("discussion")}>
-                              Tartismalari Ac
+                              Tartışmaları Aç
                             </Button>
                           }
                         />
@@ -470,7 +557,11 @@ export default function CoursePage() {
 
           {id && (
             <aside className="hidden lg:block">
-              <div className="sticky top-16 space-y-3 max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-none pb-4">
+              <div className="scrollbar-none sticky top-16 max-h-[calc(100vh-5rem)] space-y-3 overflow-y-auto pb-4">
+                <Surface variant="outline" border="subtle" padding="sm" radius="lg">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ders Yardımcı Alanı</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Katkı sinyalleri, ders wiki ve hızlı geçiş kartları burada toplanır.</p>
+                </Surface>
                 <CourseActiveContributorsCard
                   contributors={socialSignals?.contributors || []}
                   loading={socialSignalsLoading}
@@ -497,7 +588,7 @@ export default function CoursePage() {
         </div>
 
         {id && (
-          <div className="lg:hidden space-y-3 mt-6">
+          <div className="mt-6 space-y-3 lg:hidden">
             <CourseActiveContributorsCard
               contributors={socialSignals?.contributors || []}
               loading={socialSignalsLoading}

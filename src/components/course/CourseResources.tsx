@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ExternalLink, Book, Youtube, FileText, Globe, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -81,23 +81,26 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("course_resources").delete().eq("id", id);
-    if (error) toast.error("Kaynak silinemedi.");
-    else void fetchResources();
+    if (error) {
+      toast.error("Kaynak silinemedi.");
+    } else {
+      void fetchResources();
+    }
   };
 
   if (loading) return null;
 
   return (
-    <Card className="p-3 border shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-heading text-xs font-bold flex items-center gap-1.5">
+    <Surface variant="base" border="subtle" padding="sm" radius="lg">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="font-heading flex items-center gap-1.5 text-xs font-bold">
           <Book className="h-3.5 w-3.5 text-accent" />
-          Onerilen Kaynaklar
+          Önerilen Kaynaklar
         </h3>
         {isAdmin && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1 px-1.5">
+              <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[11px]">
                 <Plus className="h-3 w-3" /> Ekle
               </Button>
             </DialogTrigger>
@@ -105,12 +108,12 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
               <DialogHeader>
                 <DialogTitle className="font-heading">Kaynak Ekle</DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Bu ders icin onerilen kaynak ekleyin.
+                  Bu ders için önerilen bir kaynak ekleyin.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Tur</Label>
+                  <Label className="text-xs">Tür</Label>
                   <Select value={resourceType} onValueChange={setResourceType}>
                     <SelectTrigger>
                       <SelectValue />
@@ -125,16 +128,16 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Baslik</Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kaynak adi..." maxLength={200} />
+                  <Label className="text-xs">Başlık</Label>
+                  <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Kaynak adı..." maxLength={200} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Aciklama</Label>
-                  <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Kisa aciklama..." maxLength={500} />
+                  <Label className="text-xs">Açıklama</Label>
+                  <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Kısa açıklama..." maxLength={500} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Link</Label>
-                  <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+                  <Label className="text-xs">Bağlantı</Label>
+                  <Input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://..." />
                 </div>
                 <Button className="w-full text-xs" onClick={handleAdd} disabled={saving || !title.trim()}>
                   {saving ? "Ekleniyor..." : "Kaynak Ekle"}
@@ -147,9 +150,9 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
 
       {resources.length === 0 ? (
         <div className="space-y-1.5 py-1">
-          <p className="text-[11px] text-muted-foreground text-center">Henuz kaynak onerisi yok.</p>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Ders wiki ve tartisma sekmeleri iyi kaynaklari bulmaniza yardimci olur.
+          <p className="text-center text-[11px] text-muted-foreground">Henüz kaynak önerisi yok.</p>
+          <p className="text-center text-[10px] text-muted-foreground">
+            Ders wiki ve tartışma sekmeleri, kaynak havuzunu zenginleştirmek için iyi başlangıç noktalarıdır.
           </p>
         </div>
       ) : (
@@ -158,25 +161,26 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
             const config = typeConfig[resource.resource_type] || typeConfig.website;
             const Icon = config.icon;
             return (
-              <div key={resource.id} className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30 hover:bg-secondary/50 transition-colors group">
-                <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${config.color}`}>
+              <div key={resource.id} className="group flex items-center gap-2 rounded-md bg-secondary/30 p-1.5 transition-colors hover:bg-secondary/50">
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${config.color}`}>
                   <Icon className="h-3 w-3" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
-                    <p className="text-xs font-medium truncate">{resource.title}</p>
+                    <p className="truncate text-xs font-medium">{resource.title}</p>
                     {resource.url && (
-                      <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 shrink-0">
+                      <a href={resource.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:text-primary/80">
                         <ExternalLink className="h-2.5 w-2.5" />
                       </a>
                     )}
                   </div>
+                  {resource.description ? <p className="line-clamp-1 text-[10px] text-muted-foreground">{resource.description}</p> : null}
                 </div>
                 {isAdmin && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-destructive shrink-0"
+                    className="h-5 w-5 shrink-0 p-0 text-destructive opacity-0 group-hover:opacity-100"
                     onClick={() => handleDelete(resource.id)}
                   >
                     <Trash2 className="h-2.5 w-2.5" />
@@ -187,6 +191,6 @@ export default function CourseResources({ courseId }: CourseResourcesProps) {
           })}
         </div>
       )}
-    </Card>
+    </Surface>
   );
 }

@@ -10,10 +10,10 @@ export default function FeedRecommendedCoursesBlock({ items, loading }: FeedReco
   return (
     <FeedCourseBlockBase
       title="Sana Uygun Dersler"
-      description="Bölümüne ve son hareketine göre öne çıkan dersler."
-      emptyText="Sana uygun ders bulunamadı. Filtrelerden ders seçerek başlayabilirsin."
-      emptyActionLabel="Filtrelere git"
-      emptyActionHref="/#feed-filters"
+      description="Bölümün ve son etkileşiminle uyumlu, doğrudan başlayabileceğin dersler."
+      emptyText="Sana uygun ders bulunamadı. Dersler ekranından filtreleyerek keşfe başlayabilirsin."
+      emptyActionLabel="Derslere git"
+      emptyActionHref="/courses"
       items={items}
       loading={loading}
     />

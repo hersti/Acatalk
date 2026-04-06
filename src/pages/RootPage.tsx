@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StateBlock } from "@/components/ui/state-blocks";
-import IndexPage from "@/pages/Index";
+import FeedPage from "@/pages/FeedPage";
 
 const GuestLandingPage = lazy(() => import("@/pages/GuestLandingPage"));
 
@@ -39,7 +39,7 @@ export default function RootPage() {
   }
 
   if (user) {
-    return <IndexPage />;
+    return <FeedPage />;
   }
 
   return (
@@ -48,4 +48,3 @@ export default function RootPage() {
     </Suspense>
   );
 }
-

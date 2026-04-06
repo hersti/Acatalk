@@ -9,7 +9,7 @@ import { DISCUSSION_TYPES, type DiscussionPost } from "./DiscussionPanel";
 
 const typeLabels: Record<string, string> = {
   soru: "Soru",
-  sinav: "Sinav",
+  sinav: "Sınav",
   kaynak: "Kaynak",
   hoca: "Hoca",
   not_sorusu: "Not",
@@ -51,29 +51,29 @@ export default function DiscussionList({
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Tartismalarda ara..."
-          className="pl-8 h-8 text-xs bg-secondary/50 border-transparent"
+          placeholder="Tartışmalarda ara..."
+          className="h-8 border-transparent bg-secondary/50 pl-8 text-xs"
         />
       </div>
 
       <div className="flex gap-2">
         <Select value={sort} onValueChange={onSortChange}>
-          <SelectTrigger className="h-7 text-[11px] flex-1 bg-secondary/50 border-transparent rounded-lg">
+          <SelectTrigger className="h-7 flex-1 rounded-lg border-transparent bg-secondary/50 text-[11px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">En Yeni</SelectItem>
-            <SelectItem value="most_voted">En Cok Oy</SelectItem>
-            <SelectItem value="most_replied">En Cok Yanit</SelectItem>
-            <SelectItem value="solved">Cozulenler</SelectItem>
+            <SelectItem value="most_voted">En Çok Oy</SelectItem>
+            <SelectItem value="most_replied">En Çok Yanıt</SelectItem>
+            <SelectItem value="solved">Çözülenler</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={onFilterChange}>
-          <SelectTrigger className="h-7 text-[11px] flex-1 bg-secondary/50 border-transparent rounded-lg">
+          <SelectTrigger className="h-7 flex-1 rounded-lg border-transparent bg-secondary/50 text-[11px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -89,15 +89,15 @@ export default function DiscussionList({
       <ScrollArea className="max-h-[520px]">
         <div className="space-y-1.5 pr-1">
           {loading ? (
-            <div className="text-center py-10">
-              <div className="inline-block h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="py-10 text-center">
+              <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : posts.length === 0 ? (
-            <div className="text-center py-10 px-4">
-              <MessageCircle className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Tartisma bulunamadi</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Filtreleri sadeleştirin veya bu ders icin yeni bir akademik tartisma baslatin.
+            <div className="px-4 py-10 text-center">
+              <MessageCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">Tartışma bulunamadı</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                Filtreleri sadeleştirin veya bu ders için yeni bir akademik tartışma başlatın.
               </p>
             </div>
           ) : (
@@ -113,17 +113,17 @@ export default function DiscussionList({
                 <button
                   key={post.id}
                   onClick={() => onSelect(post.id)}
-                  className={`w-full text-left p-3 rounded-xl transition-all duration-150 ${
+                  className={`w-full rounded-xl border p-3 text-left transition-all duration-150 ${
                     isSelected
-                      ? "bg-primary/10 border border-primary/25 shadow-sm"
+                      ? "border-primary/25 bg-primary/10 shadow-sm"
                       : pinned
-                        ? "bg-primary/[0.03] border border-primary/10 hover:bg-primary/[0.06]"
-                        : "bg-card hover:bg-secondary/50 border border-transparent"
+                        ? "border-primary/10 bg-primary/[0.03] hover:bg-primary/[0.06]"
+                        : "border-transparent bg-card hover:bg-secondary/50"
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
                     <div
-                      className={`flex flex-col items-center justify-center min-w-[36px] py-1 rounded-lg text-center ${
+                      className={`flex min-w-[36px] flex-col items-center justify-center rounded-lg py-1 text-center ${
                         (post.helpful_count ?? 0) > 0 ? "bg-primary/10" : "bg-secondary/60"
                       }`}
                     >
@@ -133,48 +133,50 @@ export default function DiscussionList({
                       </span>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-1.5">
                         {pinned && (
-                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+                          <span className="flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                             <Pin className="h-2.5 w-2.5" /> Sabit
                           </span>
                         )}
                         {solved && (
-                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-success bg-success/10 px-1.5 py-0.5 rounded-md">
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Cozuldu
+                          <span className="flex items-center gap-0.5 rounded-md bg-success/10 px-1.5 py-0.5 text-[10px] font-bold text-success">
+                            <CheckCircle2 className="h-2.5 w-2.5" /> Çözüldü
                           </span>
                         )}
                         {discussionType && typeLabels[discussionType] && (
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${typeBadgeColor[discussionType] || "bg-secondary text-muted-foreground"}`}>
+                          <span
+                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                              typeBadgeColor[discussionType] || "bg-secondary text-muted-foreground"
+                            }`}
+                          >
                             {typeLabels[discussionType]}
                           </span>
                         )}
                       </div>
 
-                      <p className="text-[13px] font-semibold leading-snug line-clamp-2">{post.title}</p>
+                      <p className="line-clamp-2 text-[13px] font-semibold leading-snug">{post.title}</p>
 
-                      {post.content && <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 leading-relaxed">{post.content}</p>}
+                      {post.content && <p className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-muted-foreground">{post.content}</p>}
 
-                      <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
                         <div className="flex items-center gap-1">
                           {post.is_anonymous ? (
                             <EyeOff className="h-3 w-3" />
                           ) : (
                             <Avatar className="h-3.5 w-3.5">
-                              <AvatarFallback className="text-[7px] font-bold bg-primary/10 text-primary">{initial}</AvatarFallback>
+                              <AvatarFallback className="bg-primary/10 text-[7px] font-bold text-primary">{initial}</AvatarFallback>
                             </Avatar>
                           )}
-                          <span className="font-medium truncate max-w-[80px]">{displayName}</span>
+                          <span className="max-w-[80px] truncate font-medium">{displayName}</span>
                         </div>
                         <span className="text-muted-foreground/50">.</span>
                         <span className="flex items-center gap-0.5">
                           <MessageCircle className="h-3 w-3" />
                           {post.comment_count ?? 0}
                         </span>
-                        <span className="ml-auto text-[10px]">
-                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: tr })}
-                        </span>
+                        <span className="ml-auto text-[10px]">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: tr })}</span>
                       </div>
                     </div>
                   </div>

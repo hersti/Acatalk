@@ -1,8 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
+import { ArrowRight, MessageSquare, ThumbsUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
+import { Surface } from "@/components/ui/surface";
 import type { FeedUsefulPostItem } from "@/hooks/useFeedSnapshotV1";
 import { normalizeCourseCode } from "@/lib/course-code";
 
@@ -22,27 +24,31 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
   const navigate = useNavigate();
 
   return (
-    <Card className="rounded-xl border border-border/80 bg-card shadow-sm p-2.5">
-      <div className="mb-1.5">
-        <h3 className="font-heading text-sm font-bold leading-tight">Öne Çıkan İçerikler</h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5">Son günlerde en çok fayda üreten içerikler.</p>
+    <Surface variant="base" border="subtle" padding="sm" radius="xl">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-heading text-sm font-bold leading-tight">Öne Çıkan İçerikler</h3>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Son günlerde en çok fayda üreten katkılar ve bağlamları.</p>
+        </div>
+        <Link to="/courses" className="shrink-0 text-[11px] font-semibold text-primary hover:underline">
+          Derslere Git
+        </Link>
       </div>
 
       {loading ? (
         <p className="text-[11px] text-muted-foreground">İçerikler yükleniyor...</p>
       ) : items.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/70 px-2 py-1.5">
+        <div className="rounded-md border border-dashed border-border/70 px-2.5 py-2">
           <p className="text-[11px] text-muted-foreground">Şu an öne çıkan içerik yok.</p>
-          <Link to="/#courses-grid" className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline">
-            Dersleri incele
-          </Link>
+          <p className="mt-1 text-[11px] text-muted-foreground">Derslere gidip ilk katkıları başlatabilirsin.</p>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {items.map((item) => {
             const authorName = item.author_display_name || item.author_username || "Kullanıcı";
             const firstLetter = (authorName[0] || "K").toUpperCase();
             const courseCode = normalizeCourseCode(item.course_code || "");
+
             return (
               <article
                 key={item.post_id}
@@ -55,21 +61,19 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                     navigate(`/post/${item.post_id}`);
                   }
                 }}
-                className="cursor-pointer rounded-lg border border-border/70 px-2 py-1.5 transition-colors hover:border-primary/30 hover:bg-secondary/30 hover-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                className="cursor-pointer rounded-lg border border-border/70 px-2.5 py-2 transition-colors hover-lift hover:border-primary/35 hover:bg-secondary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    {typeLabels[item.content_type]}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{typeLabels[item.content_type]}</span>
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {[courseCode, item.course_name].filter(Boolean).join(" · ")}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}</span>
                 </div>
 
-                <p className="mt-1 text-[12px] font-medium line-clamp-2">{item.title}</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-1">
-                  {[courseCode, item.course_name].filter(Boolean).join(" · ")}
-                </p>
+                <p className="mt-1 line-clamp-2 text-[12px] font-medium">{item.title}</p>
 
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <Link
@@ -79,13 +83,18 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                   >
                     <Avatar className="h-5 w-5">
                       {item.author_avatar_url ? <AvatarImage src={item.author_avatar_url} alt={authorName} /> : null}
-                      <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">{firstLetter}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">{firstLetter}</AvatarFallback>
                     </Avatar>
-                    <span className="text-[11px] font-medium truncate">{authorName}</span>
+                    <span className="truncate text-[11px] font-medium">{authorName}</span>
                   </Link>
 
-                  <div className="text-[10px] text-muted-foreground">
-                    +{Math.max(0, item.helpful_count)} · {item.comment_count} yorum
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <ThumbsUp className="h-3 w-3" /> {Math.max(0, item.helpful_count)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> {item.comment_count}
+                    </span>
                   </div>
                 </div>
 
@@ -93,17 +102,17 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                   <Link
                     to={`/course/${item.course_id}`}
                     onClick={(event) => event.stopPropagation()}
-                    className="font-semibold text-primary hover:underline"
+                    className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
                   >
-                    Derse git
+                    Course Hub’a Git <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">İçeriğe git</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">İçeriği Aç</span>
                 </div>
 
                 {item.same_university || item.same_department ? (
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">
-                    {item.same_university ? "Aynı üniversite" : "Aynı bölüm"}
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {item.same_university ? "Aynı üniversite bağlamı" : "Aynı bölüm bağlamı"}
                   </div>
                 ) : null}
               </article>
@@ -111,6 +120,6 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
           })}
         </div>
       )}
-    </Card>
+    </Surface>
   );
 }

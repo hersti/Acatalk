@@ -68,7 +68,7 @@ export default function AppSidebar() {
   }, [user]);
 
   useEffect(() => {
-    if (location.pathname !== "/") {
+    if (location.pathname !== "/courses") {
       setQuery("");
       return;
     }
@@ -99,9 +99,9 @@ export default function AppSidebar() {
     event.preventDefault();
     const value = query.trim();
     if (value) {
-      navigate(`/?search=${encodeURIComponent(value)}`);
+      navigate(`/courses?search=${encodeURIComponent(value)}`);
     } else {
-      navigate("/");
+      navigate("/courses");
     }
   };
 
@@ -153,9 +153,7 @@ export default function AppSidebar() {
               >
                 <Avatar className="h-8 w-8">
                   {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                  <AvatarFallback className="text-xs font-semibold">
-                    {displayName.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-xs font-semibold">{displayName.slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{displayName}</p>

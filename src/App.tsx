@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import RootPage from "./pages/RootPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -14,6 +14,9 @@ import { StateBlock } from "@/components/ui/state-blocks";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
+const CoursesPage = lazy(() => import("./pages/CoursesPage"));
+const UniversitiesPage = lazy(() => import("./pages/UniversitiesPage"));
+const UniversityDetailPage = lazy(() => import("./pages/UniversityDetailPage"));
 const CoursePage = lazy(() => import("./pages/CoursePage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -61,6 +64,9 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<RootPage />} />
+            <Route path="/courses" element={withRouteFallback(<CoursesPage />)} />
+            <Route path="/universities" element={withRouteFallback(<UniversitiesPage />)} />
+            <Route path="/universities/:id" element={withRouteFallback(<UniversityDetailPage />)} />
             <Route path="/course/:id" element={withRouteFallback(<CoursePage />)} />
             <Route path="/post/:id" element={withRouteFallback(<PostPage />)} />
             <Route path="/auth" element={withRouteFallback(<AuthPage />)} />
@@ -73,7 +79,8 @@ const App = () => (
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/community" element={withRouteFallback(<CommunityPage />)} />
+            <Route path="/communities" element={withRouteFallback(<CommunityPage />)} />
+            <Route path="/community" element={<Navigate to="/communities" replace />} />
             <Route path="/university-chat" element={withRouteFallback(<UniversityChatPage />)} />
             <Route path="/about" element={withRouteFallback(<AboutPage />)} />
             <Route path="/contact" element={withRouteFallback(<ContactPage />)} />
@@ -90,4 +97,3 @@ const App = () => (
 );
 
 export default App;
-

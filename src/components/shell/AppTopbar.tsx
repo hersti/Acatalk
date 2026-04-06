@@ -20,7 +20,10 @@ export default function AppTopbar() {
   });
 
   useEffect(() => {
-    if (location.pathname !== "/") return;
+    if (location.pathname !== "/courses") {
+      setQuery("");
+      return;
+    }
     const params = new URLSearchParams(location.search);
     setQuery(params.get("search") || "");
   }, [location.pathname, location.search]);
@@ -47,9 +50,9 @@ export default function AppTopbar() {
     event.preventDefault();
     const value = query.trim();
     if (value) {
-      navigate(`/?search=${encodeURIComponent(value)}`);
+      navigate(`/courses?search=${encodeURIComponent(value)}`);
     } else {
-      navigate("/");
+      navigate("/courses");
     }
   };
 
@@ -162,7 +165,7 @@ export default function AppTopbar() {
           ACATALK
         </Link>
 
-        <form onSubmit={handleSearch} className="flex-1 max-w-xl lg:hidden">
+        <form onSubmit={handleSearch} className="max-w-xl flex-1 lg:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -174,7 +177,6 @@ export default function AppTopbar() {
             />
           </div>
         </form>
-
       </div>
     </header>
   );
