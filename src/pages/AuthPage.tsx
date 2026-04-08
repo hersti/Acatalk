@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { isPasswordStrong } from "@/lib/password-validation";
 import { logSecurityEvent, recordLoginAttempt, checkLoginLockout } from "@/lib/security-logger";
@@ -507,6 +507,7 @@ export default function AuthPage() {
         p_claimed_university_name: requestUniversity,
         p_request_note: requestNoteValue,
       } as any);
+      const rpcPayload = data as any;
       const rpcMissing =
         !!error &&
         ((error as any)?.code === "PGRST202" ||
@@ -522,8 +523,9 @@ export default function AuthPage() {
           .eq("status", "pending")
           .limit(1)
           .maybeSingle();
+        const pendingRequest = existingPending as any;
 
-        if (existingPending?.id) {
+        if (pendingRequest?.id) {
           setRequestSubmitted(true);
           setRequestResultMsg("Bu domain için zaten bekleyen bir talep var. Admin incelemesini bekleyin.");
           return;
@@ -545,11 +547,11 @@ export default function AuthPage() {
         return;
       }
 
-      if (data?.already_known && data?.university_name) {
-        const resolvedUni = await resolveUniversityByName(data.university_name);
+      if (rpcPayload?.already_known && rpcPayload?.university_name) {
+        const resolvedUni = await resolveUniversityByName(rpcPayload.university_name);
         setDetectedUniversityId(resolvedUni?.id || null);
-        setDetectedUniversity(data.university_name);
-        setUniversity(data.university_name);
+        setDetectedUniversity(rpcPayload.university_name);
+        setUniversity(rpcPayload.university_name);
         setDepartment("");
         setClassYear("");
         setProgramYears(4);
@@ -559,15 +561,15 @@ export default function AuthPage() {
         return;
       }
 
-      if (data?.ok) {
+      if (rpcPayload?.ok) {
         setRequestSubmitted(true);
-        setRequestResultMsg(data.reason || "Talebiniz admin incelemesine gönderildi.");
+        setRequestResultMsg(rpcPayload.reason || "Talebiniz admin incelemesine gönderildi.");
         toast.success("Domain talebiniz gönderildi.");
         return;
       }
 
       setRequestSubmitted(false);
-      setRequestResultMsg(data?.reason || "Talep gönderilemedi.");
+      setRequestResultMsg(rpcPayload?.reason || "Talep gönderilemedi.");
     } catch (err: any) {
       setRequestSubmitted(false);
       setRequestResultMsg(err?.message || "Talep gönderilirken bir hata oluştu.");
@@ -583,7 +585,7 @@ export default function AuthPage() {
         body: { token: captchaToken },
       });
       if (error) throw error;
-      return data?.success === true;
+      return (data as any)?.success === true;
     } catch {
       return true;
     }

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Bell, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,22 +28,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (user) fetchNotifications();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
-        setNotifications((prev) => [payload.new as Notification, ...prev]);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -55,7 +40,22 @@ export default function NotificationBell() {
       .order("created_at", { ascending: false })
       .limit(50);
     setNotifications((data as Notification[]) || []);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) void fetchNotifications();
+  }, [fetchNotifications, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
+        setNotifications((prev) => [payload.new as Notification, ...prev]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

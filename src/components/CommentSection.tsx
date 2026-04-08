@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Surface } from "@/components/ui/surface";
 import { toast } from "sonner";
-import { Reply, EyeOff, Heart, Trash2 } from "lucide-react";
+import { Reply, EyeOff, Heart, Trash2, MessageCircle, Send, RefreshCcw } from "lucide-react";
 import ReportDialog from "@/components/ReportDialog";
-import MentionInput, { renderMentions } from "@/components/MentionInput";
+import MentionInput from "@/components/MentionInput";
+import { RenderMentions } from "@/components/MentionRenderer";
 import { moderateText, checkUserModerationStatus, getViolationMessage } from "@/lib/moderation";
 import { checkTextUrls } from "@/lib/moderate-url";
 import { quickContentCheck } from "@/lib/profanity-filter";
@@ -37,42 +39,50 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchComments = useCallback(async () => {
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("*")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((c: any) => c.user_id))];
+        const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
+        const profileMap = new Map(profiles?.map((p) => [p.user_id, p.username]) || []);
+
+        let userLikes = new Set<string>();
+        if (user) {
+          const commentIds = data.map((c: any) => c.id);
+          const { data: likes } = await supabase.from("comment_likes").select("comment_id").eq("user_id", user.id).in("comment_id", commentIds);
+          if (likes) userLikes = new Set(likes.map((l: any) => l.comment_id));
+        }
+
+        setComments(
+          data.map((c: any) => ({
+            ...c,
+            username: c.is_anonymous ? "Anonim" : (profileMap.get(c.user_id) || "Anonim"),
+            userLiked: userLikes.has(c.id),
+          }))
+        );
+      } else {
+        setComments([]);
+      }
+    } catch (caughtError: unknown) {
+      const message = caughtError instanceof Error ? caughtError.message : "Yorumlar alınamadı.";
+      setError(message);
+    }
+  }, [postId, user]);
 
   useEffect(() => {
-    fetchComments();
-  }, [postId]);
-
-  const fetchComments = async () => {
-    const { data } = await supabase
-      .from("comments")
-      .select("*")
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true });
-
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((c: any) => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.username]) || []);
-
-      // Check which comments user has liked
-      let userLikes = new Set<string>();
-      if (user) {
-        const commentIds = data.map((c: any) => c.id);
-        const { data: likes } = await supabase.from("comment_likes").select("comment_id").eq("user_id", user.id).in("comment_id", commentIds);
-        if (likes) userLikes = new Set(likes.map((l: any) => l.comment_id));
-      }
-
-      setComments(
-        data.map((c: any) => ({
-          ...c,
-          username: c.is_anonymous ? "Anonim" : (profileMap.get(c.user_id) || "Anonim"),
-          userLiked: userLikes.has(c.id),
-        }))
-      );
-    } else {
-      setComments([]);
-    }
-  };
+    void fetchComments();
+  }, [fetchComments]);
 
   const handleSubmit = async () => {
     if (!user || !content.trim()) return;
@@ -123,7 +133,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       setContent("");
       setReplyTo(null);
       setIsAnonymous(false);
-      fetchComments();
+      void fetchComments();
     }
     setLoading(false);
   };
@@ -138,7 +148,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         await supabase.from("comment_likes").insert({ user_id: user.id, comment_id: commentId } as any);
         await supabase.rpc("increment_comment_like", { comment_id_input: commentId });
       }
-      fetchComments();
+      void fetchComments();
     } catch {
       toast.error("Bir hata oluştu");
     }
@@ -149,20 +159,23 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     await supabase.from("comments").delete().eq("parent_id", commentId);
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
     if (error) toast.error("Silinemedi");
-    else { toast.success("Yorum silindi"); fetchComments(); }
+    else { toast.success("Yorum silindi"); void fetchComments(); }
   };
 
   const topLevel = comments.filter((c) => !c.parent_id);
   const getReplies = (parentId: string) => comments.filter((c) => c.parent_id === parentId);
+  const trimmedContentLength = content.trim().length;
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => {
     const canDelete = isAdmin || user?.id === comment.user_id;
     return (
-      <div className={`${isReply ? "ml-8" : ""} bg-secondary/30 rounded-lg p-3`}>
+      <div className={`${isReply ? "ml-8 border-l border-border/60 pl-3" : ""}`}>
+        <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="bg-secondary/25">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-semibold flex items-center gap-1">
             {comment.is_anonymous && <EyeOff className="h-3 w-3 text-muted-foreground" />}
             {comment.username}
+            {isReply ? <span className="text-[10px] text-muted-foreground">yanıt</span> : null}
           </span>
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">
@@ -175,7 +188,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             )}
           </div>
         </div>
-        <p className="text-sm leading-relaxed">{renderMentions(comment.content)}</p>
+        <p className="text-sm leading-relaxed"><RenderMentions text={comment.content} /></p>
         <div className="flex items-center gap-3 mt-2">
           <button
             onClick={() => handleLike(comment.id, !!comment.userLiked)}
@@ -198,15 +211,30 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             <ReportDialog targetType="comment" targetId={comment.id} />
           )}
         </div>
+        </Surface>
       </div>
     );
   };
 
   return (
-    <div className="mt-4 border-t pt-4 space-y-2.5">
-      {topLevel.length === 0 && !user && (
-        <p className="text-xs text-muted-foreground text-center py-2">Henüz yorum yok.</p>
-      )}
+    <div className="mt-4 border-t pt-4 space-y-3">
+      {error ? (
+        <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">Yorumlar alınamadı: {error}</p>
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => void fetchComments()}>
+            <RefreshCcw className="h-3 w-3" />
+            Yenile
+          </Button>
+        </Surface>
+      ) : null}
+
+      {topLevel.length === 0 ? (
+        <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="text-center">
+          <MessageCircle className="mx-auto mb-2 h-4 w-4 text-muted-foreground" />
+          <p className="text-xs font-medium text-foreground">Henüz yorum yok</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">İlk geri bildirimi paylaşarak içeriği güçlendirebilirsiniz.</p>
+        </Surface>
+      ) : null}
 
       {topLevel.map((comment) => (
         <div key={comment.id} className="space-y-1.5">
@@ -228,17 +256,24 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                   <Checkbox id={`anon-reply-${comment.id}`} checked={isAnonymous} onCheckedChange={(v) => setIsAnonymous(!!v)} />
                   <label htmlFor={`anon-reply-${comment.id}`} className="text-xs text-muted-foreground">Anonim</label>
                 </div>
-                <Button size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={loading || !content.trim()}>
-                  {loading ? "..." : "Yanıtla"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground">{trimmedContentLength}/5000</span>
+                  <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSubmit} disabled={loading || !content.trim()}>
+                    <Send className="h-3 w-3" />
+                    {loading ? "..." : "Yanıtla"}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </div>
       ))}
 
-      {user && !replyTo && (
-        <div className="space-y-2 pt-1">
+      {user && !replyTo ? (
+        <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="space-y-2 pt-2">
+          <p className="text-[11px] text-muted-foreground">
+            Bağlamsal yorum yazın, gerekirse @kullanıcıadı ile ilgili kişiyi etiketleyin.
+          </p>
           <MentionInput
             value={content}
             onChange={setContent}
@@ -251,12 +286,16 @@ export default function CommentSection({ postId }: CommentSectionProps) {
               <Checkbox id="anon-comment" checked={isAnonymous} onCheckedChange={(v) => setIsAnonymous(!!v)} />
               <label htmlFor="anon-comment" className="text-xs text-muted-foreground">Anonim</label>
             </div>
-            <Button size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={loading || !content.trim()}>
-              {loading ? "..." : "Gönder"}
-            </Button>
-          </div>
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">{trimmedContentLength}/5000</span>
+              <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSubmit} disabled={loading || !content.trim()}>
+                <Send className="h-3 w-3" />
+                {loading ? "..." : "Gönder"}
+                </Button>
+              </div>
+            </div>
+        </Surface>
+      ) : null}
 
       {!user && (
         <p className="text-xs text-muted-foreground text-center">

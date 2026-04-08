@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -91,26 +91,104 @@ export default function SettingsPage() {
   const [unblocking, setUnblocking] = useState<string | null>(null);
   const [mfaEnabled, setMfaEnabled] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate("/auth");
-  }, [user, authLoading]);
-
-  useEffect(() => {
-    if (user) { fetchProfile(); fetchSettings(); fetchBlockedUsers(); checkMfaStatus(); fetchAvatar(); }
-  }, [user]);
-
-  const checkMfaStatus = async () => {
+  const checkMfaStatus = useCallback(async () => {
     try {
       const { data } = await supabase.auth.mfa.listFactors();
       setMfaEnabled(!!data?.totp?.find((f) => f.status === "verified"));
     } catch {}
-  };
+  }, []);
 
-  const fetchAvatar = async () => {
+  const fetchAvatar = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("profiles").select("avatar_url").eq("user_id", user.id).single();
     if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-  };
+  }, [user]);
+
+  const fetchProfile = useCallback(async () => {
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", user!.id).single();
+    if (data) {
+      const d = data as any;
+      setProfile({
+        username: d.username || "",
+        display_name: d.display_name || "",
+        bio: d.bio || "",
+        university: d.university || "",
+        department: d.department || "",
+        class_year: d.class_year || null,
+        username_changed_at: d.username_changed_at || null,
+      });
+      setOriginalUsername(d.username || "");
+      if (d.avatar_url) setAvatarUrl(d.avatar_url);
+    }
+  }, [user]);
+
+  const fetchSettings = useCallback(async () => {
+    const { data } = await supabase.from("user_settings").select("*").eq("user_id", user!.id).maybeSingle();
+    if (data) {
+      const d = data as any;
+      setSettings({
+        dm_allowed: d.dm_allowed || "everyone",
+        mention_notifications: d.mention_notifications ?? true,
+        dm_notifications: d.dm_notifications ?? true,
+        reply_notifications: d.reply_notifications ?? true,
+        vote_notifications: d.vote_notifications ?? true,
+        system_notifications: d.system_notifications ?? true,
+        connection_requests_blocked: d.connection_requests_blocked ?? false,
+        ghost_mode: d.ghost_mode ?? false,
+        dnd_mode: d.dnd_mode ?? false,
+      });
+    }
+  }, [user]);
+
+  const fetchBlockedUsers = useCallback(async () => {
+    if (!user) return;
+    setLoadingBlocked(true);
+    const { data } = await supabase
+      .from("blocked_users")
+      .select("id, blocked_id, created_at")
+      .eq("blocker_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      const blockedIds = data.map((b) => b.blocked_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, university, department")
+        .in("user_id", blockedIds);
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
+      setBlockedUsers(
+        data.map((b) => {
+          const p = profileMap.get(b.blocked_id);
+          return {
+            id: b.id,
+            blocked_id: b.blocked_id,
+            created_at: b.created_at,
+            username: p?.username || null,
+            university: p?.university || null,
+            department: p?.department || null,
+          };
+        })
+      );
+    } else {
+      setBlockedUsers([]);
+    }
+    setLoadingBlocked(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/auth");
+  }, [authLoading, navigate, user]);
+
+  useEffect(() => {
+    if (user) {
+      void fetchProfile();
+      void fetchSettings();
+      void fetchBlockedUsers();
+      void checkMfaStatus();
+      void fetchAvatar();
+    }
+  }, [checkMfaStatus, fetchAvatar, fetchBlockedUsers, fetchProfile, fetchSettings, user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -188,78 +266,6 @@ export default function SettingsPage() {
     } finally {
       setUploadingAvatar(false);
     }
-  };
-
-  const fetchProfile = async () => {
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", user!.id).single();
-    if (data) {
-      const d = data as any;
-      setProfile({
-        username: d.username || "",
-        display_name: d.display_name || "",
-        bio: d.bio || "",
-        university: d.university || "",
-        department: d.department || "",
-        class_year: d.class_year || null,
-        username_changed_at: d.username_changed_at || null,
-      });
-      setOriginalUsername(d.username || "");
-      if (d.avatar_url) setAvatarUrl(d.avatar_url);
-    }
-  };
-
-  const fetchSettings = async () => {
-    const { data } = await supabase.from("user_settings").select("*").eq("user_id", user!.id).maybeSingle();
-    if (data) {
-      const d = data as any;
-      setSettings({
-        dm_allowed: d.dm_allowed || "everyone",
-        mention_notifications: d.mention_notifications ?? true,
-        dm_notifications: d.dm_notifications ?? true,
-        reply_notifications: d.reply_notifications ?? true,
-        vote_notifications: d.vote_notifications ?? true,
-        system_notifications: d.system_notifications ?? true,
-        connection_requests_blocked: d.connection_requests_blocked ?? false,
-        ghost_mode: d.ghost_mode ?? false,
-        dnd_mode: d.dnd_mode ?? false,
-      });
-    }
-  };
-
-  const fetchBlockedUsers = async () => {
-    if (!user) return;
-    setLoadingBlocked(true);
-    const { data } = await supabase
-      .from("blocked_users")
-      .select("id, blocked_id, created_at")
-      .eq("blocker_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (data && data.length > 0) {
-      const blockedIds = data.map((b) => b.blocked_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, username, university, department")
-        .in("user_id", blockedIds);
-
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-      setBlockedUsers(
-        data.map((b) => {
-          const p = profileMap.get(b.blocked_id);
-          return {
-            id: b.id,
-            blocked_id: b.blocked_id,
-            created_at: b.created_at,
-            username: p?.username || null,
-            university: p?.university || null,
-            department: p?.department || null,
-          };
-        })
-      );
-    } else {
-      setBlockedUsers([]);
-    }
-    setLoadingBlocked(false);
   };
 
   const handleUnblock = async (blockId: string) => {

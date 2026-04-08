@@ -23,11 +23,11 @@ export type AppNavItem = {
 };
 
 export const APP_PRIMARY_ITEMS: AppNavItem[] = [
-  { key: "feed", to: "/", label: "Ana Akis", icon: Home, exact: true },
+  { key: "feed", to: "/", label: "Ana Sayfa", icon: Home, exact: true },
   { key: "courses", to: "/courses", label: "Dersler", icon: BookOpen },
-  { key: "universities", to: "/universities", label: "Universiteler", icon: Building2 },
+  { key: "universities", to: "/universities", label: "Üniversiteler", icon: Building2 },
   { key: "communities", to: "/communities", label: "Topluluklar", icon: Users },
-  { key: "leaderboard", to: "/leaderboard", label: "Liderlik", icon: Trophy },
+  { key: "leaderboard", to: "/leaderboard", label: "Lider Tablosu", icon: Trophy },
 ];
 
 export const APP_INBOX_ITEMS: AppNavItem[] = [
@@ -36,7 +36,7 @@ export const APP_INBOX_ITEMS: AppNavItem[] = [
 ];
 
 export const APP_MOBILE_ITEMS: AppNavItem[] = [
-  { key: "feed", to: "/", label: "Akis", icon: Home, exact: true },
+  { key: "feed", to: "/", label: "Ana Sayfa", icon: Home, exact: true },
   { key: "courses", to: "/courses", label: "Dersler", icon: BookOpen },
   { key: "messages", to: "/messages", label: "Mesajlar", icon: MessageCircle, badgeKey: "messages" },
   { key: "notifications", to: "/notifications", label: "Bildirim", icon: Bell, badgeKey: "notifications" },
@@ -44,6 +44,7 @@ export const APP_MOBILE_ITEMS: AppNavItem[] = [
 ];
 
 export const APP_SETTINGS_ITEMS: AppNavItem[] = [
+  { key: "profile", to: "/profile", label: "Profil", icon: User },
   { key: "settings", to: "/settings", label: "Ayarlar", icon: Settings },
 ];
 
@@ -54,17 +55,18 @@ type TitleRule = {
 };
 
 const TITLE_RULES: TitleRule[] = [
-  { match: (pathname) => pathname === "/", title: "Ana Akis", description: "Kesif ve akademik sosyal akisin merkezi" },
-  { match: (pathname) => pathname.startsWith("/courses"), title: "Dersler", description: "Ders hublari, kaynaklar ve tartismalar" },
-  { match: (pathname) => pathname.startsWith("/course/"), title: "Course Hub", description: "Ders baglaminda icerik ve sohbet" },
+  { match: (pathname) => pathname === "/", title: "Ana Sayfa", description: "Akademik fayda odaklı ana akış" },
+  { match: (pathname) => pathname.startsWith("/courses"), title: "Dersler", description: "Ders hub'ları, kaynaklar ve tartışmalar" },
+  { match: (pathname) => pathname.startsWith("/course/"), title: "Course Hub", description: "Ders bağlamında içerik ve sohbet" },
   { match: (pathname) => pathname.startsWith("/universities"), title: "Üniversiteler", description: "Üniversite bazlı topluluk ve sinyaller" },
-  { match: (pathname) => pathname.startsWith("/messages"), title: "Mesajlar", description: "Hizli ileti sim ve DM akisi" },
+  { match: (pathname) => pathname.startsWith("/messages"), title: "Mesajlar", description: "Hızlı iletişim ve DM akışı" },
   { match: (pathname) => pathname.startsWith("/notifications"), title: "Bildirimler", description: "Aksiyon gerektiren olaylar" },
-  { match: (pathname) => pathname.startsWith("/communities"), title: "Topluluklar", description: "Ilgi alanina gore topluluk kesfi" },
-  { match: (pathname) => pathname.startsWith("/leaderboard"), title: "Liderlik", description: "Katki ve guven sinyalleri" },
-  { match: (pathname) => pathname.startsWith("/profile"), title: "Profil", description: "Katki gecmisi ve hesap bilgileri" },
-  { match: (pathname) => pathname.startsWith("/settings"), title: "Ayarlar", description: "Hesap, guvenlik ve tercih yonetimi" },
-  { match: (pathname) => pathname.startsWith("/admin"), title: "Admin", description: "Moderasyon ve yonetim is akislari" },
+  { match: (pathname) => pathname.startsWith("/communities"), title: "Topluluklar", description: "İlgi alanına göre topluluk keşfi" },
+  { match: (pathname) => pathname.startsWith("/leaderboard"), title: "Lider Tablosu", description: "Katkı ve güven sinyalleri" },
+  { match: (pathname) => pathname.startsWith("/profile"), title: "Profil", description: "Katkı geçmişi ve hesap bilgileri" },
+  { match: (pathname) => pathname.startsWith("/user/"), title: "Profil", description: "Akademik kimlik ve katkı görünümü" },
+  { match: (pathname) => pathname.startsWith("/settings"), title: "Ayarlar", description: "Hesap, güvenlik ve tercih yönetimi" },
+  { match: (pathname) => pathname.startsWith("/admin"), title: "Admin", description: "Moderasyon ve yönetim iş akışları" },
 ];
 
 export function getShellTitle(pathname: string) {

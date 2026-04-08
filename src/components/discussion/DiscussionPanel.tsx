@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import DiscussionList from "./DiscussionList";
 import DiscussionDetail from "./DiscussionDetail";
 import CreateDiscussionDialog from "./CreateDiscussionDialog";
 import type { Tables } from "@/integrations/supabase/types";
+import { StateBlock } from "@/components/ui/state-blocks";
+import { Button } from "@/components/ui/button";
 
 export type DiscussionPost = Tables<"posts"> & {
   profiles: Tables<"profiles"> | null;
@@ -36,6 +38,7 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
   const isMobile = useIsMobile();
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
@@ -43,25 +46,33 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("course_id", courseId)
-      .eq("content_type", "discussion")
-      .order("created_at", { ascending: false });
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("course_id", courseId)
+        .eq("content_type", "discussion")
+        .order("created_at", { ascending: false });
 
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((post) => post.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
-      const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
-      setPosts(
-        data.map((post) => ({
-          ...post,
-          profiles: profileMap.get(post.user_id) || null,
-        })) as DiscussionPost[],
-      );
-    } else {
-      setPosts([]);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((post) => post.user_id))];
+        const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+        setPosts(
+          data.map((post) => ({
+            ...post,
+            profiles: profileMap.get(post.user_id) || null,
+          })) as DiscussionPost[],
+        );
+      } else {
+        setPosts([]);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Tartışmalar alınamadı.";
+      setError(message);
     }
     setLoading(false);
   }, [courseId]);
@@ -134,6 +145,7 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
         <DiscussionList
           posts={filtered}
           loading={loading}
+          error={error}
           selectedId={selectedId}
           onSelect={setSelectedId}
           search={search}
@@ -142,6 +154,9 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
           onSortChange={setSort}
           filterType={filterType}
           onFilterChange={setFilterType}
+          onRetry={() => {
+            void fetchPosts();
+          }}
         />
       </div>
     );
@@ -156,6 +171,7 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
         <DiscussionList
           posts={filtered}
           loading={loading}
+          error={error}
           selectedId={selectedId}
           onSelect={setSelectedId}
           search={search}
@@ -164,12 +180,29 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
           onSortChange={setSort}
           filterType={filterType}
           onFilterChange={setFilterType}
+          onRetry={() => {
+            void fetchPosts();
+          }}
         />
       </div>
 
       <div className="min-w-0 flex-1">
         {selectedPost ? (
           <DiscussionDetail post={selectedPost} onBack={() => setSelectedId(null)} onRefresh={fetchPosts} />
+        ) : error && !loading ? (
+          <StateBlock
+            variant="error"
+            size="section"
+            title="Tartışma paneli yüklenemedi"
+            description={error}
+            primaryAction={
+              <Button size="sm" variant="outline" onClick={() => {
+                void fetchPosts();
+              }}>
+                Tekrar Dene
+              </Button>
+            }
+          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/20 px-6 py-12 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-4" />

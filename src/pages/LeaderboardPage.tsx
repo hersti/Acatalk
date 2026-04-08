@@ -5,7 +5,7 @@ import { Award, Crown, Flame, Medal, Search, Star, TrendingUp, Trophy, Users } f
 
 import Layout from "@/components/Layout";
 import BadgeDisplay from "@/components/BadgeDisplay";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AppPageHeader,

@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import MentionInput from "@/components/MentionInput";
-import { renderMentions } from "@/components/MentionInput";
+import { RenderMentions } from "@/components/MentionRenderer";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,7 +20,8 @@ import { moderateText, checkUserModerationStatus, getViolationMessage } from "@/
 import { checkTextUrls } from "@/lib/moderate-url";
 import { quickContentCheck } from "@/lib/profanity-filter";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
-import { useTypingIndicator, TypingIndicator } from "@/hooks/useTypingIndicator";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { TypingIndicator } from "@/components/TypingIndicator";
 
 interface ChatMessage {
   id: string;
@@ -47,7 +48,7 @@ export default function UniversityChatPage() {
   const { typingUsers, sendTyping, stopTyping } = useTypingIndicator(typingChannel, user?.id, myUsername);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
-  }, [user, authLoading]);
+  }, [authLoading, navigate, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -232,7 +233,7 @@ export default function UniversityChatPage() {
                         {msg.profiles?.username || "Anonim"} · {formatDistanceToNow(new Date(msg.created_at!), { addSuffix: true, locale: tr })}
                       </p>
                       <div className={`inline-block px-3 py-2 rounded-xl text-sm ${isOwn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                        {renderMentions(msg.content)}
+                        <RenderMentions text={msg.content} />
                       </div>
                     </div>
                   </div>

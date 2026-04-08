@@ -84,7 +84,7 @@ function normalizeDomainForEdge(domain: string): string {
 
 function extractDomainBase(emailDomain: string): string {
   const normalized = normalizeDomainForEdge(emailDomain);
-  let cleaned = normalized.replace(/\.edu\.tr$/, "").replace(/\.edu$/, "");
+  const cleaned = normalized.replace(/\.edu\.tr$/, "").replace(/\.edu$/, "");
   const parts = cleaned.split(".");
   return parts[parts.length - 1] || "";
 }
@@ -277,7 +277,7 @@ function inferYearFromCourseName(courseName: string): number | null {
     return ROMAN_YEAR_MAP[lastRoman] ?? null;
   }
 
-  const standaloneDigitMatches = normalized.match(/(?:^|[\s(])([1-6])(?:[\s).\-]|$)/g);
+  const standaloneDigitMatches = normalized.match(/(?:^|[\s(])([1-6])(?:[\s).-]|$)/g);
   if (standaloneDigitMatches?.length) {
     const lastMatch = standaloneDigitMatches[standaloneDigitMatches.length - 1];
     const digit = lastMatch.match(/([1-6])/);

@@ -127,7 +127,7 @@ const toFeedPost = (value: Json): FeedUsefulPostItem | null => {
     course_id: courseId,
     course_name: asString(row.course_name),
     course_code: asNullableString(row.course_code),
-    title: asString(row.title, "Icerik"),
+    title: asString(row.title, "İçerik"),
     content_type: contentType as FeedUsefulPostItem["content_type"],
     created_at: asString(row.created_at),
     helpful_count: asNumber(row.helpful_count),
@@ -186,7 +186,7 @@ const buildLocalResumeFallback = async (limitCourses: number): Promise<FeedCours
   const { data: posts } = await supabase
     .from("posts")
     .select("course_id, content_type")
-    .eq("status", "published")
+    .filter("status", "eq", "published")
     .in("course_id", courseIds);
 
   const courseMap = new Map(courses.map((course) => [course.id, course]));

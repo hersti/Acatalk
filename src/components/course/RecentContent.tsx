@@ -5,6 +5,8 @@ import { tr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Surface } from "@/components/ui/surface";
 import { Clock, FileText, ClipboardList, MessageSquare, BookMarked } from "lucide-react";
+import { buildPostDetailHref, resolveCourseTabFromContentType } from "@/lib/course-navigation";
+import { isAcademicContentType } from "@/lib/academic-content";
 
 interface RecentItem {
   id: string;
@@ -15,7 +17,7 @@ interface RecentItem {
 
 const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   notes: { label: "Not", icon: FileText, color: "bg-notes/10 text-notes" },
-  past_exams: { label: "Çıkmış", icon: ClipboardList, color: "bg-primary/10 text-primary" },
+  past_exams: { label: "Geçmiş Sınav", icon: ClipboardList, color: "bg-primary/10 text-primary" },
   discussion: { label: "Tartışma", icon: MessageSquare, color: "bg-accent/10 text-accent" },
   kaynaklar: { label: "Kaynak", icon: BookMarked, color: "bg-kaynaklar/10 text-kaynaklar" },
 };
@@ -56,10 +58,16 @@ export default function RecentContent({ courseId }: RecentContentProps) {
           {items.map((item) => {
             const config = typeConfig[item.content_type] || typeConfig.notes;
             const Icon = config.icon;
+            const itemTab = isAcademicContentType(item.content_type)
+              ? resolveCourseTabFromContentType(item.content_type)
+              : "overview";
             return (
               <Link
                 key={item.id}
-                to={`/post/${item.id}`}
+                to={buildPostDetailHref(item.id, {
+                  courseId,
+                  tab: itemTab,
+                })}
                 className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-secondary/50"
               >
                 <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${config.color}`}>

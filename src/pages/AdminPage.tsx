@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -130,6 +130,17 @@ const NAV_ITEMS = [
   { key: "security", label: "Güvenlik", icon: ShieldAlert },
 ];
 
+const POST_TYPE_LABELS: Record<string, string> = {
+  notes: "Not",
+  past_exams: "Geçmiş Sınav",
+  discussion: "Tartışma",
+  kaynaklar: "Kaynak",
+};
+
+function getPostTypeLabel(value: string) {
+  return POST_TYPE_LABELS[value] || value;
+}
+
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -194,7 +205,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) navigate("/");
-  }, [user, isAdmin, authLoading]);
+  }, [user, isAdmin, authLoading, navigate]);
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setDataLoading(true);
@@ -227,11 +238,11 @@ export default function AdminPage() {
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("moderation_logs").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("academic_suggestions").select("*").order("created_at", { ascending: false }).limit(500) as any,
-        supabase.from("academic_program_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
+        supabase.from("academic_program_requests").select("*").order("created_at", { ascending: false }).limit(500),
         supabase.from("departments").select("*") as any,
         supabase.from("support_tickets").select("*").order("created_at", { ascending: false }).limit(500) as any,
         supabase.from("university_domain_requests" as any).select("*").order("created_at", { ascending: false }).limit(500),
-        supabase.from("universities" as any).select("*").in("country", ["TR", "KKTC"]).order("name", { ascending: true }),
+        supabase.from("universities").select("*").in("country", ["TR", "KKTC"]).order("name", { ascending: true }),
       ]);
       setUsers(usersRes.data || []);
       setPosts(postsRes.data || []);
@@ -242,12 +253,12 @@ export default function AdminPage() {
       setSecurityLogs(secLogsRes.data || []);
       setModerationQueue(modQueueRes.data || []);
       setModerationLogs(modLogsRes.data || []);
-      setAcademicSuggestions(((suggestionsRes.data || []) as any[]).filter((s) => s.type !== "department"));
-      setAcademicProgramRequests((programRequestsRes.data || []) as any[]);
+      setAcademicSuggestions((suggestionsRes.data || []).filter((s: any) => s.type !== "department"));
+      setAcademicProgramRequests(programRequestsRes.data || []);
       setDepartments(deptsRes.data || []);
       setSupportTickets(ticketsRes.data || []);
-      setDomainRequests((domainRequestsRes.data || []) as any[]);
-      setUniversitiesCatalog((universitiesRes.data || []) as any[]);
+      setDomainRequests(domainRequestsRes.data || []);
+      setUniversitiesCatalog(universitiesRes.data || []);
     } finally {
       setDataLoading(false);
       setRefreshing(false);
@@ -761,12 +772,13 @@ export default function AdminPage() {
   };
 
   const handleApproveAcademicProgramRequest = async (request: any) => {
-    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+    const { data, error } = await (supabase.rpc as any)("admin_process_academic_program_request", {
       p_request_id: request.id,
       p_action: "approved",
     } as any);
+    const rpcResult = data as any;
 
-    if (!error && data?.ok) {
+    if (!error && rpcResult?.ok) {
       toast.success("Program talebi onaylandı ve canonical kataloğa işlendi.");
       fetchAll(true);
       return;
@@ -782,7 +794,7 @@ export default function AdminPage() {
     const finalUnitName = (request.requested_unit_name || "").trim() || null;
     const finalProgramYears = finalProgramLevel === "onlisans" ? 2 : 4;
 
-    const { data: upsertedProgram, error: upsertErr } = await supabase.from("academic_programs" as any).upsert({
+    const { data: upsertedProgram, error: upsertErr } = await supabase.from("academic_programs").upsert({
       university_id: request.university_id,
       university_name: request.university_name,
       program_name: finalProgramName,
@@ -808,13 +820,13 @@ export default function AdminPage() {
       created_by: user?.id || null,
     }, { onConflict: "university,name_normalized" });
 
-    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+    const { error: updateErr } = await supabase.from("academic_program_requests").update({
       status: "approved",
       admin_program_name: finalProgramName,
       admin_program_level: finalProgramLevel,
       admin_unit_name: finalUnitName,
       admin_program_years: finalProgramYears,
-      inserted_program_id: upsertedProgram?.id || null,
+      inserted_program_id: (upsertedProgram as any)?.id || null,
       reviewed_by: user?.id || null,
       reviewed_at: new Date().toISOString(),
     }).eq("id", request.id);
@@ -829,13 +841,14 @@ export default function AdminPage() {
   };
 
   const handleRejectAcademicProgramRequest = async (request: any) => {
-    const { data, error } = await supabase.rpc("admin_process_academic_program_request", {
+    const { data, error } = await (supabase.rpc as any)("admin_process_academic_program_request", {
       p_request_id: request.id,
       p_action: "rejected",
       p_admin_note: "Admin tarafından reddedildi",
     } as any);
+    const rpcResult = data as any;
 
-    if (!error && data?.ok) {
+    if (!error && rpcResult?.ok) {
       toast.success("Program talebi reddedildi.");
       fetchAll(true);
       return;
@@ -846,7 +859,7 @@ export default function AdminPage() {
       return;
     }
 
-    const { error: updateErr } = await supabase.from("academic_program_requests" as any).update({
+    const { error: updateErr } = await supabase.from("academic_program_requests").update({
       status: "rejected",
       admin_note: "Admin tarafından reddedildi",
       reviewed_by: user?.id || null,
@@ -896,7 +909,7 @@ export default function AdminPage() {
     }
 
     const { data: uniRow, error: uniErr } = await supabase
-      .from("universities" as any)
+      .from("universities")
       .upsert({
         name: universityName,
         country: draft.country,
@@ -906,15 +919,16 @@ export default function AdminPage() {
       }, { onConflict: "name" })
       .select("id")
       .maybeSingle();
-    if (uniErr || !uniRow?.id) {
+    const universityId = (uniRow as any)?.id || null;
+    if (uniErr || !universityId) {
       toast.error("?niversite eklenemedi: " + (uniErr?.message || "Bilinmeyen hata"));
       return;
     }
 
     const { error: domainErr } = await supabase
-      .from("university_email_domains" as any)
+      .from("university_email_domains")
       .upsert({
-        university_id: uniRow.id,
+        university_id: universityId,
         domain,
         is_primary: true,
         is_verified: true,
@@ -939,7 +953,7 @@ export default function AdminPage() {
         admin_note: draft.admin_note.trim() || null,
         reviewed_by: user?.id || null,
         reviewed_at: new Date().toISOString(),
-        resolved_university_id: uniRow.id,
+        resolved_university_id: universityId,
         resolved_domain: domain,
       })
       .eq("id", request.id);
@@ -1142,7 +1156,7 @@ export default function AdminPage() {
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.past_exams}</p>
-                        <p className="text-xs text-muted-foreground">Çıkmış Soru</p>
+                        <p className="text-xs text-muted-foreground">Geçmiş Sınav</p>
                       </Card>
                       <Card className="p-3 text-center">
                         <p className="text-lg font-extrabold">{stats.contentCounts.discussion}</p>
@@ -1836,7 +1850,7 @@ export default function AdminPage() {
                         <SelectContent>
                           <SelectItem value="all">Tümü</SelectItem>
                           <SelectItem value="notes">Notlar</SelectItem>
-                          <SelectItem value="past_exams">Çıkmış</SelectItem>
+                          <SelectItem value="past_exams">Geçmiş Sınav</SelectItem>
                           <SelectItem value="discussion">Tartışma</SelectItem>
                           <SelectItem value="kaynaklar">Kaynak</SelectItem>
                         </SelectContent>
@@ -1863,7 +1877,7 @@ export default function AdminPage() {
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className="text-xs">
-                                    {({ notes: "Not", past_exams: "Çıkmış", discussion: "Tartışma", kaynaklar: "Kaynak" } as any)[p.content_type] || p.content_type}
+                                    {getPostTypeLabel(p.content_type)}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{p.is_anonymous ? "Anonim" : getUsername(p.user_id)}</TableCell>
@@ -2189,7 +2203,7 @@ function UserDetailDialog({ user: u, role, postCount, commentCount, onDeleted }:
             <div>
               <p className="text-xs text-muted-foreground font-semibold uppercase">Üniversite</p>
               <p className="font-medium">{u.university || "—"}</p>
-              {u.university && <p className="text-xs text-muted-foreground">{getUniversityMetaLabel(u.university)}</p>}
+              {u.university && <p className="text-xs text-muted-foreground">{formatUniversityMetaLabel({ city: null, type: null })}</p>}
             </div>
             <div><p className="text-xs text-muted-foreground font-semibold uppercase">Bölüm</p><p className="font-medium">{u.department || "—"}</p></div>
             <div><p className="text-xs text-muted-foreground font-semibold uppercase">Sınıf</p><p className="font-medium">{u.class_year != null ? (u.class_year === 0 ? "Hazırlık" : `${u.class_year}. Sınıf`) : "—"}</p></div>

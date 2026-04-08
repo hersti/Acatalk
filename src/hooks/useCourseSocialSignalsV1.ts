@@ -111,7 +111,7 @@ const toFeatured = (value: Json): FeaturedContentSignal | null => {
 
   return {
     post_id: postId,
-    title: asString(row.title, "Icerik"),
+    title: asString(row.title, "İçerik"),
     content_type: contentType as FeaturedContentSignal["content_type"],
     created_at: asString(row.created_at),
     helpful_count: asNumber(row.helpful_count),

@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CHANNEL_NAME = "global-presence";
 let globalOnlineUsers = new Set<string>();
-let listeners = new Set<() => void>();
+const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((fn) => fn());
@@ -103,7 +103,7 @@ export function useOnlineUsers(userIds: string[]): Set<string> {
     update();
     listeners.add(update);
     return () => { listeners.delete(update); };
-  }, [userIds.join(",")]);
+  }, [userIds]);
 
   return onlineSet;
 }

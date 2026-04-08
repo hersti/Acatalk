@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,31 @@ export default function CreateDiscussionDialog({ courseId, onCreated }: Props) {
   const [discussionType, setDiscussionType] = useState("soru");
   const [isAnonymous, setIsAnonymous] = useState(false);
 
+  const trimmedTitle = title.trim();
+  const trimmedContent = content.trim();
+
+  const validateDiscussionInput = (): string | null => {
+    if (trimmedTitle.length < 8) {
+      return "Başlık en az 8 karakter olmalıdır.";
+    }
+    if (trimmedContent.length < 15) {
+      return "Tartışma içeriğini en az 15 karakter olacak şekilde yazın.";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !title.trim() || loading) return;
+    if (!user || !trimmedTitle || loading) return;
+
+    const validationMessage = validateDiscussionInput();
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
 
     // Instant client-side block
-    const textToCheck = `${title.trim()} ${content.trim()}`;
+    const textToCheck = `${trimmedTitle} ${trimmedContent}`;
     const quickCheck = quickContentCheck(textToCheck);
     if (!quickCheck.safe) {
       toast.error(quickCheck.reason || "İçerik platform kurallarını ihlal ediyor.");
@@ -49,7 +68,7 @@ export default function CreateDiscussionDialog({ courseId, onCreated }: Props) {
         return;
       }
 
-      const textToModerate = `${title.trim()} ${content.trim()}`;
+      const textToModerate = `${trimmedTitle} ${trimmedContent}`;
 
       // Check URLs for safety
       const urlCheck = checkTextUrls(textToModerate);
@@ -67,8 +86,8 @@ export default function CreateDiscussionDialog({ courseId, onCreated }: Props) {
       const { data: newPost, error } = await supabase.from("posts").insert({
         user_id: user.id,
         course_id: courseId,
-        title: title.trim(),
-        content: content.trim() || null,
+        title: trimmedTitle,
+        content: trimmedContent || null,
         content_type: "discussion" as any,
         is_anonymous: isAnonymous,
         discussion_type: discussionType,
@@ -81,8 +100,9 @@ export default function CreateDiscussionDialog({ courseId, onCreated }: Props) {
       setDiscussionType("soru");
       setOpen(false);
       onCreated(newPost?.id);
-    } catch (err: any) {
-      toast.error(err.message || "Oluşturulamadı");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Oluşturulamadı";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -119,16 +139,18 @@ export default function CreateDiscussionDialog({ courseId, onCreated }: Props) {
           <div className="space-y-2">
             <Label>Başlık</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tartışma başlığı..." required maxLength={200} />
+            <p className="text-[11px] text-muted-foreground text-right">{title.length}/200</p>
           </div>
           <div className="space-y-2">
             <Label>İçerik</Label>
             <MentionInput value={content} onChange={setContent} placeholder="Detayları yazın..." rows={4} maxLength={5000} />
+            <p className="text-[11px] text-muted-foreground text-right">{content.length}/5000</p>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="anon-disc" checked={isAnonymous} onCheckedChange={(v) => setIsAnonymous(!!v)} />
             <label htmlFor="anon-disc" className="text-sm text-muted-foreground">Anonim olarak paylaş</label>
           </div>
-          <Button type="submit" className="w-full" disabled={loading || !title.trim()}>
+          <Button type="submit" className="w-full" disabled={loading || !trimmedTitle || !trimmedContent}>
             {loading ? "Gönderiliyor..." : "Tartışma Başlat"}
           </Button>
         </form>

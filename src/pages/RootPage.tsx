@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { StateBlock } from "@/components/ui/state-blocks";
 import FeedPage from "@/pages/FeedPage";
 

@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import MentionInput, { renderMentions } from "@/components/MentionInput";
+import MentionInput from "@/components/MentionInput";
+import { RenderMentions } from "@/components/MentionRenderer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -55,19 +56,6 @@ export default function DiscussionDetail({ post, onBack, onRefresh }: Discussion
   const [voting, setVoting] = useState(false);
 
   useEffect(() => {
-    setComments([]);
-    setContent("");
-    setIsAnonymous(false);
-    setReplyTo(null);
-    setUserVote(0);
-    setLocalHelpful(post.helpful_count ?? 0);
-    setVoting(false);
-    setLoading(false);
-    fetchComments();
-    if (user) checkUserVote();
-  }, [post.id]);
-
-  useEffect(() => {
     setLocalHelpful(post.helpful_count ?? 0);
   }, [post.helpful_count]);
 
@@ -107,6 +95,18 @@ export default function DiscussionDetail({ post, onBack, onRefresh }: Discussion
     const { data } = await supabase.from("votes").select("vote_type").eq("post_id", post.id).eq("user_id", user.id).maybeSingle();
     setUserVote(data ? (data as any).vote_type : 0);
   }, [post.id, user]);
+
+  useEffect(() => {
+    setComments([]);
+    setContent("");
+    setIsAnonymous(false);
+    setReplyTo(null);
+    setUserVote(0);
+    setVoting(false);
+    setLoading(false);
+    void fetchComments();
+    if (user) void checkUserVote();
+  }, [checkUserVote, fetchComments, post.id, user]);
 
   const handleVote = async (direction: 1 | -1) => {
     if (!user) { toast.error("Giriş yapmalısınız"); return; }
@@ -268,7 +268,7 @@ export default function DiscussionDetail({ post, onBack, onRefresh }: Discussion
           </button>
         </div>
         <div className="flex-1 p-4">
-          {post.content && <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderMentions(post.content)}</p>}
+          {post.content && <p className="text-sm leading-relaxed whitespace-pre-wrap"><RenderMentions text={post.content} /></p>}
           {!post.content && <p className="text-sm text-muted-foreground italic">İçerik yok.</p>}
         </div>
       </div>
@@ -399,7 +399,7 @@ function CommentItem({
           )}
         </div>
       </div>
-      <p className="text-sm leading-relaxed">{renderMentions(comment.content)}</p>
+      <p className="text-sm leading-relaxed"><RenderMentions text={comment.content} /></p>
       <div className="flex items-center gap-3 mt-2">
         <button
           onClick={() => onLike(comment.id, !!comment.userLiked)}

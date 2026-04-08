@@ -1,5 +1,5 @@
 import { useFollow } from "@/hooks/useFollow";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, UserX, Link2, Loader2, Check, X } from "lucide-react";
 import { toast } from "sonner";

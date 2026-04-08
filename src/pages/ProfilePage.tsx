@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import Layout from "@/components/Layout";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -100,7 +100,7 @@ export default function ProfilePage() {
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
-    setProfile((data as ProfileRow | null) ?? null);
+    setProfile(data ?? null);
   };
 
   const fetchUserStats = async (userId: string) => {
@@ -130,7 +130,7 @@ export default function ProfilePage() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    const rows = (bookmarksData || []) as BookmarkRow[];
+    const rows: BookmarkRow[] = bookmarksData || [];
     if (!rows.length) {
       setBookmarks([]);
       return;
@@ -164,8 +164,8 @@ export default function ProfilePage() {
         .limit(12),
     ]);
 
-    setRecentPosts((postsRes.data || []) as PostRow[]);
-    setRecentComments((commentsRes.data || []) as CommentRow[]);
+    setRecentPosts(postsRes.data || []);
+    setRecentComments(commentsRes.data || []);
   };
 
   const fetchActiveCourses = async (userId: string) => {
@@ -176,7 +176,7 @@ export default function ProfilePage() {
       .not("course_id", "is", null)
       .limit(400);
 
-    const entries = (refs || []) as { course_id: string | null }[];
+    const entries: { course_id: string | null }[] = refs || [];
     const validIds = entries.map((item) => item.course_id).filter((id): id is string => !!id);
     if (!validIds.length) {
       setActiveCourses([]);
@@ -239,7 +239,7 @@ export default function ProfilePage() {
   };
   const contentTypeLabel: Record<string, string> = {
     notes: "Not",
-    past_exams: "Çıkmış Soru",
+    past_exams: "Geçmiş Sınav",
     discussion: "Tartışma",
     kaynaklar: "Kaynak",
   };

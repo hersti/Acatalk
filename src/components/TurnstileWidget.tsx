@@ -20,8 +20,15 @@ interface Props {
 export default function TurnstileWidget({ onVerify, onExpire }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onExpireRef.current = onExpire;
+  }, [onExpire, onVerify]);
 
   // Fetch site key from edge function
   useEffect(() => {
@@ -58,8 +65,8 @@ export default function TurnstileWidget({ onVerify, onExpire }: Props) {
 
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
-      callback: onVerify,
-      "expired-callback": onExpire,
+      callback: (token: string) => onVerifyRef.current(token),
+      "expired-callback": () => onExpireRef.current?.(),
       theme: "auto",
       size: "flexible",
     });

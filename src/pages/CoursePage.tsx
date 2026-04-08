@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookMarked,
+  BookOpen,
   ClipboardList,
   Clock,
   Download,
@@ -15,9 +16,8 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
-import PostCard from "@/components/PostCard";
 import CreatePostDialog from "@/components/CreatePostDialog";
 import DiscussionPanel from "@/components/discussion/DiscussionPanel";
 import CourseChatPanel from "@/components/course/CourseChatPanel";
@@ -27,6 +27,8 @@ import CourseWiki from "@/components/course/CourseWiki";
 import CourseResources from "@/components/course/CourseResources";
 import TrendingDiscussions from "@/components/course/TrendingDiscussions";
 import RecentContent from "@/components/course/RecentContent";
+import CourseOverviewPanel from "@/components/course/CourseOverviewPanel";
+import CourseAcademicContentSection from "@/components/course/CourseAcademicContentSection";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,18 +37,26 @@ import { Button } from "@/components/ui/button";
 import { normalizeCourseCode } from "@/lib/course-code";
 import { useCourseSocialSignalsV1 } from "@/hooks/useCourseSocialSignalsV1";
 import { recordCourseVisitLocal } from "@/lib/course-visits";
+import { isAcademicContentType } from "@/lib/academic-content";
+import { isCourseNavigationTab, type CourseNavigationTab } from "@/lib/course-navigation";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
 type ContentType = Database["public"]["Enums"]["content_type"];
-type CourseTab = ContentType | "chat";
+type CourseTab = CourseNavigationTab;
 type SortOption = "newest" | "most_voted" | "most_downloaded" | "most_discussed";
 type PostWithProfile = Tables<"posts"> & { profiles: Tables<"profiles"> | null };
 
-const CONTENT_ACTIONS = [
-  { type: "notes" as ContentType, label: "Not Ekle", icon: FileText },
-  { type: "past_exams" as ContentType, label: "Çıkmış Soru Ekle", icon: ClipboardList },
-  { type: "discussion" as ContentType, label: "Tartışma Aç", icon: MessageSquare },
-  { type: "kaynaklar" as ContentType, label: "Kaynak Ekle", icon: BookMarked },
+const SORT_OPTIONS: readonly SortOption[] = ["newest", "most_voted", "most_downloaded", "most_discussed"];
+
+function isSortOption(value: string): value is SortOption {
+  return value === "newest" || value === "most_voted" || value === "most_downloaded" || value === "most_discussed";
+}
+
+const CONTENT_ACTIONS: Array<{ type: ContentType; label: string; icon: typeof FileText }> = [
+  { type: "notes", label: "Not Ekle", icon: FileText },
+  { type: "past_exams", label: "Geçmiş Sınav Ekle", icon: ClipboardList },
+  { type: "discussion", label: "Tartışma Aç", icon: MessageSquare },
+  { type: "kaynaklar", label: "Kaynak Ekle", icon: BookMarked },
 ];
 
 const EMPTY_COPY: Record<
@@ -63,9 +73,9 @@ const EMPTY_COPY: Record<
     createAction: "İlk Notu Paylaş",
   },
   past_exams: {
-    title: "Henüz çıkmış soru yok",
-    helper: "Vize ve final sorularını ekleyerek sınav hazırlığını hızlandırabilirsiniz.",
-    createAction: "İlk Soruyu Ekle",
+    title: "Henüz geçmiş sınav yok",
+    helper: "Vize, final ve quiz arşivini ekleyerek sınav hazırlığını hızlandırabilirsiniz.",
+    createAction: "İlk Sınavı Ekle",
   },
   discussion: {
     title: "Henüz tartışma yok",
@@ -81,7 +91,7 @@ const EMPTY_COPY: Record<
 
 const tabLabelMap: Record<ContentType, string> = {
   notes: "not",
-  past_exams: "çıkmış soru",
+  past_exams: "geçmiş sınav",
   discussion: "tartışma",
   kaynaklar: "kaynak",
 };
@@ -89,13 +99,19 @@ const tabLabelMap: Record<ContentType, string> = {
 export default function CoursePage() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [course, setCourse] = useState<Tables<"courses"> | null>(null);
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
-  const [activeTab, setActiveTab] = useState<CourseTab>("notes");
+  const [activeTab, setActiveTab] = useState<CourseTab>(() => {
+    const tabParam = searchParams.get("tab");
+    return isCourseNavigationTab(tabParam) ? tabParam : "overview";
+  });
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [loading, setLoading] = useState(true);
+  const [postError, setPostError] = useState<string | null>(null);
   const [createType, setCreateType] = useState<ContentType | null>(null);
+  const tabParam = searchParams.get("tab");
 
   const { data: userProfile } = useQuery({
     queryKey: ["user-profile", user?.id],
@@ -116,25 +132,60 @@ export default function CoursePage() {
 
   const fetchCourse = useCallback(async () => {
     if (!id) return;
-    const { data } = await supabase.from("courses").select("*").eq("id", id).single();
-    setCourse(data as Tables<"courses"> | null);
+    const { data, error } = await supabase.from("courses").select("*").eq("id", id).single();
+    if (error) {
+      setCourse(null);
+      return;
+    }
+    setCourse(data);
   }, [id]);
 
   const fetchPosts = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const { data } = await supabase.from("posts").select("*").eq("course_id", id).order("created_at", { ascending: false });
+    setPostError(null);
+    try {
+      const { data, error } = await supabase.from("posts").select("*").eq("course_id", id).order("created_at", { ascending: false });
+      if (error) throw error;
 
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((post) => post.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
-      const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
-      setPosts(data.map((post) => ({ ...post, profiles: profileMap.get(post.user_id) || null })) as PostWithProfile[]);
-    } else {
-      setPosts([]);
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((post) => post.user_id))];
+        const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+        const enrichedPosts: PostWithProfile[] = data.map((post) => ({ ...post, profiles: profileMap.get(post.user_id) || null }));
+        setPosts(enrichedPosts);
+      } else {
+        setPosts([]);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "İçerikler alınamadı.";
+      setPostError(message);
     }
     setLoading(false);
   }, [id]);
+
+  useEffect(() => {
+    const nextTab = isCourseNavigationTab(tabParam) ? tabParam : "overview";
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+  }, [tabParam]);
+
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+
+    if (activeTab === "overview") {
+      if (currentTab === null) return;
+      const next = new URLSearchParams(searchParams);
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
+    if (currentTab === activeTab) return;
+
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", activeTab);
+    setSearchParams(next, { replace: true });
+  }, [activeTab, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!id) return;
@@ -158,8 +209,8 @@ export default function CoursePage() {
   useEffect(() => {
     if (!course) return;
     const normalizedCode = normalizeCourseCode(course.code);
-    document.title = `${course.name} Notları ve Tartışmaları | ACATALK`;
-    const description = `${course.name}${normalizedCode ? ` (${normalizedCode})` : ""} - ${course.department} dersi için notlar, çıkmış sorular, tartışmalar, kaynaklar ve ders sohbeti.`;
+    document.title = `${course.name} Course Hub | ACATALK`;
+    const description = `${course.name}${normalizedCode ? ` (${normalizedCode})` : ""} - ${course.department} dersi için Genel Bakış, Tartışmalar, Notlar, Geçmiş Sınavlar, Kaynaklar ve Sohbet.`;
 
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
@@ -177,9 +228,21 @@ export default function CoursePage() {
   }, [course]);
 
   const selectedContentType = useMemo<ContentType | null>(() => {
-    if (activeTab === "chat" || activeTab === "discussion") return null;
+    if (activeTab === "chat" || activeTab === "discussion" || activeTab === "overview") return null;
     return activeTab;
   }, [activeTab]);
+
+  const recentOverviewPosts = useMemo(
+    () => posts.slice(0, 10).map((post) => ({
+      id: post.id,
+      title: post.title,
+      content_type: post.content_type,
+      created_at: post.created_at,
+      helpful_count: post.helpful_count,
+      comment_count: post.comment_count,
+    })),
+    [posts],
+  );
 
   const filteredPosts = useMemo(() => {
     if (!selectedContentType) return [];
@@ -218,13 +281,14 @@ export default function CoursePage() {
     badge?: string;
     tooltip: string;
   }> = [
+    { value: "overview", label: "Genel Bakış", icon: BookOpen, tooltip: "Dersin özet paneli" },
     { value: "notes", label: "Notlar", icon: FileText, count: tabCounts.notes, tooltip: `${tabCounts.notes} not` },
     {
       value: "past_exams",
-      label: "Çıkmış Sorular",
+      label: "Geçmiş Sınavlar",
       icon: ClipboardList,
       count: tabCounts.past_exams,
-      tooltip: `${tabCounts.past_exams} sınav sorusu`,
+      tooltip: `${tabCounts.past_exams} geçmiş sınav`,
     },
     {
       value: "discussion",
@@ -237,13 +301,27 @@ export default function CoursePage() {
     { value: "chat", label: "Sohbet", icon: MessageCircle, badge: "Canlı", tooltip: "Ders sohbeti" },
   ];
 
-  const tabGuidance = useMemo(() => {
+  const tabGuidance = useMemo<{
+    title: string;
+    description: string;
+    ctaLabel?: string;
+    ctaTab?: CourseTab;
+  }>(() => {
+    if (activeTab === "overview") {
+      return {
+        title: "Genel Bakış dersin giriş kontrol panelidir",
+        description: "Bu panelden Tartışmalar, Notlar, Geçmiş Sınavlar, Kaynaklar ve Sohbet alanlarına doğrudan geçiş yapabilirsiniz.",
+        ctaLabel: "Tartışmalara Geç",
+        ctaTab: "discussion",
+      };
+    }
+
     if (activeTab === "chat") {
       return {
         title: "Sohbet hızlı koordinasyon alanıdır",
         description: "Kalıcı bilgi için Tartışmalar sekmesinde başlık açın veya mevcut tartışmalara yanıt verin.",
         ctaLabel: "Tartışmalara Geç",
-        ctaTab: "discussion" as CourseTab,
+        ctaTab: "discussion",
       };
     }
 
@@ -252,13 +330,13 @@ export default function CoursePage() {
         title: "Tartışmalar dersin kalıcı akademik hafızasıdır",
         description: "Kısa koordinasyon ve anlık yardım için Sohbet sekmesine geçebilirsiniz.",
         ctaLabel: "Sohbete Geç",
-        ctaTab: "chat" as CourseTab,
+        ctaTab: "chat",
       };
     }
 
     return {
       title: "Bu sekme ders içeriği üretim alanıdır",
-      description: "Not, çıkmış soru ve kaynak katkıları dersi yaşayan bir bilgi merkezi haline getirir.",
+      description: "Notlar, Geçmiş Sınavlar ve Kaynaklar katkıları dersi yaşayan bir bilgi merkezi haline getirir.",
       ctaLabel: selectedContentType && canAddContent ? EMPTY_COPY[selectedContentType].createAction : undefined,
       ctaTab: undefined,
     };
@@ -290,8 +368,6 @@ export default function CoursePage() {
       </Layout>
     );
   }
-
-  const emptyConfig = selectedContentType ? EMPTY_COPY[selectedContentType] : null;
 
   return (
     <Layout>
@@ -326,7 +402,7 @@ export default function CoursePage() {
                     </div>
                     <h1 className="font-heading text-xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl">{course.name}</h1>
                     <p className="mt-0.5 text-xs font-medium text-primary-foreground/70">
-                      Course Hub: notlar, çıkmış sorular, tartışmalar, kaynaklar ve ders sohbeti.
+                      Course Hub: Genel Bakış, Tartışmalar, Notlar, Geçmiş Sınavlar, Kaynaklar ve Sohbet.
                     </p>
                     {course.description && <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-primary-foreground/55">{course.description}</p>}
                   </div>
@@ -453,6 +529,15 @@ export default function CoursePage() {
               <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                 {activeTab === "discussion" ? (
                   <DiscussionPanel courseId={id!} />
+                ) : activeTab === "overview" && course ? (
+                  <CourseOverviewPanel
+                    course={course}
+                    canAddContent={canAddContent}
+                    tabCounts={tabCounts}
+                    recentPosts={recentOverviewPosts}
+                    socialSignals={socialSignals}
+                    onSelectSection={(section) => setActiveTab(section)}
+                  />
                 ) : activeTab === "chat" ? (
                   <CourseChatPanel
                     courseId={id!}
@@ -470,7 +555,9 @@ export default function CoursePage() {
                         {filteredPosts.length} {selectedContentType ? tabLabelMap[selectedContentType] : "içerik"}
                       </p>
                       <div className="flex items-center gap-2">
-                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                        <Select value={sortBy} onValueChange={(value) => {
+                          if (isSortOption(value)) setSortBy(value);
+                        }}>
                           <SelectTrigger className="h-8 w-40 rounded-xl border-border/50 bg-secondary/45 text-xs">
                             <SelectValue />
                           </SelectTrigger>
@@ -500,55 +587,33 @@ export default function CoursePage() {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      {loading ? (
-                        <StateBlock variant="loading" size="section" title="İçerikler yükleniyor" description="Ders içerikleri hazırlanıyor." />
-                      ) : filteredPosts.length > 0 ? (
-                        filteredPosts.map((post, index) => (
-                          <motion.div
-                            key={post.id}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.03 }}
-                          >
-                            <PostCard post={post} onVoted={fetchPosts} showAdminActions={isAdmin} />
-                          </motion.div>
-                        ))
-                      ) : (
-                        <StateBlock
-                          variant="empty"
-                          size="section"
-                          title={emptyConfig?.title || "Henüz içerik yok"}
-                          description={
-                            !user
-                              ? `${emptyConfig?.helper || ""} Katkı için giriş yapabilirsiniz.`
-                              : canAddContent
-                                ? `${emptyConfig?.helper || ""} İlk katkıyı siz başlatabilirsiniz.`
-                                : "Bu derse yalnızca kendi üniversitenizin öğrencileri içerik ekleyebilir."
-                          }
-                          primaryAction={
-                            !user ? (
-                              <Button asChild variant="outline" size="sm">
-                                <Link to="/auth">Giriş Yap</Link>
-                              </Button>
-                            ) : canAddContent && selectedContentType ? (
-                              <Button size="sm" onClick={() => setCreateType(selectedContentType)}>
-                                {emptyConfig?.createAction || "İlk Katkıyı Ekle"}
-                              </Button>
-                            ) : (
-                              <Button asChild variant="outline" size="sm">
-                                <Link to="/settings">Profili Düzenle</Link>
-                              </Button>
-                            )
-                          }
-                          secondaryAction={
-                            <Button size="sm" variant="ghost" onClick={() => setActiveTab("discussion")}>
-                              Tartışmaları Aç
-                            </Button>
-                          }
-                        />
-                      )}
-                    </div>
+                    {selectedContentType && isAcademicContentType(selectedContentType) && selectedContentType !== "discussion" ? (
+                      <CourseAcademicContentSection
+                        courseId={id!}
+                        sectionType={selectedContentType}
+                        posts={filteredPosts}
+                        loading={loading}
+                        error={postError}
+                        canAddContent={canAddContent}
+                        isLoggedIn={!!user}
+                        onCreate={() => setCreateType(selectedContentType)}
+                        onRetry={() => {
+                          void fetchPosts();
+                        }}
+                      />
+                    ) : (
+                      <StateBlock
+                        variant="error"
+                        size="section"
+                        title="Sekme yapılandırması uyumsuz"
+                        description="Bu sekme tipi için içerik yüzeyi bulunamadı."
+                        primaryAction={
+                          <Button size="sm" variant="outline" onClick={() => setActiveTab("overview")}>
+                            Genel Bakışa Dön
+                          </Button>
+                        }
+                      />
+                    )}
                   </>
                 )}
               </motion.div>
@@ -571,6 +636,7 @@ export default function CoursePage() {
                   }}
                 />
                 <CourseFeaturedContentCard
+                  courseId={id}
                   featuredContent={socialSignals?.featured_content || []}
                   loading={socialSignalsLoading}
                   hasError={socialSignalsError}
@@ -598,6 +664,7 @@ export default function CoursePage() {
               }}
             />
             <CourseFeaturedContentCard
+              courseId={id}
               featuredContent={socialSignals?.featured_content || []}
               loading={socialSignalsLoading}
               hasError={socialSignalsError}
@@ -617,8 +684,12 @@ export default function CoursePage() {
         <CreatePostDialog
           courseId={id}
           defaultType={createType}
-          onCreated={() => {
+          lockedContentType={createType}
+          onCreated={(createdType) => {
             void fetchPosts();
+            if (createdType && isAcademicContentType(createdType)) {
+              setActiveTab(createdType);
+            }
             setCreateType(null);
           }}
           externalOpen={true}

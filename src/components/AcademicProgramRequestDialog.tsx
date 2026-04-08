@@ -98,7 +98,7 @@ export default function AcademicProgramRequestDialog({
         p_requester_email: context === "signup" ? requesterEmail?.trim().toLowerCase() || null : null,
       };
 
-      const { data, error } = await supabase.rpc("create_academic_program_request", params as any);
+      const { data, error } = await (supabase.rpc as any)("create_academic_program_request", params as any);
       const rpcMissing =
         !!error &&
         ((error as any)?.code === "PGRST202" || String((error as any)?.message || "").includes("Could not find the function"));

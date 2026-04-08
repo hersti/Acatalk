@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import CreatePostDialog from "@/components/CreatePostDialog";
@@ -43,7 +43,7 @@ const ALL_YEARS = ["Tümü", "Hazırlık", "1. Sınıf", "2. Sınıf", "3. Sın�
 const CONTENT_TYPES = [
   { value: "all", label: "Tümü" },
   { value: "notes", label: "Notlar" },
-  { value: "past_exams", label: "Çıkmış Sorular" },
+  { value: "past_exams", label: "Geçmiş Sınavlar" },
   { value: "discussion", label: "Tartışmalar" },
   { value: "kaynaklar", label: "Kaynaklar" },
 ];
@@ -89,6 +89,7 @@ export default function Index() {
   const [homeCreateCourseId, setHomeCreateCourseId] = useState("");
   const [homeCreateType, setHomeCreateType] = useState<ContentType>("notes");
   const { data: feedSnapshot, isLoading: feedLoading, isError: feedError } = useFeedSnapshotV1(user?.id, 8, 8, 30);
+  const coursesFetchRequestRef = useRef(0);
 
   const universityOptions = catalogUniversities.map((u) => ({
     label: u.name,
@@ -112,91 +113,16 @@ export default function Index() {
     return ["Tümü", "Hazırlık", ...Array.from({ length: maxYears }, (_, i) => `${i + 1}. Sınıf`)];
   })();
 
-  const loadCatalogUniversities = async () => {
+  const loadCatalogUniversities = useCallback(async () => {
     try {
       const rows = await fetchUniversitiesCatalog();
       setCatalogUniversities(rows);
     } catch {
       setCatalogUniversities([]);
     }
-  };
-
-  useEffect(() => {
-    const savedUni = localStorage.getItem("browse-university");
-    if (savedUni) setBrowseUniversity(savedUni);
-    void loadCatalogUniversities();
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-
-    supabase
-      .from("profiles")
-      .select("university, university_id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.university) {
-          setUserUniversity(data.university);
-          setUserUniversityId((data as any)?.university_id || null);
-
-          if (!browseUniversity && !localStorage.getItem("browse-university")) {
-            setBrowseUniversity(data.university);
-            localStorage.setItem("browse-university", data.university);
-          }
-        }
-      });
-  }, [user]);
-
-  useEffect(() => {
-    if (searchQuery) {
-      performSearch(searchQuery);
-    } else {
-      setSearchResults([]);
-      setSearchCourseResults([]);
-      setSearchUserResults([]);
-    }
-  }, [searchQuery]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (browseUniversity) {
-      localStorage.setItem("browse-university", browseUniversity);
-    }
-
-    setSelectedDept("Tümü");
-    setSelectedCourse("Tümü");
-    setSelectedYear("Tümü");
-    fetchCourses();
-
-    const loadPrograms = async () => {
-      if (!browseUniversity) {
-        setBrowsePrograms([]);
-        return;
-      }
-      try {
-        const rows = await fetchAcademicProgramsForUniversity(browseUniversity);
-        if (!cancelled) setBrowsePrograms(rows);
-      } catch {
-        if (!cancelled) setBrowsePrograms([]);
-      }
-    };
-
-    void loadPrograms();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [browseUniversity]);
-
-  useEffect(() => {
-    if (selectedYear !== "Tümü" && !filteredYears.includes(selectedYear)) {
-      setSelectedYear("Tümü");
-    }
-  }, [selectedDept, filteredYears]);
-
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     const requestId = ++coursesFetchRequestRef.current;
 
     let query = supabase.from("courses").select("*").order("name");
@@ -206,7 +132,6 @@ export default function Index() {
 
     const { data: coursesData } = await query;
 
-    // Prevent stale responses from overwriting the latest university filter state
     if (requestId !== coursesFetchRequestRef.current) return;
 
     if (!coursesData) {
@@ -241,9 +166,9 @@ export default function Index() {
       if (counts[p.course_id][p.content_type] !== undefined) counts[p.course_id][p.content_type]++;
     });
     setPostCounts(counts);
-  };
+  }, [browseUniversity]);
 
-  const enrichPosts = async (posts: any[]): Promise<PostWithProfile[]> => {
+  const enrichPosts = useCallback(async (posts: any[]): Promise<PostWithProfile[]> => {
     if (!posts.length) return [];
     const userIds = [...new Set(posts.map((p) => p.user_id))];
     const courseIds = [...new Set(posts.map((p) => p.course_id))];
@@ -254,9 +179,9 @@ export default function Index() {
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, p]) || []);
     const courseMap = new Map(coursesRes.data?.map((c) => [c.id, c.name]) || []);
     return posts.map((p) => ({ ...p, profiles: profileMap.get(p.user_id) || null, course_name: courseMap.get(p.course_id) || "" }));
-  };
+  }, []);
 
-  const performSearch = async (query: string) => {
+  const performSearch = useCallback(async (query: string) => {
     setSearching(true);
     const [postsRes, coursesRes, usersRes] = await Promise.all([
       supabase.from("posts").select("*").or(`title.ilike.%${query}%,content.ilike.%${query}%`).order("created_at", { ascending: false }).limit(20),
@@ -277,9 +202,82 @@ export default function Index() {
         description: `"${query}" için eşleşen sonuç bulunamadı.`,
       });
     }
-  };
+  }, [enrichPosts, toast]);
 
-  const coursesFetchRequestRef = useRef(0);
+  useEffect(() => {
+    const savedUni = localStorage.getItem("browse-university");
+    if (savedUni) setBrowseUniversity(savedUni);
+    void loadCatalogUniversities();
+  }, [loadCatalogUniversities]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    supabase
+      .from("profiles")
+      .select("university, university_id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.university) {
+          setUserUniversity(data.university);
+          setUserUniversityId((data as any)?.university_id || null);
+
+          if (!browseUniversity && !localStorage.getItem("browse-university")) {
+            setBrowseUniversity(data.university);
+            localStorage.setItem("browse-university", data.university);
+          }
+        }
+      });
+  }, [browseUniversity, user]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      performSearch(searchQuery);
+    } else {
+      setSearchResults([]);
+      setSearchCourseResults([]);
+      setSearchUserResults([]);
+    }
+  }, [performSearch, searchQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (browseUniversity) {
+      localStorage.setItem("browse-university", browseUniversity);
+    }
+
+    setSelectedDept("Tümü");
+    setSelectedCourse("Tümü");
+    setSelectedYear("Tümü");
+    void fetchCourses();
+
+    const loadPrograms = async () => {
+      if (!browseUniversity) {
+        setBrowsePrograms([]);
+        return;
+      }
+      try {
+        const rows = await fetchAcademicProgramsForUniversity(browseUniversity);
+        if (!cancelled) setBrowsePrograms(rows);
+      } catch {
+        if (!cancelled) setBrowsePrograms([]);
+      }
+    };
+
+    void loadPrograms();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [browseUniversity, fetchCourses]);
+
+  useEffect(() => {
+    if (selectedYear !== "Tümü" && !filteredYears.includes(selectedYear)) {
+      setSelectedYear("Tümü");
+    }
+  }, [filteredYears, selectedDept, selectedYear]);
 
   const filteredCourses = courses.filter((c) => {
     if (selectedDept !== "Tümü") {
@@ -733,7 +731,7 @@ function HomepageCreateButton({
 
   const CONTENT_TYPE_OPTIONS = [
     { value: "notes" as ContentType, label: "Not Yükle", icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { value: "past_exams" as ContentType, label: "Çıkmış Soru", icon: Hash, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { value: "past_exams" as ContentType, label: "Geçmiş Sınav", icon: Hash, color: "text-orange-500", bg: "bg-orange-500/10" },
     { value: "discussion" as ContentType, label: "Tartışma Aç", icon: MessageSquare, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { value: "kaynaklar" as ContentType, label: "Kaynak Ekle", icon: Layers, color: "text-purple-500", bg: "bg-purple-500/10" },
   ];

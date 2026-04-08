@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { GraduationCap } from "lucide-react";
 
 import SupportButton from "@/components/SupportButton";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useGlobalPresence } from "@/hooks/useGlobalPresence";
 import AppSidebar from "@/components/shell/AppSidebar";
 import AppTopbar from "@/components/shell/AppTopbar";
@@ -84,7 +84,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <span className="font-heading text-base font-bold tracking-tight">ACATALK</span>
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Turkiye ve KKTC universite ogrencileri icin akademik sosyal ag.
+                Türkiye ve KKTC üniversite öğrencileri için akademik sosyal ağ.
               </p>
             </div>
 
@@ -92,22 +92,22 @@ export default function Layout({ children }: { children: ReactNode }) {
               <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">Platform</h4>
               <nav className="flex flex-col gap-2">
                 <Link to="/about" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Hakkimizda
+                  Hakkımızda
                 </Link>
                 <Link to="/community-rules" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Topluluk Kurallari
+                  Topluluk Kuralları
                 </Link>
                 <Link to="/leaderboard" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Siralama
+                  Sıralama
                 </Link>
               </nav>
             </div>
 
             <div>
-              <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">Kesif</h4>
+              <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">Keşif</h4>
               <nav className="flex flex-col gap-2">
                 <Link to="/universities" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Universiteler
+                  Üniversiteler
                 </Link>
                 <Link to="/courses" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                   Dersler
@@ -122,21 +122,21 @@ export default function Layout({ children }: { children: ReactNode }) {
               <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">Yasal</h4>
               <nav className="flex flex-col gap-2">
                 <Link to="/terms" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Kullanim Sartlari
+                  Kullanım Şartları
                 </Link>
                 <Link to="/privacy" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Gizlilik Politikasi
+                  Gizlilik Politikası
                 </Link>
                 <Link to="/copyright" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Telif Hakki
+                  Telif Hakkı
                 </Link>
               </nav>
             </div>
           </div>
 
           <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 sm:flex-row">
-            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} ACATALK. Tum haklari saklidir.</p>
-            <p className="text-xs text-muted-foreground">Akademik baglamli sosyal ogrenme platformu</p>
+            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} ACATALK. Tüm hakları saklıdır.</p>
+            <p className="text-xs text-muted-foreground">Akademik bağlamlı sosyal öğrenme platformu</p>
           </div>
         </div>
       </footer>

@@ -12,16 +12,34 @@ import { StateBlock } from "@/components/ui/state-blocks";
 import SearchableSelect from "@/components/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { PageTabsBar } from "@/components/ui/product";
 import {
   fetchUniversitiesCatalog,
   formatUniversityMetaLabel,
   type UniversityCatalogRow,
 } from "@/lib/academic-catalog";
+import { getRecentCourseVisitsLocal } from "@/lib/course-visits";
 
 type CourseRow = Tables<"courses">;
 type PostCountMap = Record<string, { notes: number; past_exams: number; discussion: number; kaynaklar: number }>;
+type CourseSignalMap = Record<
+  string,
+  {
+    activeContributors: number;
+    lastActivityAt: string | null;
+    newContentCount: number;
+    chatMessageCount: number;
+  }
+>;
+
+type CourseListView = "all" | "enrolled" | "available";
+
+const COURSE_LIST_VIEWS: readonly CourseListView[] = ["all", "enrolled", "available"];
+
+function isCourseListView(value: string): value is CourseListView {
+  return COURSE_LIST_VIEWS.includes(value as CourseListView);
+}
 
 const ALL_UNIVERSITIES = "__all_universities__";
 
@@ -31,8 +49,9 @@ export default function CoursesPage() {
   const [universities, setUniversities] = useState<UniversityCatalogRow[]>([]);
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [postCounts, setPostCounts] = useState<PostCountMap>({});
+  const [courseSignals, setCourseSignals] = useState<CourseSignalMap>({});
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState<"all" | "enrolled" | "available">("all");
+  const [activeView, setActiveView] = useState<CourseListView>("all");
   const [profileUniversity, setProfileUniversity] = useState<string | null>(null);
 
   const searchQuery = searchParams.get("search") || "";
@@ -98,7 +117,7 @@ export default function CoursesPage() {
       }
 
       if (searchQuery.trim()) {
-        query = query.or(`name.ilike.%${searchQuery.trim()}%,code.ilike.%${searchQuery.trim()}%`);
+        query = query.or(`name.ilike.%${searchQuery.trim()}%,code.ilike.%${searchQuery.trim()}%,description.ilike.%${searchQuery.trim()}%`);
       }
 
       const { data: coursesData } = await query;
@@ -109,29 +128,102 @@ export default function CoursesPage() {
 
       if (rows.length === 0) {
         setPostCounts({});
+        setCourseSignals({});
         setLoading(false);
         return;
       }
 
       const courseIds = rows.map((course) => course.id);
-      const { data: posts } = await supabase
-        .from("posts")
-        .select("course_id,content_type")
-        .eq("status", "published")
-        .in("course_id", courseIds);
+      const [{ data: posts }, { data: chatRooms }] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("course_id,content_type,created_at,user_id")
+          .filter("status", "eq", "published")
+          .in("course_id", courseIds),
+        supabase
+          .from("course_chat_rooms")
+          .select("course_id,last_message_at,message_count")
+          .in("course_id", courseIds),
+      ]);
 
       if (cancelled) return;
 
       const nextCounts: PostCountMap = {};
+      const nextSignals: CourseSignalMap = {};
+      const visitMap = new Map(getRecentCourseVisitsLocal(80).map((entry) => [entry.courseId, entry.lastVisitedAt]));
+
       for (const post of posts || []) {
         const current = nextCounts[post.course_id] || { notes: 0, past_exams: 0, discussion: 0, kaynaklar: 0 };
         if (post.content_type in current) {
           current[post.content_type as keyof typeof current] += 1;
         }
         nextCounts[post.course_id] = current;
+
+        const currentSignal =
+          nextSignals[post.course_id] ||
+          {
+            activeContributors: 0,
+            lastActivityAt: null,
+            newContentCount: 0,
+            chatMessageCount: 0,
+          };
+        const lastActivityAt = currentSignal.lastActivityAt;
+        if (!lastActivityAt || new Date(post.created_at).getTime() > new Date(lastActivityAt).getTime()) {
+          currentSignal.lastActivityAt = post.created_at;
+        }
+
+        const visitedAt = visitMap.get(post.course_id);
+        if (visitedAt && new Date(post.created_at).getTime() > new Date(visitedAt).getTime()) {
+          currentSignal.newContentCount += 1;
+        }
+
+        nextSignals[post.course_id] = currentSignal;
+      }
+
+      const contributorsByCourse = new Map<string, Set<string>>();
+      for (const post of posts || []) {
+        const set = contributorsByCourse.get(post.course_id) || new Set<string>();
+        if (post.user_id) set.add(post.user_id);
+        contributorsByCourse.set(post.course_id, set);
+      }
+
+      for (const [courseId, contributors] of contributorsByCourse.entries()) {
+        const currentSignal =
+          nextSignals[courseId] ||
+          {
+            activeContributors: 0,
+            lastActivityAt: null,
+            newContentCount: 0,
+            chatMessageCount: 0,
+          };
+        currentSignal.activeContributors = contributors.size;
+        nextSignals[courseId] = currentSignal;
+      }
+
+      for (const chatRoom of chatRooms || []) {
+        const currentSignal =
+          nextSignals[chatRoom.course_id] ||
+          {
+            activeContributors: 0,
+            lastActivityAt: null,
+            newContentCount: 0,
+            chatMessageCount: 0,
+          };
+
+        currentSignal.chatMessageCount = chatRoom.message_count || 0;
+
+        if (chatRoom.last_message_at) {
+          const lastActivityAt = currentSignal.lastActivityAt;
+          if (!lastActivityAt || new Date(chatRoom.last_message_at).getTime() > new Date(lastActivityAt).getTime()) {
+            currentSignal.lastActivityAt = chatRoom.last_message_at;
+          }
+        }
+
+        nextSignals[chatRoom.course_id] = currentSignal;
       }
 
       setPostCounts(nextCounts);
+      setCourseSignals(nextSignals);
       setLoading(false);
     };
 
@@ -209,7 +301,7 @@ export default function CoursesPage() {
                   <Input
                     value={searchDraft}
                     onChange={(event) => setSearchDraft(event.target.value)}
-                    placeholder="Ders adı veya ders kodu ara..."
+                    placeholder="Ders adı, kodu veya öğretim üyesi ara..."
                     className="h-9 pl-9"
                   />
                 </div>
@@ -254,17 +346,19 @@ export default function CoursesPage() {
               <div className="mt-2">
                 <PageTabsBar
                   value={activeView}
-                  onChange={(next) => setActiveView(next as typeof activeView)}
+                  onChange={(next) => {
+                    if (isCourseListView(next)) setActiveView(next);
+                  }}
                   items={[
-                    { key: "all", label: "Tumu", count: courses.length },
+                    { key: "all", label: "Tümü", count: courses.length },
                     {
                       key: "enrolled",
-                      label: "Kayitli",
+                      label: "Kayıtlı",
                       count: profileUniversity ? courses.filter((course) => course.university === profileUniversity).length : 0,
                     },
                     {
                       key: "available",
-                      label: "Kesfet",
+                      label: "Keşfet",
                       count: profileUniversity ? courses.filter((course) => course.university !== profileUniversity).length : courses.length,
                     },
                   ]}
@@ -308,7 +402,12 @@ export default function CoursesPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {displayedCourses.map((course) => (
-                  <CourseCard key={course.id} course={course} postCounts={postCounts[course.id]} />
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    postCounts={postCounts[course.id]}
+                    signals={courseSignals[course.id]}
+                  />
                 ))}
               </div>
             )}

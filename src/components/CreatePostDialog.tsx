@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Surface } from "@/components/ui/surface";
 import { Plus, Upload, X, FileText, ClipboardList, BookMarked, Link as LinkIcon, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { formatFileSize, getFileTypeLabel } from "@/lib/content-renderer";
+import { formatFileSize } from "@/lib/content-renderer";
 import { checkTextUrls } from "@/lib/moderate-url";
 import type { Database } from "@/integrations/supabase/types";
 import { moderateText, moderateImage, checkUserModerationStatus, getViolationMessage } from "@/lib/moderation";
@@ -22,7 +22,8 @@ type ContentType = Database["public"]["Enums"]["content_type"];
 interface CreatePostDialogProps {
   courseId: string;
   defaultType?: ContentType;
-  onCreated: () => void;
+  onCreated: (createdType?: ContentType) => void;
+  lockedContentType?: ContentType;
   externalOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -52,12 +53,12 @@ const TYPE_CONFIG: Record<ContentType, {
     showResourceType: false,
   },
   past_exams: {
-    label: "Çıkmış Sorular",
+    label: "Geçmiş Sınavlar",
     icon: ClipboardList,
-    titlePlaceholder: "Örn: 2024 Vize Soruları ve Çözümleri",
+    titlePlaceholder: "Örn: 2024 Vize Sınavı ve Çözümleri",
     contentPlaceholder: "Sınavın yılı, dönemi ve varsa ek bilgileri yazın.",
     contentLabel: "Açıklama",
-    helperText: "Çıkmış sınav soruları, çözümleri veya sınav deneyiminizi paylaşın.",
+    helperText: "Geçmiş sınavlar, çözümler ve sınav deneyimlerini paylaşın.",
     showFile: true,
     showLink: false,
     showExamMeta: true,
@@ -113,7 +114,30 @@ const ALLOWED_EXTENSIONS = [
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
-export default function CreatePostDialog({ courseId, defaultType = "notes", onCreated, externalOpen, onOpenChange }: CreatePostDialogProps) {
+const CONTENT_TYPE_OPTIONS: Array<{
+  value: ContentType;
+  label: string;
+  icon: typeof FileText;
+  iconClassName: string;
+}> = [
+  { value: "notes", label: "Notlar", icon: FileText, iconClassName: "text-notes" },
+  { value: "past_exams", label: "Geçmiş Sınavlar", icon: ClipboardList, iconClassName: "text-exams" },
+  { value: "discussion", label: "Tartışma", icon: MessageSquare, iconClassName: "text-discussion" },
+  { value: "kaynaklar", label: "Kaynaklar", icon: BookMarked, iconClassName: "text-kaynaklar" },
+];
+
+function isContentType(value: string): value is ContentType {
+  return value in TYPE_CONFIG;
+}
+
+export default function CreatePostDialog({
+  courseId,
+  defaultType = "notes",
+  onCreated,
+  lockedContentType,
+  externalOpen,
+  onOpenChange,
+}: CreatePostDialogProps) {
   const { user } = useAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
@@ -125,8 +149,10 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [contentType, setContentType] = useState<ContentType>(defaultType);
-  useEffect(() => { setContentType(defaultType); }, [defaultType]);
+  const [contentType, setContentType] = useState<ContentType>(lockedContentType ?? defaultType);
+  useEffect(() => {
+    setContentType(lockedContentType ?? defaultType);
+  }, [defaultType, lockedContentType]);
   const [file, setFile] = useState<File | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [resourceType, setResourceType] = useState("website");
@@ -155,9 +181,69 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
     setFile(selectedFile);
   };
 
+  const validateTypeSpecificFields = (): string | null => {
+    const trimmedContent = content.trim();
+    const trimmedExamYear = examYear.trim();
+    const trimmedLink = linkUrl.trim();
+
+    if (contentType === "discussion") {
+      if (trimmedContent.length < 15) {
+        return "Tartışma içeriğini en az 15 karakter olacak şekilde detaylandırın.";
+      }
+      return null;
+    }
+
+    if (contentType === "notes") {
+      if (!file && trimmedContent.length < 20) {
+        return "Not paylaşımında dosya ekleyin veya açıklamayı en az 20 karakter yazın.";
+      }
+      return null;
+    }
+
+    if (contentType === "past_exams") {
+      if (!/^\d{4}$/.test(trimmedExamYear)) {
+        return "Geçmiş sınav paylaşımı için 4 haneli sınav yılı zorunludur.";
+      }
+      const parsedYear = Number(trimmedExamYear);
+      const currentYear = new Date().getFullYear();
+      if (parsedYear < 1990 || parsedYear > currentYear + 1) {
+        return `Sınav yılı 1990 ile ${currentYear + 1} arasında olmalıdır.`;
+      }
+      if (!file && trimmedContent.length < 10) {
+        return "Sınav paylaşımında dosya ekleyin veya açıklamayı en az 10 karakter yazın.";
+      }
+      return null;
+    }
+
+    if (contentType === "kaynaklar") {
+      if (!trimmedLink && !file) {
+        return "Kaynak paylaşımında bağlantı veya dosya eklemeniz gerekir.";
+      }
+      if (trimmedLink) {
+        try {
+          const parsed = new URL(trimmedLink);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return "Kaynak bağlantısı geçerli bir http/https URL olmalıdır.";
+          }
+        } catch {
+          return "Kaynak bağlantısı geçerli bir URL formatında olmalıdır.";
+        }
+      }
+      return null;
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !title.trim() || loading) return;
+
+    const validationMessage = validateTypeSpecificFields();
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
 
     // Instant client-side block before any async work
     const textToCheck = `${title.trim()} ${content.trim()} ${linkUrl.trim()}`;
@@ -243,9 +329,10 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
       toast.success("Gönderi başarıyla oluşturuldu!");
       resetForm();
       setOpen(false);
-      onCreated();
-    } catch (err: any) {
-      toast.error(err.message || "Gönderi oluşturulamadı");
+      onCreated(contentType);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Gönderi oluşturulamadı";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -275,20 +362,39 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
 
         <form onSubmit={handleSubmit} className="space-y-3.5 px-5 py-4">
           <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="text-[11px] text-muted-foreground">
-            Icerik kalitesi ve baglam netligi onceliklidir. Baslikta ders baglami, aciklamada kapsam ve beklenti belirtin.
+            İçerik kalitesi ve bağlam netliği önceliklidir. Başlıkta ders bağlamı, açıklamada kapsam ve beklenti belirtin.
           </Surface>
           {/* Content Type */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">İçerik Türü</Label>
-            <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-              <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="notes"><span className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-notes" /> Notlar</span></SelectItem>
-                <SelectItem value="past_exams"><span className="flex items-center gap-2"><ClipboardList className="h-3.5 w-3.5 text-exams" /> Çıkmış Sorular</span></SelectItem>
-                <SelectItem value="discussion"><span className="flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5 text-discussion" /> Tartışma</span></SelectItem>
-                <SelectItem value="kaynaklar"><span className="flex items-center gap-2"><BookMarked className="h-3.5 w-3.5 text-kaynaklar" /> Kaynaklar</span></SelectItem>
-              </SelectContent>
-            </Select>
+            {lockedContentType ? (
+              <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">{TYPE_CONFIG[lockedContentType].label}</span>
+                <span className="text-[11px] font-medium text-muted-foreground">Sekmeye sabit içerik türü</span>
+              </Surface>
+            ) : (
+              <Select
+                value={contentType}
+                onValueChange={(value) => {
+                  if (isContentType(value)) setContentType(value);
+                }}
+              >
+                <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CONTENT_TYPE_OPTIONS.map((option) => {
+                    const OptionIcon = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="flex items-center gap-2">
+                          <OptionIcon className={`h-3.5 w-3.5 ${option.iconClassName}`} />
+                          {option.label}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
             <p className="text-[11px] text-muted-foreground">{config.helperText}</p>
           </div>
 
@@ -297,7 +403,13 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Sınav Yılı</Label>
-                <Input value={examYear} onChange={(e) => setExamYear(e.target.value)} placeholder="Örn: 2024" maxLength={4} className="h-9 rounded-xl text-sm" />
+                <Input
+                  value={examYear}
+                  onChange={(e) => setExamYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="Örn: 2024"
+                  maxLength={4}
+                  className="h-9 rounded-xl text-sm"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Dönem</Label>

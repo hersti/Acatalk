@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export function useFollow(targetUserId?: string) {
   const { user } = useAuth();
@@ -10,13 +10,7 @@ export function useFollow(targetUserId?: string) {
   const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!targetUserId) return;
-    fetchStatus();
-    fetchCounts();
-  }, [targetUserId, user?.id]);
-
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     if (!user?.id || !targetUserId || user.id === targetUserId) return;
     
     const [followRes, connRes1, connRes2] = await Promise.all([
@@ -27,7 +21,6 @@ export function useFollow(targetUserId?: string) {
     
     setIsFollowing(!!followRes.data);
     
-    // Determine connection status with direction awareness
     if (connRes1.data) {
       const s = (connRes1.data as any).status;
       if (s === "pending") setConnectionStatus("pending_sent");
@@ -43,9 +36,9 @@ export function useFollow(targetUserId?: string) {
     } else {
       setConnectionStatus("none");
     }
-  };
+  }, [targetUserId, user?.id]);
 
-  const fetchCounts = async () => {
+  const fetchCounts = useCallback(async () => {
     if (!targetUserId) return;
     const [followersRes, followingRes] = await Promise.all([
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", targetUserId),
@@ -53,7 +46,13 @@ export function useFollow(targetUserId?: string) {
     ]);
     setFollowersCount(followersRes.count ?? 0);
     setFollowingCount(followingRes.count ?? 0);
-  };
+  }, [targetUserId]);
+
+  useEffect(() => {
+    if (!targetUserId) return;
+    void fetchStatus();
+    void fetchCounts();
+  }, [fetchCounts, fetchStatus, targetUserId]);
 
   const toggleFollow = useCallback(async () => {
     if (!user?.id || !targetUserId || loading) return;
@@ -179,6 +178,6 @@ export function useFollow(targetUserId?: string) {
 
   return {
     isFollowing, connectionStatus, followersCount, followingCount, loading,
-    toggleFollow, requestConnection, respondToConnection, refetch: () => { fetchStatus(); fetchCounts(); },
+    toggleFollow, requestConnection, respondToConnection, refetch: () => { void fetchStatus(); void fetchCounts(); },
   };
 }

@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
-import MentionInput, { renderMentions } from "@/components/MentionInput";
+import MentionInput from "@/components/MentionInput";
+import { RenderMentions } from "@/components/MentionRenderer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { BookOpen, Globe, Hash, MessageCircle, Send, Sparkles, Users } from "lucide-react";
@@ -17,7 +18,21 @@ import { moderateText, checkUserModerationStatus, getViolationMessage } from "@/
 import { checkTextUrls } from "@/lib/moderate-url";
 import { quickContentCheck } from "@/lib/profanity-filter";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
-import { useTypingIndicator, TypingIndicator } from "@/hooks/useTypingIndicator";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import {
+  buildCommunityDefinitions,
+  CHANNELS,
+  DEFAULT_COMMUNITIES,
+  DEFAULT_MESSAGE_CONTEXT,
+  encodeCommunityMessageTags,
+  extractCommunityMessageContext,
+  isChannelId,
+  isCommunityId,
+  stripCommunityMessageTags,
+  type ChannelId,
+  type CommunityDef,
+} from "@/lib/community-message-context";
 import { AppPageHeader, HelperCard, HelperPanel, PageTabsBar, ProductCard, ProductEmptyState, SplitViewLayout } from "@/components/ui/product";
 
 interface CommunityMsg {
@@ -28,48 +43,36 @@ interface CommunityMsg {
   username?: string;
 }
 
-type CommunityDef = { id: string; label: string; description: string };
+function isCommunityMsg(value: unknown): value is CommunityMsg {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.user_id === "string" &&
+    typeof record.content === "string" &&
+    typeof record.created_at === "string"
+  );
+}
 
-type ChannelDef = { id: string; label: string; description: string };
-
-const COMMUNITIES: CommunityDef[] = [
-  { id: "global", label: "Global Öğrenci", description: "Tüm öğrencilerin ortak topluluk alanı" },
-  { id: "itu", label: "İTÜ Topluluğu", description: "İTÜ bağlamlı ortak topluluk" },
-  { id: "bogazici", label: "Boğaziçi Topluluğu", description: "Boğaziçi bağlamlı akademik paylaşım" },
-  { id: "odtu", label: "ODTÜ Topluluğu", description: "ODTÜ bağlamlı topluluk akışları" },
-];
-
-const CHANNELS: ChannelDef[] = [
-  { id: "genel", label: "Genel", description: "Genel topluluk sohbeti" },
-  { id: "dersler", label: "Dersler", description: "Ders odaklı konular" },
-  { id: "projeler", label: "Projeler", description: "Proje ekipleri ve teslimler" },
-  { id: "etkinlikler", label: "Etkinlikler", description: "Topluluk etkinlikleri" },
-];
-
-const encodeTag = (communityId: string, channelId: string) => `[co:${communityId}] [ch:${channelId}]`;
-const stripTags = (raw: string) => raw.replace(/^\[co:[^\]]+\]\s*\[ch:[^\]]+\]\s*/i, "").trim();
-
-function extractTags(content: string) {
-  const communityMatch = content.match(/\[co:([^\]]+)\]/i);
-  const channelMatch = content.match(/\[ch:([^\]]+)\]/i);
-  return {
-    community: communityMatch?.[1]?.toLowerCase() || "global",
-    channel: channelMatch?.[1]?.toLowerCase() || "genel",
-  };
+function getDeletedMessageId(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string" ? record.id : null;
 }
 
 export default function CommunityPage() {
   const { id } = useParams<{ id?: string }>();
   const { user, isAdmin } = useAuth();
+  const [communities, setCommunities] = useState<CommunityDef[]>(DEFAULT_COMMUNITIES);
 
   const initialCommunity = useMemo(() => {
     const routeId = (id || "").toLowerCase();
-    if (COMMUNITIES.some((item) => item.id === routeId)) return routeId;
-    return "global";
-  }, [id]);
+    if (isCommunityId(routeId) && communities.some((item) => item.id === routeId)) return routeId;
+    return DEFAULT_MESSAGE_CONTEXT.community;
+  }, [communities, id]);
 
   const [selectedCommunity, setSelectedCommunity] = useState(initialCommunity);
-  const [selectedChannel, setSelectedChannel] = useState("genel");
+  const [selectedChannel, setSelectedChannel] = useState<ChannelId>(DEFAULT_MESSAGE_CONTEXT.channel);
   const [messages, setMessages] = useState<CommunityMsg[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
@@ -87,45 +90,23 @@ export default function CommunityPage() {
   }, [initialCommunity]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setCommunities(buildCommunityDefinitions());
+      return;
+    }
+
     supabase
       .from("profiles")
-      .select("username")
+      .select("username, university, department")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setMyUsername(data?.username || "Kullanıcı"));
+      .then(({ data }) => {
+        setMyUsername(data?.username || "Kullanıcı");
+        setCommunities(buildCommunityDefinitions(data?.university, data?.department));
+      });
   }, [user]);
 
-  useEffect(() => {
-    void fetchMessages();
-
-    const channel = supabase
-      .channel("community-chat")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" }, async (payload) => {
-        const msg = payload.new as CommunityMsg;
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("user_id", msg.user_id)
-          .maybeSingle();
-        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanıcı" }]);
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_messages" }, (payload) => {
-        setMessages((prev) => prev.filter((item) => item.id !== (payload.old as { id: string }).id));
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!initialLoadDone.current) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, selectedChannel, selectedCommunity]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     const { data } = await supabase
       .from("community_messages")
       .select("*")
@@ -136,7 +117,14 @@ export default function CommunityPage() {
       const userIds = [...new Set(data.map((item) => item.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
       const profileMap = new Map(profiles?.map((item) => [item.user_id, item.username]) || []);
-      setMessages(data.map((item) => ({ ...item, username: profileMap.get(item.user_id) || "Kullanıcı" })) as CommunityMsg[]);
+      const normalizedMessages: CommunityMsg[] = data.map((item) => ({
+        id: item.id,
+        user_id: item.user_id,
+        content: item.content,
+        created_at: item.created_at,
+        username: profileMap.get(item.user_id) || "Kullanıcı",
+      }));
+      setMessages(normalizedMessages);
     } else {
       setMessages([]);
     }
@@ -144,11 +132,43 @@ export default function CommunityPage() {
     setTimeout(() => {
       initialLoadDone.current = true;
     }, 120);
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchMessages();
+
+    const channel = supabase
+      .channel("community-chat")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" }, async (payload) => {
+        if (!isCommunityMsg(payload.new)) return;
+        const msg = payload.new;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("user_id", msg.user_id)
+          .maybeSingle();
+        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanıcı" }]);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_messages" }, (payload) => {
+        const deletedId = getDeletedMessageId(payload.old);
+        if (!deletedId) return;
+        setMessages((prev) => prev.filter((item) => item.id !== deletedId));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMessages]);
+
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedChannel, selectedCommunity]);
 
   const filteredMessages = useMemo(() => {
     return messages.filter((message) => {
-      const tags = extractTags(message.content || "");
+      const tags = extractCommunityMessageContext(message.content || "");
       return tags.community === selectedCommunity && tags.channel === selectedChannel;
     });
   }, [messages, selectedChannel, selectedCommunity]);
@@ -156,7 +176,7 @@ export default function CommunityPage() {
   const channelCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const msg of messages) {
-      const tags = extractTags(msg.content || "");
+      const tags = extractCommunityMessageContext(msg.content || "");
       if (tags.community !== selectedCommunity) continue;
       map.set(tags.channel, (map.get(tags.channel) || 0) + 1);
     }
@@ -197,7 +217,7 @@ export default function CommunityPage() {
       return;
     }
 
-    const contentWithTags = `${encodeTag(selectedCommunity, selectedChannel)} ${payload}`;
+    const contentWithTags = `${encodeCommunityMessageTags(selectedCommunity, selectedChannel)} ${payload}`;
     const { error } = await supabase.from("community_messages").insert({ user_id: user.id, content: contentWithTags });
 
     if (error) toast.error("Gönderilemedi");
@@ -214,7 +234,7 @@ export default function CommunityPage() {
   };
 
   const channelTabs = CHANNELS.map((channel) => ({ key: channel.id, label: channel.label, count: channelCounts.get(channel.id) || 0 }));
-  const selectedCommunityMeta = COMMUNITIES.find((item) => item.id === selectedCommunity) || COMMUNITIES[0];
+  const selectedCommunityMeta = communities.find((item) => item.id === selectedCommunity) || communities[0];
 
   return (
     <Layout>
@@ -243,7 +263,7 @@ export default function CommunityPage() {
             <div className="h-full border-r border-border/70 bg-gradient-to-b from-card to-card/95 p-2.5">
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Topluluklar</p>
               <div className="space-y-1.5">
-                {COMMUNITIES.map((community) => {
+                {communities.map((community) => {
                   const isActive = community.id === selectedCommunity;
                   return (
                     <button
@@ -276,7 +296,13 @@ export default function CommunityPage() {
                     <p className="text-[11px] text-muted-foreground">{selectedCommunityMeta.description}</p>
                   </div>
                 </div>
-                <PageTabsBar items={channelTabs} value={selectedChannel} onChange={setSelectedChannel} />
+                <PageTabsBar
+                  items={channelTabs}
+                  value={selectedChannel}
+                  onChange={(value) => {
+                    if (isChannelId(value)) setSelectedChannel(value);
+                  }}
+                />
               </div>
 
               <div className="flex-1 overflow-y-auto px-3.5 py-3">
@@ -317,7 +343,7 @@ export default function CommunityPage() {
                                 ) : null}
                               </div>
                               <p className={`text-sm leading-relaxed ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground shadow-[var(--shadow-soft)]" : "text-foreground"}`}>
-                                {renderMentions(stripTags(message.content))}
+                                <RenderMentions text={stripCommunityMessageTags(message.content)} />
                               </p>
                             </div>
                           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -16,11 +16,7 @@ export default function BookmarkButton({ postId, className, size = "sm" }: Bookm
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) checkBookmark();
-  }, [user, postId]);
-
-  const checkBookmark = async () => {
+  const checkBookmark = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("bookmarks")
@@ -29,7 +25,11 @@ export default function BookmarkButton({ postId, className, size = "sm" }: Bookm
       .eq("post_id", postId)
       .maybeSingle();
     setSaved(!!data);
-  };
+  }, [postId, user]);
+
+  useEffect(() => {
+    if (user) void checkBookmark();
+  }, [checkBookmark, user]);
 
   const toggle = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();

@@ -1,31 +1,34 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import CommentSection from "@/components/CommentSection";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import {
   ChevronUp, ChevronDown, Download, FileText,
-  MessageCircle, EyeOff, Calendar, BookOpen
+  MessageCircle, EyeOff, Calendar, BookOpen, ExternalLink, Link2, ArrowLeft
 } from "lucide-react";
 import ReportDialog from "@/components/ReportDialog";
 import BookmarkButton from "@/components/BookmarkButton";
 import { toast } from "sonner";
 import { renderContent, getFileTypeLabel, getFileTypeColor } from "@/lib/content-renderer";
+import { buildCourseHubHref, isCourseNavigationTab, resolveCourseTabFromContentType } from "@/lib/course-navigation";
+import { extractPostDetailContext } from "@/lib/post-detail-context";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PostWithProfile = Tables<"posts"> & { profiles: Tables<"profiles"> | null; course?: Tables<"courses"> | null };
 
 const typeLabels: Record<string, string> = {
   notes: "Notlar",
-  past_exams: "Çıkmış Sorular",
+  past_exams: "Geçmiş Sınavlar",
   discussion: "Tartışma",
   kaynaklar: "Kaynaklar",
 };
@@ -37,26 +40,44 @@ const typeBadgeClass: Record<string, string> = {
   kaynaklar: "content-badge-kaynaklar",
 };
 
+const typeContextCopy: Record<string, { title: string; description: string; backHint: string }> = {
+  notes: {
+    title: "Not Detayı",
+    description: "Ders notu içeriğini gözden geçirin, faydalı oylayın ve yorumla iyileştirin.",
+    backHint: "Notlar sekmesine geri dön",
+  },
+  past_exams: {
+    title: "Geçmiş Sınav Detayı",
+    description: "Sınav arşivi kaydını inceleyin, yıl-dönem bilgisini doğrulayın ve yorum ekleyin.",
+    backHint: "Geçmiş Sınavlar sekmesine geri dön",
+  },
+  discussion: {
+    title: "Tartışma Detayı",
+    description: "Bu tartışma başlığını derinleştirin ve konu odaklı yanıtlarla kalıcı bilgi üretin.",
+    backHint: "Tartışmalar sekmesine geri dön",
+  },
+  kaynaklar: {
+    title: "Kaynak Detayı",
+    description: "Kaynağı değerlendirin, bağlantıyı doğrulayın ve kullanım notları ekleyin.",
+    backHint: "Kaynaklar sekmesine geri dön",
+  },
+};
+
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [post, setPost] = useState<PostWithProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [userVote, setUserVote] = useState(0);
   const [localHelpful, setLocalHelpful] = useState(0);
   const [voting, setVoting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  useEffect(() => {
-    if (id) fetchPost();
-  }, [id]);
-
-  useEffect(() => {
-    if (user && post) checkUserVote();
-  }, [user, post?.id]);
-
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
+    if (!id) return;
     setLoading(true);
-    const { data } = await supabase.from("posts").select("*").eq("id", id!).single();
+    const { data } = await supabase.from("posts").select("*").eq("id", id).single();
     if (data) {
       const [profileRes, courseRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", data.user_id).single(),
@@ -67,13 +88,21 @@ export default function PostPage() {
       setLocalHelpful(data.helpful_count ?? 0);
     }
     setLoading(false);
-  };
+  }, [id]);
 
-  const checkUserVote = async () => {
+  const checkUserVote = useCallback(async () => {
     if (!user || !post) return;
     const { data } = await supabase.from("votes").select("vote_type").eq("post_id", post.id).eq("user_id", user.id).maybeSingle();
     setUserVote(data ? (data as any).vote_type : 0);
-  };
+  }, [post, user]);
+
+  useEffect(() => {
+    if (id) void fetchPost();
+  }, [fetchPost, id]);
+
+  useEffect(() => {
+    if (user && post) void checkUserVote();
+  }, [checkUserVote, post, user]);
 
   const handleVote = useCallback(async (direction: 1 | -1) => {
     if (!user) { toast.error("Oy vermek için giriş yapmalısınız"); return; }
@@ -93,9 +122,31 @@ export default function PostPage() {
       toast.error("Bir hata oluştu");
     }
     setVoting(false);
-  }, [user, post?.id, voting]);
+  }, [user, post, voting]);
 
   const [downloading, setDownloading] = useState(false);
+
+  const handleCopyShareLink = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setLinkCopied(true);
+      toast.success("Gönderi bağlantısı kopyalandı");
+      setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      toast.error("Bağlantı kopyalanamadı");
+    }
+  }, []);
 
   const handleDownload = async () => {
     if (!post?.file_url || downloading) return;
@@ -136,7 +187,7 @@ export default function PostPage() {
             description="Gönderi kaldırılmış olabilir veya bağlantı geçersiz olabilir."
             primaryAction={
               <Button asChild variant="outline" size="sm">
-                <Link to="/">Ana sayfaya dön</Link>
+                <Link to="/courses">Derslere dön</Link>
               </Button>
             }
           />
@@ -149,9 +200,22 @@ export default function PostPage() {
   const downloadCount = (post as any).download_count ?? 0;
   const commentCount = (post as any).comment_count ?? 0;
   const course = (post as any).course as Tables<"courses"> | null;
+  const detailContext = extractPostDetailContext(post.content, post.content_type);
+  const queryCourseId = searchParams.get("courseId");
+  const queryTab = searchParams.get("tab");
+  const fallbackTab = resolveCourseTabFromContentType(post.content_type);
+  const returnTab = isCourseNavigationTab(queryTab) ? queryTab : fallbackTab;
+  const targetCourseId = course?.id || queryCourseId || post.course_id;
+  const courseHubHref = targetCourseId ? buildCourseHubHref(targetCourseId, returnTab) : "/courses";
   const fileName = (post as any).file_name || "Dosya";
   const fileTypeLabel = getFileTypeLabel(fileName);
   const fileTypeColor = getFileTypeColor(fileName);
+  const detailTabLabel = typeLabels[post.content_type] || "İçerik";
+  const contextCopy = typeContextCopy[post.content_type] || {
+    title: "İçerik Detayı",
+    description: "İçeriği inceleyin ve yorumlarla zenginleştirin.",
+    backHint: "Course Hub'a geri dön",
+  };
 
   if (typeof document !== "undefined") {
     const courseLabel = course ? `${course.name} - ` : "";
@@ -161,15 +225,30 @@ export default function PostPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+            <Link to={courseHubHref}>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Course Hub'a Dön
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="h-8 text-muted-foreground">
+            <Link to="/courses">Dersler</Link>
+          </Button>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{contextCopy.backHint}</span>
+        </div>
+
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-5 flex-wrap">
           <Link to="/" className="hover:text-primary transition-colors font-medium">Ana Sayfa</Link>
           <span>/</span>
           {course && (
             <>
-              <Link to={`/course/${course.id}`} className="hover:text-primary transition-colors font-medium">{course.name}</Link>
+              <Link to={courseHubHref} className="hover:text-primary transition-colors font-medium">{course.name}</Link>
               <span>/</span>
             </>
           )}
+          <span className="font-medium text-muted-foreground">{detailTabLabel}</span>
+          <span>/</span>
           <span className="text-foreground font-medium truncate max-w-[200px]">{post.title}</span>
         </div>
 
@@ -181,12 +260,17 @@ export default function PostPage() {
                   {typeLabels[post.content_type]}
                 </span>
                 {course && (
-                  <Link to={`/course/${course.id}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors bg-secondary px-2 py-1 rounded-md">
+                  <Link to={courseHubHref} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors bg-secondary px-2 py-1 rounded-md">
                     <BookOpen className="h-3 w-3" />
                     {course.name}
                   </Link>
                 )}
                 {(post as any).is_anonymous && <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+              </div>
+
+              <div className="mb-3 rounded-xl border border-border/70 bg-secondary/35 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{contextCopy.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{contextCopy.description}</p>
               </div>
 
               <h1 className="font-heading text-xl sm:text-2xl font-extrabold text-foreground leading-tight mb-3">
@@ -206,11 +290,14 @@ export default function PostPage() {
                   <Calendar className="h-3 w-3" />
                   {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: tr })}
                 </div>
+                {course?.code ? <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium">{course.code}</span> : null}
+                {course?.department ? <span className="text-[10px]">{course.department}</span> : null}
               </div>
             </div>
 
             <div className="flex">
               <div className="flex flex-col items-center gap-1 p-4 border-r bg-secondary/20">
+                <span className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Yararlı</span>
                 <button
                   onClick={() => handleVote(1)}
                   disabled={voting}
@@ -231,9 +318,42 @@ export default function PostPage() {
               </div>
 
               <div className="flex-1 p-5 sm:p-6">
-                {post.content && (
+                {post.content_type === "past_exams" && detailContext.pastExamMeta ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    {detailContext.pastExamMeta.year ? (
+                      <Badge variant="outline" className="text-xs">
+                        Yıl: {detailContext.pastExamMeta.year}
+                      </Badge>
+                    ) : null}
+                    {detailContext.pastExamMeta.period ? (
+                      <Badge variant="outline" className="text-xs">
+                        Dönem: {detailContext.pastExamMeta.period}
+                      </Badge>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {post.content_type === "kaynaklar" && detailContext.resourceMeta?.url ? (
+                  <div className="mb-4 rounded-xl border border-border/70 bg-secondary/35 p-3">
+                    <p className="text-xs font-semibold text-foreground">Kaynak Bağlantısı</p>
+                    <a
+                      href={detailContext.resourceMeta.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Kaynağı Aç
+                    </a>
+                    {detailContext.resourceMeta.resourceType ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Tür: {detailContext.resourceMeta.resourceType}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {detailContext.body && (
                   <div className="prose prose-sm max-w-none text-foreground leading-relaxed mb-5">
-                    {renderContent(post.content)}
+                    {renderContent(detailContext.body)}
                   </div>
                 )}
 
@@ -261,10 +381,21 @@ export default function PostPage() {
                     <span className="flex items-center gap-1"><Download className="h-3.5 w-3.5" /> {downloadCount} indirme</span>
                   )}
                   <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> {commentCount} yorum</span>
-                  <span className="ml-auto flex items-center gap-3">
-                    <BookmarkButton postId={post.id} size="md" />
+                  <div className="ml-auto flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCopyShareLink}
+                      className={`inline-flex items-center gap-1 text-xs transition-colors ${linkCopied ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      {linkCopied ? "Kopyalandı" : "Paylaş"}
+                    </button>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <BookmarkButton postId={post.id} size="md" />
+                      Kaydet
+                    </span>
                     <ReportDialog targetType="post" targetId={post.id} />
-                  </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -274,6 +405,9 @@ export default function PostPage() {
                 <MessageCircle className="h-4 w-4 text-primary" />
                 Yorumlar ({commentCount})
               </h3>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Bu {detailTabLabel.toLowerCase()} içeriği için bağlamsal geri bildirim ve ek bilgi paylaşabilirsiniz.
+              </p>
               <CommentSection postId={post.id} />
             </div>
           </Surface>

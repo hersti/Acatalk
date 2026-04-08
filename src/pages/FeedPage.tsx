@@ -19,7 +19,7 @@ import {
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useFeedSnapshotV1 } from "@/hooks/useFeedSnapshotV1";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,9 +34,10 @@ import {
   ProductCard,
   ProductEmptyState,
 } from "@/components/ui/product";
+import { getAcademicContentLabel, isAcademicContentType } from "@/lib/academic-content";
 
 
-type FeedTab = "kesfet" | "derslerim" | "takip";
+type FeedTab = "senin_icin" | "derslerim" | "takip_edilenler";
 type PostRow = Pick<
   Tables<"posts">,
   "id" | "title" | "content" | "content_type" | "created_at" | "helpful_count" | "comment_count" | "course_id" | "user_id"
@@ -51,7 +52,7 @@ type FeedTimelineItem = {
   createdAt: string;
   helpfulCount: number;
   commentCount: number;
-  contentType: string;
+  contentType: Tables<"posts">["content_type"];
   courseId: string;
   courseName: string;
   courseCode: string | null;
@@ -60,14 +61,12 @@ type FeedTimelineItem = {
   authorUsername: string;
   authorAvatar: string | null;
   sameUniversity: boolean;
+  authorUserId: string;
 };
 
-const CONTENT_TYPE_LABEL: Record<string, string> = {
-  notes: "Not",
-  past_exams: "Sinav",
-  discussion: "Tartisma",
-  kaynaklar: "Kaynak",
-};
+function isFeedTab(value: string): value is FeedTab {
+  return value === "senin_icin" || value === "derslerim" || value === "takip_edilenler";
+}
 
 function normalizePostContent(raw: string | null | undefined) {
   if (!raw) return "";
@@ -76,10 +75,12 @@ function normalizePostContent(raw: string | null | undefined) {
 
 export default function FeedPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<FeedTab>("kesfet");
+  const [activeTab, setActiveTab] = useState<FeedTab>("senin_icin");
   const [timelinePosts, setTimelinePosts] = useState<FeedTimelineItem[]>([]);
   const [profileUniversity, setProfileUniversity] = useState<string | null>(null);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [timelineLoading, setTimelineLoading] = useState(true);
+  const [followingLoading, setFollowingLoading] = useState(false);
   const [timelineError, setTimelineError] = useState<string | null>(null);
 
   const { data: feedSnapshot, isLoading: feedLoading, isError: feedError } = useFeedSnapshotV1(user?.id, 8, 8, 30);
@@ -101,6 +102,30 @@ export default function FeedPage() {
   }, [user?.id]);
 
   useEffect(() => {
+    if (!user?.id) {
+      setFollowingIds(new Set());
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadFollowings = async () => {
+      setFollowingLoading(true);
+      const { data } = await supabase.from("follows").select("following_id").eq("follower_id", user.id);
+      if (!cancelled) {
+        setFollowingIds(new Set((data || []).map((row) => row.following_id)));
+        setFollowingLoading(false);
+      }
+    };
+
+    void loadFollowings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadTimelinePosts = async () => {
@@ -110,12 +135,13 @@ export default function FeedPage() {
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
           .select("id,title,content,content_type,created_at,helpful_count,comment_count,course_id,user_id")
-          .eq("status", "published")
+          .filter("status", "eq", "published")
+          .in("content_type", ["notes", "past_exams", "discussion", "kaynaklar"])
           .order("created_at", { ascending: false })
           .limit(40);
 
         if (postsError) throw postsError;
-        const rows = (postsData || []) as PostRow[];
+        const rows: PostRow[] = postsData || [];
 
         if (rows.length === 0) {
           if (!cancelled) {
@@ -133,8 +159,8 @@ export default function FeedPage() {
           supabase.from("courses").select("id,name,code,university").in("id", courseIds),
         ]);
 
-        const profileMap = new Map((profilesData || []).map((row) => [row.user_id, row as ProfileRow]));
-        const courseMap = new Map((coursesData || []).map((row) => [row.id, row as CourseRow]));
+        const profileMap = new Map<string, ProfileRow>((profilesData || []).map((row) => [row.user_id, row]));
+        const courseMap = new Map<string, CourseRow>((coursesData || []).map((row) => [row.id, row]));
 
         const normalized = rows
           .map((row) => {
@@ -144,19 +170,20 @@ export default function FeedPage() {
 
             return {
               id: row.id,
-              title: row.title || "Basliksiz icerik",
+              title: row.title || "Başlıksız içerik",
               content: normalizePostContent(row.content),
               createdAt: row.created_at,
               helpfulCount: row.helpful_count || 0,
               commentCount: row.comment_count || 0,
-              contentType: row.content_type || "notes",
+              contentType: row.content_type,
               courseId: row.course_id,
               courseName: course.name,
               courseCode: course.code,
               courseUniversity: course.university,
-              authorName: profile?.display_name || profile?.username || "Kullanici",
-              authorUsername: profile?.username || "kullanici",
+              authorName: profile?.display_name || profile?.username || "Kullanıcı",
+              authorUsername: profile?.username || "kullanıcı",
               authorAvatar: profile?.avatar_url || null,
+              authorUserId: row.user_id,
               sameUniversity: !!profileUniversity && !!course.university && profileUniversity === course.university,
             } satisfies FeedTimelineItem;
           })
@@ -168,7 +195,7 @@ export default function FeedPage() {
         }
       } catch (error) {
         if (!cancelled) {
-          setTimelineError(error instanceof Error ? error.message : "Feed icerikleri alinamadi.");
+          setTimelineError(error instanceof Error ? error.message : "Feed içerikleri alınamadı.");
           setTimelineLoading(false);
         }
       }
@@ -194,10 +221,10 @@ export default function FeedPage() {
   }, [feedSnapshot?.active_courses, feedSnapshot?.recommended_courses, feedSnapshot?.resume_courses]);
 
   const filteredFlowPosts = useMemo(() => {
-    if (activeTab === "kesfet") return flowPosts.slice(0, 12);
+    if (activeTab === "senin_icin") return flowPosts.slice(0, 12);
     if (activeTab === "derslerim") return flowPosts.filter((post) => myCourseIds.has(post.courseId)).slice(0, 12);
-    return flowPosts.filter((post) => post.sameUniversity).slice(0, 12);
-  }, [activeTab, flowPosts, myCourseIds]);
+    return flowPosts.filter((post) => followingIds.has(post.authorUserId)).slice(0, 12);
+  }, [activeTab, flowPosts, followingIds, myCourseIds]);
 
   const topContextCourses = useMemo(() => {
     const source = [
@@ -215,43 +242,53 @@ export default function FeedPage() {
   }, [feedSnapshot?.active_courses, feedSnapshot?.recommended_courses, feedSnapshot?.resume_courses]);
 
   const generatedAtText = useMemo(() => {
-    if (!feedSnapshot?.generated_at) return "Henuz olusturulmadi";
+    if (!feedSnapshot?.generated_at) return "Henüz oluşturulmadı";
     return formatDistanceToNow(new Date(feedSnapshot.generated_at), { addSuffix: true, locale: tr });
   }, [feedSnapshot?.generated_at]);
 
   const tabs = [
-    { key: "kesfet", label: "Kesfet", count: flowPosts.length },
+    { key: "senin_icin", label: "Senin İçin", count: flowPosts.length },
     { key: "derslerim", label: "Derslerim", count: flowPosts.filter((item) => myCourseIds.has(item.courseId)).length },
-    { key: "takip", label: "Takip", count: flowPosts.filter((item) => item.sameUniversity).length },
+    { key: "takip_edilenler", label: "Takip Edilenler", count: flowPosts.filter((item) => followingIds.has(item.authorUserId)).length },
   ];
 
   return (
     <Layout>
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
-          title="Ana Akis"
-          description="Kesif, etkileşim ve ders baglamini tek akista birlestiren final feed yuzeyi."
+          title="Ana Sayfa"
+          description="Ders merkezli akademik keşif akışı: faydalı içeriği bul, doğru Course Hub'a geç, katkını yap."
           icon={<Compass className="h-5 w-5" />}
           actions={
             <>
               <Button asChild size="sm" className="h-9 rounded-xl">
-                <Link to="/">
+                <Link to="/courses">
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Icerik Olustur
+                  Katkı Alanına Git
                 </Link>
               </Button>
               <Button asChild size="sm" className="h-9 rounded-xl">
-                <Link to="/courses">Dersleri Kesfet</Link>
+                <Link to="/courses">Ders Hub'larını Aç</Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="h-9 rounded-xl">
-                <Link to="/universities">Universiteler</Link>
+                <Link to="/universities">Üniversiteler</Link>
               </Button>
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" aria-label="Bildirimler">
-                <Bell className="h-4 w-4" />
+              <Button asChild size="icon" variant="ghost" className="h-9 w-9 rounded-xl" aria-label="Bildirimler">
+                <Link to="/notifications">
+                  <Bell className="h-4 w-4" />
+                </Link>
               </Button>
             </>
           }
-          tabs={<PageTabsBar items={tabs} value={activeTab} onChange={(next) => setActiveTab(next as FeedTab)} />}
+          tabs={
+            <PageTabsBar
+              items={tabs}
+              value={activeTab}
+              onChange={(next) => {
+                if (isFeedTab(next)) setActiveTab(next);
+              }}
+            />
+          }
         />
 
         <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_332px]">
@@ -260,7 +297,7 @@ export default function FeedPage() {
               <ProductCard highlighted className="p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Pin className="h-4 w-4 text-primary" />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Featured Akademik Blok</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Akademik Öne Çıkan Katkı</p>
                 </div>
 
                 <div className="flex items-start gap-3">
@@ -295,7 +332,7 @@ export default function FeedPage() {
                       <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-1.5 text-muted-foreground">
                         <MessageCircle className="h-3.5 w-3.5" /> {featuredPost.commentCount}
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-muted-foreground" aria-label="Paylas">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-muted-foreground" aria-label="Paylaş">
                         <Share2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -307,34 +344,62 @@ export default function FeedPage() {
             <PageMetricsRow
               items={[
                 {
-                  label: "Onerilen Ders",
+                  label: "Önerilen Course Hub",
                   value: feedSnapshot?.recommended_courses.length || 0,
                   icon: <BookOpen className="h-4 w-4" />,
                 },
                 {
-                  label: "Aktif Ders",
+                  label: "Ders Bağlamı",
                   value: feedSnapshot?.active_courses.length || 0,
                   icon: <Users className="h-4 w-4" />,
                 },
                 {
-                  label: "Faydali Icerik",
+                  label: "Faydalı İçerik",
                   value: feedSnapshot?.useful_posts.length || 0,
                   icon: <TrendingUp className="h-4 w-4" />,
                 },
                 {
-                  label: "Son Uretim",
+                  label: "Son Güncelleme",
                   value: generatedAtText,
                   icon: <Compass className="h-4 w-4" />,
                 },
               ]}
             />
 
+            {activeTab === "derslerim" && myCourseIds.size === 0 && !feedLoading ? (
+              <StateBlock
+                variant="empty"
+                size="section"
+                title="Ders bağlamın henüz oluşmadı"
+                description="Derslerim sekmesinin çalışması için önce Course Hub ekosisteminde ders seçimi yapman gerekiyor."
+                primaryAction={
+                  <Button asChild size="sm" className="h-9 rounded-xl">
+                    <Link to="/courses">Ders Ekle</Link>
+                  </Button>
+                }
+              />
+            ) : null}
+
+            {activeTab === "takip_edilenler" && !followingLoading && followingIds.size === 0 ? (
+              <StateBlock
+                variant="empty"
+                size="section"
+                title="Takip ettiğin akademik bağ yok"
+                description="Takip ettiğin öğrencilerin ve akademik katkı üreten profillerin içerikleri bu sekmede görünür."
+                primaryAction={
+                  <Button asChild size="sm" className="h-9 rounded-xl">
+                    <Link to="/leaderboard">Katkı Üretenleri Keşfet</Link>
+                  </Button>
+                }
+              />
+            ) : null}
+
             {feedError || timelineError ? (
               <StateBlock
                 variant="error"
                 size="section"
-                title="Feed bloklari su anda yuklenemedi"
-                description="Gecici bir kesinti olabilir. Ders akisini Courses ekranindan surdurebilirsiniz."
+                title="Feed blokları şu anda yüklenemedi"
+                description="Geçici bir kesinti olabilir. Ders akışını Courses ekranından sürdürebilirsiniz."
                 primaryAction={
                   <Button asChild size="sm" variant="outline" className="h-9 rounded-xl">
                     <Link to="/courses">Derslere Git</Link>
@@ -349,7 +414,7 @@ export default function FeedPage() {
               <ProductEmptyState
                 icon={<MessageCircle className="h-6 w-6" />}
                 title="Bu sekmede içerik bulunamadı"
-                description="Farkli bir sekmeye gecerek veya ders akisini genisleterek devam edebilirsiniz."
+                description="Farklı bir sekmeye geçerek veya ders akışını genişleterek devam edebilirsiniz."
                 actionNode={
                   <Button asChild size="sm" className="h-9 rounded-xl">
                     <Link to="/courses">Dersleri Ac</Link>
@@ -371,7 +436,7 @@ export default function FeedPage() {
                           <span className="text-xs text-muted-foreground">@{post.authorUsername}</span>
                           <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: tr })}</span>
                           <span className="rounded-md border border-border/60 bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                            {CONTENT_TYPE_LABEL[post.contentType] || "Icerik"}
+                            {isAcademicContentType(post.contentType) ? getAcademicContentLabel(post.contentType, true) : "İçerik"}
                           </span>
                         </div>
 
@@ -406,15 +471,15 @@ export default function FeedPage() {
           </div>
 
           <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
-            <HelperCard title="Akisin Rolu" icon={<TrendingUp className="h-4 w-4" />} highlighted>
+            <HelperCard title="Ana Sayfa Rolu" icon={<TrendingUp className="h-4 w-4" />} highlighted>
               <p className="text-xs text-muted-foreground">
-                Feed yalnizca kesif katmanidir: dogru baglami bulup Course Hub ekranina gecmeni hizlandirir.
+                Ana sayfa dikkat ekonomisi değil, akademik yönlendirme katmanıdır. Doğru bağlamı bulup Course Hub'a geçmeni hızlandırır.
               </p>
             </HelperCard>
 
             <HelperCard title="Hizli Gecisler" icon={<Compass className="h-4 w-4" />}>
               {topContextCourses.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Baglamsal ders verisi henuz yok.</p>
+                <p className="text-xs text-muted-foreground">Bağlamsal ders verisi henüz yok.</p>
               ) : (
                 <div className="space-y-2">
                   {topContextCourses.map((course) => (
@@ -430,15 +495,24 @@ export default function FeedPage() {
               )}
             </HelperCard>
 
-            <HelperCard title="Ust Baglam" icon={<Building2 className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
+            <HelperCard title="Üst Bağlam" icon={<Building2 className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
                 <p className="text-xs text-muted-foreground">Üniversite ve ders bağlamları arasında hızlı geçiş için bu blokları kullan.</p>
               <div className="mt-3 space-y-2">
                 <Button asChild size="sm" variant="outline" className="h-8 w-full rounded-lg">
-                  <Link to="/universities">Universiteler</Link>
+                  <Link to="/universities">Üniversiteler</Link>
                 </Button>
                 <Button asChild size="sm" className="h-8 w-full rounded-lg">
                   <Link to="/courses">Dersler</Link>
                 </Button>
+              </div>
+            </HelperCard>
+
+            <HelperCard title="Akademik Öncelik" icon={<BookOpen className="h-4 w-4" />}>
+              <p className="text-xs text-muted-foreground">
+                Yaklaşan teslim veya sınav verisi henüz sisteme bağlı değilse bu alan dürüst bir şekilde boş kalır.
+              </p>
+              <div className="mt-2 rounded-lg border border-dashed border-border/70 bg-secondary/35 p-2 text-[11px] text-muted-foreground">
+                Kritik tarih verisi bağlandığında burada otomatik görünecek.
               </div>
             </HelperCard>
           </HelperPanel>

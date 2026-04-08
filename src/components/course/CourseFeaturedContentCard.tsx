@@ -5,8 +5,10 @@ import { BookMarked, MessageSquare, RefreshCcw, Sparkles, ThumbsUp } from "lucid
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
 import type { CourseSocialSignalsV1 } from "@/hooks/useCourseSocialSignalsV1";
+import { buildPostDetailHref, resolveCourseTabFromContentType } from "@/lib/course-navigation";
 
 interface CourseFeaturedContentCardProps {
+  courseId: string;
   featuredContent: CourseSocialSignalsV1["featured_content"];
   loading: boolean;
   hasError: boolean;
@@ -15,7 +17,7 @@ interface CourseFeaturedContentCardProps {
 
 const typeLabels: Record<CourseSocialSignalsV1["featured_content"][number]["content_type"], string> = {
   notes: "Not",
-  past_exams: "Çıkmış",
+  past_exams: "Geçmiş Sınav",
   discussion: "Tartışma",
   kaynaklar: "Kaynak",
 };
@@ -28,6 +30,7 @@ const typeClasses: Record<CourseSocialSignalsV1["featured_content"][number]["con
 };
 
 export default function CourseFeaturedContentCard({
+  courseId,
   featuredContent,
   loading,
   hasError,
@@ -67,7 +70,13 @@ export default function CourseFeaturedContentCard({
                 </span>
               </div>
 
-              <Link to={`/post/${item.post_id}`} className="mt-1 block line-clamp-2 text-[11px] font-medium leading-snug transition-colors hover:text-primary">
+              <Link
+                to={buildPostDetailHref(item.post_id, {
+                  courseId,
+                  tab: resolveCourseTabFromContentType(item.content_type),
+                })}
+                className="mt-1 block line-clamp-2 text-[11px] font-medium leading-snug transition-colors hover:text-primary"
+              >
                 {item.title}
               </Link>
 

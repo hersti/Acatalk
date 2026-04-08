@@ -18,7 +18,7 @@ export default function AboutPage() {
             <CardContent className="text-sm text-muted-foreground leading-relaxed space-y-3">
               <p>
                 ACATALK, Türkiye'deki üniversite öğrencileri için geliştirilmiş akademik bilgi paylaşım platformudur.
-                Öğrenciler ders notlarını, çıkmış soruları, kaynakları ve tartışmaları paylaşarak birbirlerine yardımcı olabilirler.
+                Öğrenciler ders notlarını, geçmiş sınavları, kaynakları ve tartışmaları paylaşarak birbirlerine yardımcı olabilirler.
               </p>
               <p>
                 Platformumuz, üniversite hayatını kolaylaştırmayı ve öğrenciler arasında güçlü bir akademik topluluk oluşturmayı hedeflemektedir.
@@ -48,7 +48,7 @@ export default function AboutPage() {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground leading-relaxed">
               <ul className="list-disc list-inside space-y-1.5">
-                <li>Ders notları ve çıkmış soru paylaşımı</li>
+                <li>Ders notları ve geçmiş sınav paylaşımı</li>
                 <li>Ders bazlı tartışma alanları</li>
                 <li>Topluluk ve üniversite sohbetleri</li>
                 <li>Kullanıcı profilleri ve rozet sistemi</li>

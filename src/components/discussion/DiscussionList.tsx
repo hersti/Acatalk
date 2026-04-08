@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronUp, MessageCircle, CheckCircle2, Pin, Search, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DISCUSSION_TYPES, type DiscussionPost } from "./DiscussionPanel";
 
 const typeLabels: Record<string, string> = {
@@ -26,6 +27,7 @@ const typeBadgeColor: Record<string, string> = {
 interface DiscussionListProps {
   posts: DiscussionPost[];
   loading: boolean;
+  error: string | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
   search: string;
@@ -34,11 +36,13 @@ interface DiscussionListProps {
   onSortChange: (v: string) => void;
   filterType: string;
   onFilterChange: (v: string) => void;
+  onRetry: () => void;
 }
 
 export default function DiscussionList({
   posts,
   loading,
+  error,
   selectedId,
   onSelect,
   search,
@@ -47,6 +51,7 @@ export default function DiscussionList({
   onSortChange,
   filterType,
   onFilterChange,
+  onRetry,
 }: DiscussionListProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -91,6 +96,15 @@ export default function DiscussionList({
           {loading ? (
             <div className="py-10 text-center">
               <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : error ? (
+            <div className="px-4 py-10 text-center">
+              <MessageCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-foreground">Tartışmalar yüklenemedi</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">{error}</p>
+              <Button size="sm" variant="outline" className="mt-4" onClick={onRetry}>
+                Tekrar Dene
+              </Button>
             </div>
           ) : posts.length === 0 ? (
             <div className="px-4 py-10 text-center">

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Badge {
   id: string;
@@ -26,12 +26,7 @@ export function useBadges(userId?: string) {
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!targetId) { setLoading(false); return; }
-    fetchBadges();
-  }, [targetId]);
-
-  const fetchBadges = async () => {
+  const fetchBadges = useCallback(async () => {
     const [userBadgesRes, allBadgesRes] = await Promise.all([
       supabase
         .from("user_badges")
@@ -47,7 +42,12 @@ export function useBadges(userId?: string) {
     setBadges(earned);
     setAllBadges((allBadgesRes.data as Badge[]) || []);
     setLoading(false);
-  };
+  }, [targetId]);
+
+  useEffect(() => {
+    if (!targetId) { setLoading(false); return; }
+    void fetchBadges();
+  }, [fetchBadges, targetId]);
 
   // Check and award badges based on activity
   const checkAndAwardBadges = async () => {
@@ -125,7 +125,7 @@ export function useBadges(userId?: string) {
     if (toAward.length > 0) {
       const inserts = toAward.map(badgeId => ({ user_id: user.id, badge_id: badgeId }));
       await supabase.from("user_badges").insert(inserts);
-      fetchBadges();
+      void fetchBadges();
     }
   };
 

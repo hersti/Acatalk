@@ -33,7 +33,7 @@ export default function GuestLandingPage() {
                 Üniversite yaşamında güvenilir akademik akış
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                AcaTalk ile üniversite, bölüm ve ders bağlamında not, çıkmış soru, kaynak ve tartışma içeriklerini tek bir akışta takip edin.
+                AcaTalk ile üniversite, bölüm ve ders bağlamında not, geçmiş sınav, kaynak ve tartışma içeriklerini tek bir akışta takip edin.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -92,7 +92,7 @@ export default function GuestLandingPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <LandingFeature
                   icon={FileText}
-                  title="Not ve Çıkmış Soru Paylaşımı"
+                  title="Not ve Geçmiş Sınav Paylaşımı"
                   description="İçerikler ders ve program bağlamında düzenli şekilde sunulur."
                 />
                 <LandingFeature

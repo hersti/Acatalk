@@ -88,7 +88,7 @@ export function buildYearOptions(maxYears: number): Array<{ value: string; label
 
 export async function fetchUniversitiesCatalog(): Promise<UniversityCatalogRow[]> {
   const { data, error } = await supabase
-    .from("universities" as any)
+    .from("universities")
     .select("id,name,city,type,country")
     .in("country", ["TR", "KKTC"])
     .order("name", { ascending: true })
@@ -109,7 +109,7 @@ export async function fetchAcademicProgramsForUniversity(
   if (!trimmedName) return [];
 
   let query = supabase
-    .from("academic_programs" as any)
+    .from("academic_programs")
     .select("id,university_id,university_name,program_name,unit_name,program_level,program_years")
     .eq("is_active", true)
     .eq("university_name", trimmedName)
@@ -132,7 +132,7 @@ export async function resolveUniversityByName(universityName: string): Promise<U
   if (!trimmedName) return null;
 
   const { data, error } = await supabase
-    .from("universities" as any)
+    .from("universities")
     .select("id,name,city,type,country")
     .eq("name", trimmedName)
     .in("country", ["TR", "KKTC"])

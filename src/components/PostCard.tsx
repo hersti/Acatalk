@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Surface } from "@/components/ui/surface";
 import { AcademicMeta } from "@/components/ui/academic-meta";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import BookmarkButton from "@/components/BookmarkButton";
 import ReportDialog from "@/components/ReportDialog";
 import { getFileTypeLabel } from "@/lib/content-renderer";
+import { buildPostDetailHref, resolveCourseTabFromContentType } from "@/lib/course-navigation";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface PostCardProps {
@@ -28,7 +29,7 @@ const typeBadgeClass: Record<string, string> = {
 
 const typeLabels: Record<string, string> = {
   notes: "Notlar",
-  past_exams: "Çıkmış Sorular",
+  past_exams: "Geçmiş Sınavlar",
   discussion: "Tartışma",
   kaynaklar: "Kaynaklar",
 };
@@ -39,14 +40,14 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
   const [userVote, setUserVote] = useState<number>(0);
   const [localHelpful, setLocalHelpful] = useState(post.helpful_count ?? 0);
 
-  useEffect(() => { setLocalHelpful(post.helpful_count ?? 0); }, [post.helpful_count]);
-  useEffect(() => { if (user) checkUserVote(); }, [user, post.id]);
-
-  const checkUserVote = async () => {
+  const checkUserVote = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("votes").select("vote_type").eq("post_id", post.id).eq("user_id", user.id).maybeSingle();
     setUserVote(data ? (data as any).vote_type : 0);
-  };
+  }, [post.id, user]);
+
+  useEffect(() => { setLocalHelpful(post.helpful_count ?? 0); }, [post.helpful_count]);
+  useEffect(() => { if (user) void checkUserVote(); }, [checkUserVote, user]);
 
   const handleVote = useCallback(async (e: React.MouseEvent, direction: 1 | -1) => {
     e.preventDefault(); e.stopPropagation();
@@ -87,6 +88,10 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
   const canShowProfile = !(post as any).is_anonymous && post.profiles?.user_id;
   const fileName = (post as any).file_name || "Dosya";
   const fileLabel = getFileTypeLabel(fileName);
+  const detailHref = buildPostDetailHref(post.id, {
+    courseId: post.course_id,
+    tab: resolveCourseTabFromContentType(post.content_type),
+  });
   const metaItems = [
     ...(post.profiles?.university ? [{ kind: "university" as const, label: "Üniversite", value: post.profiles.university, emphasis: "subtle" as const }] : []),
     ...(post.profiles?.department ? [{ kind: "department" as const, label: "Bölüm", value: post.profiles.department, emphasis: "subtle" as const }] : []),
@@ -94,7 +99,7 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
   ];
 
   return (
-    <Link to={`/post/${post.id}`}>
+    <Link to={detailHref}>
       <Surface
         className="cursor-pointer overflow-hidden transition-all duration-200 hover:border-primary/25"
         variant="raised"

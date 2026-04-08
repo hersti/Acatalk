@@ -21,11 +21,12 @@ import {
 } from "lucide-react";
 
 import Layout from "@/components/Layout";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import UserSearchDialog from "@/components/UserSearchDialog";
-import MentionInput, { renderMentions } from "@/components/MentionInput";
+import MentionInput from "@/components/MentionInput";
+import { RenderMentions } from "@/components/MentionRenderer";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,17 @@ type MessageRow = Tables<"messages">;
 type ProfileMini = Pick<Tables<"profiles">, "user_id" | "username">;
 type UserSettingsRow = Pick<Tables<"user_settings">, "dm_allowed" | "dnd_mode">;
 type MessagePreviewRow = Pick<Tables<"messages">, "conversation_id" | "content" | "created_at">;
+
+function isMessageRow(value: unknown): value is MessageRow {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.conversation_id === "string" &&
+    typeof record.sender_id === "string" &&
+    typeof record.created_at === "string"
+  );
+}
 
 type ConversationUI = ConversationRow & {
   other_username: string;
@@ -117,7 +129,9 @@ export default function MessagesPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${activeConv}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as MessageRow]);
+          const inserted = payload.new;
+          if (!isMessageRow(inserted)) return;
+          setMessages((prev) => [...prev, inserted]);
           setConversationUnreadMap((prev) => ({ ...prev, [activeConv]: 0 }));
           void markDmConversationRead(activeConv);
         },
@@ -146,7 +160,7 @@ export default function MessagesPage() {
         throw error;
       }
 
-      const rows = (data || []) as ConversationRow[];
+      const rows = data || [];
       if (!rows.length) {
         setConversations([]);
         setConversationPreviewMap({});
@@ -175,8 +189,8 @@ export default function MessagesPage() {
         throw previewError;
       }
 
-      const profiles = (profilesData || []) as ProfileMini[];
-      const previewRows = (previewRowsData || []) as MessagePreviewRow[];
+      const profiles: ProfileMini[] = profilesData || [];
+      const previewRows: MessagePreviewRow[] = previewRowsData || [];
       const profileMap = new Map(profiles.map((item) => [item.user_id, item.username || "Kullanıcı"]));
       const previewMap: Record<string, string> = {};
       const countMap: Record<string, number> = {};
@@ -232,7 +246,7 @@ export default function MessagesPage() {
       return;
     }
 
-    setMessages((data || []) as MessageRow[]);
+    setMessages(data || []);
   };
 
   const isBlocked = useCallback(async (userId1: string, userId2: string): Promise<boolean> => {
@@ -268,7 +282,7 @@ export default function MessagesPage() {
       .select("dm_allowed, dnd_mode")
       .eq("user_id", otherUserId)
       .maybeSingle();
-    const settings = otherSettings as UserSettingsRow | null;
+    const settings: UserSettingsRow | null = otherSettings;
 
     if (settings?.dm_allowed === "nobody") {
       toast.error("Bu kullanıcı DM almayı kapatmış.");
@@ -292,7 +306,7 @@ export default function MessagesPage() {
       .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
       .limit(1);
 
-    const existingConversation = (existing || [])[0] as ConversationRow | undefined;
+    const existingConversation = existing?.[0];
     if (existingConversation) {
       const isUser1 = existingConversation.user1_id === user.id;
       if (isUser1 && existingConversation.hidden_for_user1) {
@@ -657,7 +671,7 @@ export default function MessagesPage() {
                                       : "rounded-bl-md border-border/90 bg-card text-foreground shadow-[var(--shadow-soft)]",
                                   )}
                                 >
-                                  <p className="text-sm leading-relaxed tracking-[0.01em]">{renderMentions(message.content)}</p>
+                                  <p className="text-sm leading-relaxed tracking-[0.01em]"><RenderMentions text={message.content} /></p>
                                   <p className={cn("mt-1 text-[11px]", isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground")}>
                                     {formatDistanceToNow(messageDate, { addSuffix: true, locale: tr })}
                                   </p>

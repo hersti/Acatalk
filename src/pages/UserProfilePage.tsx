@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 import Layout from "@/components/Layout";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -298,7 +298,7 @@ export default function UserProfilePage() {
   };
   const contentTypeLabel: Record<string, string> = {
     notes: "Not",
-    past_exams: "Çıkmış Soru",
+    past_exams: "Geçmiş Sınav",
     discussion: "Tartışma",
     kaynaklar: "Kaynak",
   };

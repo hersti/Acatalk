@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronUp, GraduationCap, LogOut, Moon, Search, Sun, User } from "lucide-react";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -102,14 +102,9 @@ export default function AppSidebar({ unreadMessages, unreadNotifications }: AppS
   }, [user]);
 
   useEffect(() => {
-    if (!location.pathname.startsWith("/courses")) {
-      setQuery("");
-      return;
-    }
-
     const params = new URLSearchParams(location.search);
     setQuery(params.get("search") || "");
-  }, [location.pathname, location.search]);
+  }, [location.search]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -171,14 +166,14 @@ export default function AppSidebar({ unreadMessages, unreadNotifications }: AppS
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Ders, icerik veya kisi ara..."
+              placeholder="Ders, içerik veya kişi ara..."
               className="h-10 rounded-xl border-transparent bg-secondary/80 pl-9 text-sm focus:border-border focus:bg-background"
             />
           </div>
         </form>
 
         <div className="mb-1.5 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Kesif</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Keşif</p>
         </div>
         <nav className="rounded-xl border border-border/70 bg-background/70 p-1.5">
           {APP_PRIMARY_ITEMS.map((item) => (
@@ -250,7 +245,7 @@ export default function AppSidebar({ unreadMessages, unreadNotifications }: AppS
                 className="gap-2"
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {isDark ? "Acik tema" : "Koyu tema"}
+                {isDark ? "Açık tema" : "Koyu tema"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -260,7 +255,7 @@ export default function AppSidebar({ unreadMessages, unreadNotifications }: AppS
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <LogOut className="h-4 w-4" />
-                Cikis yap
+                Çıkış yap
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
