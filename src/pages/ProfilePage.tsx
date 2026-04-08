@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -27,7 +27,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { AcademicMeta } from "@/components/ui/academic-meta";
 import { StateBlock } from "@/components/ui/state-blocks";
-import { Surface } from "@/components/ui/surface";
+import {
+  AppPageHeader,
+  HelperCard,
+  HelperPanel,
+  MetricCard,
+  ProductCard,
+  ProductEmptyState,
+  SectionHeader,
+} from "@/components/ui/product";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import { useBadges } from "@/hooks/useBadges";
 
@@ -46,52 +54,6 @@ type UserStats = {
   discussions: number;
   resources: number;
 };
-
-function ProfileStatCard({
-  icon: Icon,
-  label,
-  value,
-  colorClass,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  colorClass: string;
-}) {
-  return (
-    <Surface className="p-3 text-center" border="subtle">
-      <div className="mb-1 flex items-center justify-center gap-1.5">
-        <div className={`flex h-6 w-6 items-center justify-center rounded-md bg-opacity-10 ${colorClass}`}>
-          <Icon className={`h-3 w-3 ${colorClass}`} />
-        </div>
-      </div>
-      <p className="text-lg font-extrabold tracking-tight">{value}</p>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-    </Surface>
-  );
-}
-
-function SectionHeader({
-  title,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-}) {
-  return (
-    <div className="mb-3 flex items-start justify-between gap-3">
-      <div>
-        <h2 className="font-heading text-base font-bold">{title}</h2>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-        <Icon className="h-4 w-4 text-primary" />
-      </div>
-    </div>
-  );
-}
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -123,7 +85,13 @@ export default function ProfilePage() {
 
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchProfile(user.id), fetchUserStats(user.id), fetchBookmarks(user.id), fetchRecentActivity(user.id), fetchActiveCourses(user.id)]);
+      await Promise.all([
+        fetchProfile(user.id),
+        fetchUserStats(user.id),
+        fetchBookmarks(user.id),
+        fetchRecentActivity(user.id),
+        fetchActiveCourses(user.id),
+      ]);
       setLoading(false);
     };
 
@@ -255,13 +223,8 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <Layout>
-        <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-          <StateBlock
-            variant="loading"
-            size="section"
-            title="Profil hazırlanıyor"
-            description="Kimlik ve katkı verileri yükleniyor."
-          />
+        <div className="app-page-wrap">
+          <StateBlock variant="loading" size="section" title="Profil hazırlanıyor" description="Kimlik ve katkı verileri yükleniyor." />
         </div>
       </Layout>
     );
@@ -283,10 +246,23 @@ export default function ProfilePage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="app-page-wrap page-section-stack">
+        <AppPageHeader
+          title={profile?.username || "Profil"}
+          description="Akademik kimlik, katkı kalitesi ve ders bağlamı tek görünümde birleştirilir."
+          icon={<Star className="h-5 w-5" />}
+          actions={
+            <Button variant="outline" size="sm" className="h-9 rounded-xl" onClick={() => navigate("/settings")}>
+              <Settings className="mr-1.5 h-3.5 w-3.5" />
+              Ayarlar
+            </Button>
+          }
+        />
+
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-3">
-            <Surface variant="raised" border="subtle" padding="none" radius="xl" className="overflow-hidden border-border/70">
+            <ProductCard highlighted className="overflow-hidden p-0">
+              <div className="h-1.5 bg-gradient-to-r from-primary/80 via-primary/35 to-accent/60" />
               <div className="h-28 gradient-hero" />
               <div className="px-6 pb-6">
                 <div className="-mt-11 flex items-end gap-4">
@@ -302,18 +278,8 @@ export default function ProfilePage() {
 
                   <div className="min-w-0 flex-1 pt-10">
                     <div className="flex items-center gap-2">
-                      <h1 className="truncate font-heading text-xl font-extrabold">{profile?.username || "Profil"}</h1>
-                      <Badge className="border-emerald-200 bg-emerald-500/10 text-xs text-emerald-500">Çevrimiçi</Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-auto h-8 gap-1.5 text-xs font-semibold"
-                        onClick={() => navigate("/settings")}
-                        title="Ayarlar"
-                      >
-                        <Settings className="h-3.5 w-3.5" />
-                        Ayarlar
-                      </Button>
+                      <h1 className="truncate font-heading text-2xl font-extrabold tracking-tight">{profile?.username || "Profil"}</h1>
+                      <Badge className="border-emerald-200 bg-emerald-500/10 text-xs text-emerald-600">Çevrimiçi</Badge>
                     </div>
 
                     <AcademicMeta
@@ -346,22 +312,26 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-5 border-t border-border/60 pt-4">
-                  <SectionHeader title="Katkı Özeti" description="Profildeki akademik hareketin genel görünümü" icon={TrendingUp} />
+                  <SectionHeader
+                    title="Katkı Özeti"
+                    description="Profildeki akademik hareketin genel görünümü"
+                    icon={<TrendingUp className="h-4 w-4" />}
+                  />
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    <ProfileStatCard icon={FileText} label="Gönderi" value={userStats.posts} colorClass="text-primary" />
-                    <ProfileStatCard icon={ThumbsUp} label="Oy" value={userStats.votes} colorClass="text-emerald-500" />
-                    <ProfileStatCard icon={MessageSquare} label="Yorum" value={userStats.comments} colorClass="text-amber-500" />
-                    <ProfileStatCard icon={BookOpen} label="Not" value={userStats.notes} colorClass="text-blue-500" />
-                    <ProfileStatCard icon={GraduationCap} label="Tartışma" value={userStats.discussions} colorClass="text-purple-500" />
-                    <ProfileStatCard icon={BookMarked} label="Kaynak" value={userStats.resources} colorClass="text-orange-500" />
+                    <MetricCard label="Gönderi" value={userStats.posts} icon={<FileText className="h-4 w-4" />} className="p-3" />
+                    <MetricCard label="Oy" value={userStats.votes} icon={<ThumbsUp className="h-4 w-4" />} className="p-3" />
+                    <MetricCard label="Yorum" value={userStats.comments} icon={<MessageSquare className="h-4 w-4" />} className="p-3" />
+                    <MetricCard label="Not" value={userStats.notes} icon={<BookOpen className="h-4 w-4" />} className="p-3" />
+                    <MetricCard label="Tartışma" value={userStats.discussions} icon={<GraduationCap className="h-4 w-4" />} className="p-3" />
+                    <MetricCard label="Kaynak" value={userStats.resources} icon={<BookMarked className="h-4 w-4" />} className="p-3" />
                   </div>
                 </div>
               </div>
-            </Surface>
+            </ProductCard>
 
             <Tabs defaultValue="contributions" className="w-full">
-              <Surface variant="soft" border="subtle" padding="sm" radius="xl">
-                <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl bg-secondary/70 p-1">
+              <ProductCard className="p-2">
+                <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl bg-secondary/80 p-1">
                   <TabsTrigger value="contributions" className="rounded-lg text-xs font-semibold">
                     Katkılar
                   </TabsTrigger>
@@ -372,18 +342,17 @@ export default function ProfilePage() {
                     Son Aktivite
                   </TabsTrigger>
                 </TabsList>
-              </Surface>
+              </ProductCard>
 
               <TabsContent value="contributions" className="mt-3 space-y-2">
-                <SectionHeader title="Katkılarım" description="Son paylaştığın içerikler" icon={FileText} />
+                <SectionHeader title="Katkılarım" description="Son paylaştığın içerikler" icon={<FileText className="h-4 w-4" />} />
                 {recentPosts.length === 0 ? (
-                  <StateBlock
-                    variant="empty"
-                    size="section"
+                  <ProductEmptyState
+                    icon={<FileText className="h-5 w-5" />}
                     title="Henüz katkı görünmüyor"
                     description="Bir derste not, kaynak veya tartışma paylaşarak başlayabilirsin."
-                    primaryAction={
-                      <Button asChild size="sm">
+                    actionNode={
+                      <Button asChild size="sm" className="h-9 rounded-xl">
                         <Link to="/courses">Derslere Git</Link>
                       </Button>
                     }
@@ -393,7 +362,7 @@ export default function ProfilePage() {
                     const Icon = contentTypeIcon[item.content_type || ""] || FileText;
                     return (
                       <Link key={item.id} to={`/post/${item.id}`}>
-                        <Surface variant="soft" border="subtle" padding="sm" className="cursor-pointer transition-colors hover:border-primary/20">
+                        <ProductCard className="cursor-pointer p-3 transition-colors hover:border-primary/20">
                           <div className="flex items-center gap-3">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                               <Icon className="h-4 w-4 text-primary" />
@@ -401,12 +370,11 @@ export default function ProfilePage() {
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">{item.title || "Başlıksız içerik"}</p>
                               <p className="text-xs text-muted-foreground">
-                                {contentTypeLabel[item.content_type || ""] || "İçerik"} ·{" "}
-                                {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}
+                                {contentTypeLabel[item.content_type || ""] || "İçerik"} · {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}
                               </p>
                             </div>
                           </div>
-                        </Surface>
+                        </ProductCard>
                       </Link>
                     );
                   })
@@ -414,17 +382,12 @@ export default function ProfilePage() {
               </TabsContent>
 
               <TabsContent value="saved" className="mt-3 space-y-2">
-                <SectionHeader title="Kaydedilenler" description="Sonra dönmek için sakladığın içerikler" icon={BookMarked} />
+                <SectionHeader title="Kaydedilenler" description="Sonra dönmek için sakladığın içerikler" icon={<BookMarked className="h-4 w-4" />} />
                 {bookmarks.length === 0 ? (
-                  <StateBlock
-                    variant="empty"
-                    size="section"
-                    title="Henüz kaydedilen içerik yok"
-                    description="Kaydettiğin içerikler burada listelenecek."
-                  />
+                  <ProductEmptyState icon={<BookMarked className="h-5 w-5" />} title="Henüz kaydedilen içerik yok" description="Kaydettiğin içerikler burada listelenecek." />
                 ) : (
                   bookmarks.map((item) => (
-                    <Surface key={item.id} variant="soft" border="subtle" padding="sm" className="transition-colors hover:border-primary/20">
+                    <ProductCard key={item.id} className="p-3 transition-colors hover:border-primary/20">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <BookMarked className="h-4 w-4 text-primary" />
@@ -445,24 +408,19 @@ export default function ProfilePage() {
                           Kaldır
                         </button>
                       </div>
-                    </Surface>
+                    </ProductCard>
                   ))
                 )}
               </TabsContent>
 
               <TabsContent value="activity" className="mt-3 space-y-2">
-                <SectionHeader title="Son Aktivite" description="Yorum ve etkileşim akışın" icon={Clock} />
+                <SectionHeader title="Son Aktivite" description="Yorum ve etkileşim akışın" icon={<Clock className="h-4 w-4" />} />
                 {recentComments.length === 0 && recentPosts.length === 0 ? (
-                  <StateBlock
-                    variant="empty"
-                    size="section"
-                    title="Henüz aktivite yok"
-                    description="Yorumların ve katkıların burada görünecek."
-                  />
+                  <ProductEmptyState icon={<Clock className="h-5 w-5" />} title="Henüz aktivite yok" description="Yorumların ve katkıların burada görünecek." />
                 ) : (
                   recentComments.slice(0, 8).map((item) => (
                     <Link key={item.id} to={`/post/${item.post_id}`}>
-                      <Surface variant="soft" border="subtle" padding="sm" className="cursor-pointer transition-colors hover:border-primary/20">
+                      <ProductCard className="cursor-pointer p-3 transition-colors hover:border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary">
                             <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -474,7 +432,7 @@ export default function ProfilePage() {
                             </p>
                           </div>
                         </div>
-                      </Surface>
+                      </ProductCard>
                     </Link>
                   ))
                 )}
@@ -482,82 +440,67 @@ export default function ProfilePage() {
             </Tabs>
           </div>
 
-          <aside className="hidden space-y-3 lg:block">
-            <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Star className="h-4 w-4 text-primary" />
-                </div>
-                <h2 className="font-heading text-sm font-bold">Profil Rolü</h2>
-              </div>
+          <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
+            <HelperCard title="Profil Rolü" icon={<Star className="h-4 w-4" />} highlighted>
+              <Badge variant="secondary" className="text-[11px]">Güven katmanı</Badge>
               <p className="mt-2 text-xs text-muted-foreground">
                 Bu ekran bir akademik güven kartıdır. Kimlik, ders bağlamı ve katkı geçmişi birlikte görünür.
               </p>
               <div className="mt-2 rounded-lg bg-secondary/50 px-2.5 py-2 text-[11px] text-muted-foreground">
                 Güven sinyali: {trustSignals}/4 kimlik alanı dolu.
               </div>
-            </Surface>
+            </HelperCard>
 
-            <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                </div>
-                <h2 className="font-heading text-sm font-bold">Aktif Dersler</h2>
-              </div>
+            <HelperCard title="Aktif Dersler" icon={<BookOpen className="h-4 w-4" />}>
               {activeCourses.length === 0 ? (
                 <p className="mt-2 text-xs text-muted-foreground">Henüz aktif ders sinyali yok.</p>
               ) : (
                 <div className="mt-2 space-y-1.5">
                   {activeCourses.map((course) => (
                     <Link key={course.id} to={`/course/${course.id}`}>
-                      <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="transition-colors hover:border-primary/30">
+                      <ProductCard className="p-2.5 transition-colors hover:border-primary/30">
                         <p className="line-clamp-1 text-xs font-semibold">{course.name}</p>
                         <p className="text-[11px] text-muted-foreground">{course.contributionCount} katkı</p>
-                      </Surface>
+                      </ProductCard>
                     </Link>
                   ))}
                 </div>
               )}
-            </Surface>
+            </HelperCard>
 
-            <Surface variant="soft" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Bell className="h-4 w-4" />
-                <p className="text-xs font-semibold uppercase tracking-wide">Hızlı Geçiş</p>
-              </div>
+            <HelperCard title="Hızlı Geçiş" icon={<Bell className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
               <div className="mt-3 space-y-2">
-                <Button asChild size="sm" className="h-8 w-full">
+                <Button asChild size="sm" className="h-8 w-full rounded-lg">
                   <Link to="/messages">Mesajlara Git</Link>
                 </Button>
-                <Button asChild size="sm" variant="outline" className="h-8 w-full">
+                <Button asChild size="sm" variant="outline" className="h-8 w-full rounded-lg">
                   <Link to="/notifications">Bildirimleri Aç</Link>
                 </Button>
                 <Link to="/courses" className="block pt-1 text-center text-xs font-semibold text-primary hover:underline">
                   Derslere dön
                 </Link>
               </div>
-            </Surface>
-          </aside>
+            </HelperCard>
+          </HelperPanel>
 
           <div className="space-y-3 lg:hidden">
-            <Surface variant="base" border="subtle" padding="md" radius="xl">
+            <ProductCard>
               <h2 className="font-heading text-sm font-bold">Hızlı Geçiş</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 Profil akışından sonra mesajlara, bildirimlere veya ders bağlamına geçebilirsin.
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button asChild size="sm" className="h-8 w-full">
+                <Button asChild size="sm" className="h-8 w-full rounded-lg">
                   <Link to="/messages">Mesajlar</Link>
                 </Button>
-                <Button asChild size="sm" variant="outline" className="h-8 w-full">
+                <Button asChild size="sm" variant="outline" className="h-8 w-full rounded-lg">
                   <Link to="/notifications">Bildirimler</Link>
                 </Button>
               </div>
-              <Button asChild size="sm" variant="ghost" className="mt-1 h-8 w-full">
+              <Button asChild size="sm" variant="ghost" className="mt-1 h-8 w-full rounded-lg">
                 <Link to="/courses">Derslere Dön</Link>
               </Button>
-            </Surface>
+            </ProductCard>
           </div>
         </div>
       </div>

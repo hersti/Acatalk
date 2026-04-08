@@ -1,8 +1,9 @@
-import { formatDistanceToNow } from "date-fns";
+﻿import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ArrowRight, BookOpen, MessageCircle, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Surface } from "@/components/ui/surface";
+
+import { ProductCard, ProductEmptyState, SectionHeader } from "@/components/ui/product";
 import type { FeedCourseBlockItem } from "@/hooks/useFeedSnapshotV1";
 import { normalizeCourseCode } from "@/lib/course-code";
 
@@ -34,31 +35,33 @@ export default function FeedCourseBlockBase({
   emptyActionHref,
 }: FeedCourseBlockBaseProps) {
   return (
-    <Surface variant="base" border="subtle" padding="sm" radius="xl">
-      <div className="mb-2">
-        <h3 className="font-heading text-sm font-bold leading-tight">{title}</h3>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>
-      </div>
+    <ProductCard className="p-3">
+      <SectionHeader title={title} description={description} icon={<BookOpen className="h-4 w-4" />} />
 
       {loading ? (
         <p className="text-[11px] text-muted-foreground">Yükleniyor...</p>
       ) : items.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/70 px-2.5 py-2">
-          <p className="text-[11px] text-muted-foreground">{emptyText}</p>
-          {emptyActionLabel && emptyActionHref ? (
-            <Link to={emptyActionHref} className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline">
-              {emptyActionLabel}
-            </Link>
-          ) : null}
-        </div>
+        <ProductEmptyState
+          icon={<BookOpen className="h-5 w-5" />}
+          title="Henüz içerik yok"
+          description={emptyText}
+          className="max-w-none p-5"
+          actionNode={
+            emptyActionLabel && emptyActionHref ? (
+              <Link to={emptyActionHref} className="text-sm font-semibold text-primary hover:underline">
+                {emptyActionLabel}
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {items.map((item) => {
             const code = normalizeCourseCode(item.code || "");
             const totalContent = item.notes_count + item.past_exams_count + item.discussion_count + item.kaynaklar_count;
 
             return (
-              <article key={item.course_id} className="rounded-lg border border-border/70 px-2.5 py-2 transition-colors hover:border-primary/35 hover:bg-secondary/30">
+              <article key={item.course_id} className="rounded-xl border border-border/70 bg-card px-3 py-3 transition-all hover:border-primary/35 hover:bg-secondary/35">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="line-clamp-1 text-[13px] font-semibold">{item.name}</p>
@@ -70,7 +73,7 @@ export default function FeedCourseBlockBase({
                   </Link>
                 </div>
 
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
                     <BookOpen className="h-3 w-3" /> {totalContent} içerik
                   </span>
@@ -91,6 +94,6 @@ export default function FeedCourseBlockBase({
           })}
         </div>
       )}
-    </Surface>
+    </ProductCard>
   );
 }

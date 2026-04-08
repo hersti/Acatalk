@@ -1,10 +1,10 @@
-import { formatDistanceToNow } from "date-fns";
+﻿import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ArrowRight, MessageSquare, ThumbsUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Surface } from "@/components/ui/surface";
+import { ProductCard, ProductEmptyState, SectionHeader } from "@/components/ui/product";
 import type { FeedUsefulPostItem } from "@/hooks/useFeedSnapshotV1";
 import { normalizeCourseCode } from "@/lib/course-code";
 
@@ -24,12 +24,9 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
   const navigate = useNavigate();
 
   return (
-    <Surface variant="base" border="subtle" padding="sm" radius="xl">
+    <ProductCard className="p-3">
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-heading text-sm font-bold leading-tight">Öne Çıkan İçerikler</h3>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Son günlerde en çok fayda üreten katkılar ve bağlamları.</p>
-        </div>
+        <SectionHeader title="Öne Çıkan İçerikler" description="Son günlerde en çok fayda üreten katkılar ve bağlamları." icon={<MessageSquare className="h-4 w-4" />} />
         <Link to="/courses" className="shrink-0 text-[11px] font-semibold text-primary hover:underline">
           Derslere Git
         </Link>
@@ -38,12 +35,14 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
       {loading ? (
         <p className="text-[11px] text-muted-foreground">İçerikler yükleniyor...</p>
       ) : items.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/70 px-2.5 py-2">
-          <p className="text-[11px] text-muted-foreground">Şu an öne çıkan içerik yok.</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">Derslere gidip ilk katkıları başlatabilirsin.</p>
-        </div>
+        <ProductEmptyState
+          icon={<MessageSquare className="h-5 w-5" />}
+          title="Şu an öne çıkan içerik yok"
+          description="Derslere gidip ilk katkıları başlatabilirsin."
+          className="max-w-none p-5"
+        />
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {items.map((item) => {
             const authorName = item.author_display_name || item.author_username || "Kullanıcı";
             const firstLetter = (authorName[0] || "K").toUpperCase();
@@ -61,7 +60,7 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                     navigate(`/post/${item.post_id}`);
                   }
                 }}
-                className="cursor-pointer rounded-lg border border-border/70 px-2.5 py-2 transition-colors hover-lift hover:border-primary/35 hover:bg-secondary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                className="cursor-pointer rounded-xl border border-border/70 bg-card px-3 py-3 transition-all hover:border-primary/35 hover:bg-secondary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -73,9 +72,9 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                   <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}</span>
                 </div>
 
-                <p className="mt-1 line-clamp-2 text-[12px] font-medium">{item.title}</p>
+                <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-relaxed">{item.title}</p>
 
-                <div className="mt-1 flex items-center justify-between gap-2">
+                <div className="mt-1.5 flex items-center justify-between gap-2">
                   <Link
                     to={`/user/${item.author_user_id}`}
                     onClick={(event) => event.stopPropagation()}
@@ -120,6 +119,6 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
           })}
         </div>
       )}
-    </Surface>
+    </ProductCard>
   );
 }
