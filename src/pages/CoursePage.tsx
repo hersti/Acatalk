@@ -295,7 +295,7 @@ export default function CoursePage() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-6xl px-4 py-4">
+      <div className="app-page-wrap page-section-stack">
         <Link
           to="/courses"
           className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
@@ -306,7 +306,7 @@ export default function CoursePage() {
         {course && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Surface className="mb-0 overflow-hidden rounded-b-none" variant="raised" padding="none" border="none" radius="xl">
-              <div className="gradient-hero px-6 py-4">
+              <div className="gradient-hero px-5 py-4 sm:px-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground/75">
@@ -331,13 +331,13 @@ export default function CoursePage() {
                     {course.description && <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-primary-foreground/55">{course.description}</p>}
                   </div>
 
-                  {canAddContent && (
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    {canAddContent && (
+                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             size="sm"
-                            className="gap-1.5 border-0 bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                            className="h-9 gap-1.5 rounded-xl border-0 bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
                           >
                             <Plus className="h-4 w-4" /> Katkı Ekle
                           </Button>
@@ -382,7 +382,7 @@ export default function CoursePage() {
           </motion.div>
         )}
 
-        <div className="-mx-4 mb-4 sticky top-[56px] z-30 px-4">
+        <div className="sticky top-[64px] z-30 -mx-3 px-3 sm:-mx-4 sm:px-4">
           <div className="rounded-b-xl border border-t-0 border-border bg-card" style={{ boxShadow: "var(--shadow-warm)" }}>
             <div className="scrollbar-none flex items-stretch overflow-x-auto">
               {tabs.map((tab) => {
@@ -392,7 +392,7 @@ export default function CoursePage() {
                   <button
                     key={tab.value}
                     onClick={() => setActiveTab(tab.value)}
-                    className={`relative flex min-w-0 flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-semibold transition-colors ${
+                    className={`relative flex min-w-0 flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold transition-colors ${
                       isActive ? "text-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
                     }`}
                   >
@@ -429,7 +429,7 @@ export default function CoursePage() {
           </div>
         </div>
 
-        <div className="mb-3">
+        <div>
           <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-foreground">{tabGuidance.title}</p>
@@ -447,7 +447,7 @@ export default function CoursePage() {
           </Surface>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_304px]">
           <div className="min-h-[440px] min-w-0">
             <AnimatePresence mode="wait">
               <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -465,13 +465,13 @@ export default function CoursePage() {
                   />
                 ) : (
                   <>
-                    <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="mb-2.5 flex items-center justify-between gap-2">
                       <p className="text-xs font-medium text-muted-foreground">
                         {filteredPosts.length} {selectedContentType ? tabLabelMap[selectedContentType] : "içerik"}
                       </p>
                       <div className="flex items-center gap-2">
                         <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                          <SelectTrigger className="h-8 w-40 rounded-lg border-transparent bg-secondary/50 text-xs">
+                          <SelectTrigger className="h-8 w-40 rounded-xl border-border/50 bg-secondary/45 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

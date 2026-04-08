@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -259,13 +259,13 @@ export default function ProfilePage() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_332px]">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_336px]">
           <div className="space-y-3.5">
             <ProductCard highlighted className="overflow-hidden p-0">
               <div className="h-1.5 bg-gradient-to-r from-primary/80 via-primary/35 to-accent/60" />
               <div className="h-24 gradient-hero" />
               <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-                <div className="-mt-11 flex items-end gap-4">
+                <div className="-mt-11 flex items-end gap-3.5">
                   <div className="relative">
                     <Avatar className="h-20 w-20 shrink-0 border-4 border-card" style={{ boxShadow: "var(--shadow-card)" }}>
                       {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="Avatar" /> : null}
@@ -277,7 +277,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="min-w-0 flex-1 pt-10">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <h1 className="truncate font-heading text-[1.65rem] font-extrabold tracking-tight">{profile?.username || "Profil"}</h1>
                       <Badge className="h-6 rounded-full border-emerald-300 bg-emerald-500/10 px-2 text-[11px] text-emerald-600">Çevrimiçi</Badge>
                     </div>
@@ -446,7 +446,7 @@ export default function ProfilePage() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Bu ekran bir akademik güven kartıdır. Kimlik, ders bağlamı ve katkı geçmişi birlikte görünür.
               </p>
-              <div className="mt-2 rounded-lg bg-secondary/50 px-2.5 py-2 text-[11px] text-muted-foreground">
+              <div className="mt-2 rounded-lg border border-border/60 bg-secondary/50 px-2.5 py-2 text-[11px] text-muted-foreground">
                 Güven sinyali: {trustSignals}/4 kimlik alanı dolu.
               </div>
             </HelperCard>

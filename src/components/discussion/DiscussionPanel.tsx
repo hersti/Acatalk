@@ -148,9 +148,9 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
   }
 
   return (
-    <div className="flex gap-4 min-h-[500px]">
-      <div className="w-[380px] shrink-0 flex flex-col">
-        <div className="flex items-center gap-2 mb-3">
+    <div className="flex min-h-[520px] gap-3">
+      <div className="flex w-[372px] shrink-0 flex-col">
+        <div className="mb-2.5 flex items-center gap-2">
           {user && <CreateDiscussionDialog courseId={courseId} onCreated={handleCreated} />}
         </div>
         <DiscussionList
@@ -167,11 +167,11 @@ export default function DiscussionPanel({ courseId }: DiscussionPanelProps) {
         />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {selectedPost ? (
           <DiscussionDetail post={selectedPost} onBack={() => setSelectedId(null)} onRefresh={fetchPosts} />
         ) : (
-          <div className="h-full flex flex-col items-center justify-center bg-secondary/20 rounded-xl border border-dashed border-border px-6 py-12 text-center">
+          <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/20 px-6 py-12 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-4" />
             {posts.length === 0 && !loading ? (
               <>

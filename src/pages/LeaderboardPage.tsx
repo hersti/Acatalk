@@ -1,7 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Award, Crown, Medal, Search, Star, TrendingUp, Trophy, Users } from "lucide-react";
+import { Award, Crown, Flame, Medal, Search, Star, TrendingUp, Trophy, Users } from "lucide-react";
 
 import Layout from "@/components/Layout";
 import BadgeDisplay from "@/components/BadgeDisplay";
@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
 
   const getUniversityMetaLabel = (universityName: string | null | undefined) => {
     const name = String(universityName || "").trim();
-    if (!name) return "Tur bilgisi yok";
+    if (!name) return "Tür bilgisi yok";
     const row = universityCatalogByName.get(name);
     return formatUniversityMetaLabel({
       city: row?.city || null,
@@ -159,7 +159,7 @@ export default function LeaderboardPage() {
   const topUser = users[0];
 
   const tabItems = [
-    { key: "all", label: "Tum Zamanlar", count: periodScoped.length },
+    { key: "all", label: "Tüm Zamanlar", count: periodScoped.length },
     { key: "monthly", label: "Bu Ay", count: periodScoped.length },
     { key: "weekly", label: "Bu Hafta", count: periodScoped.length },
   ];
@@ -168,16 +168,16 @@ export default function LeaderboardPage() {
     <Layout>
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
-          title="Siralama"
-          description="Katki yogunlugu en yuksek ogrencileri karsilastir, profil guven sinyallerini tek ekranda takip et."
+          title="Liderlik"
+          description="Katkı yoğunluğu en yüksek öğrencileri karşılaştır, profil güven sinyallerini tek görünümde takip et."
           icon={<Trophy className="h-5 w-5" />}
-          actions={<Badge variant="secondary" className="h-9 rounded-xl px-3 text-xs">{periodScoped.length} kayit</Badge>}
+          actions={<Badge variant="secondary" className="h-9 rounded-xl px-3 text-xs">{periodScoped.length} kayıt</Badge>}
           tabs={
             <div className="space-y-2">
               <PageTabsBar value={period} onChange={(next) => setPeriod(next as typeof period)} items={tabItems} />
               {(period === "monthly" || period === "weekly") ? (
                 <p className="px-1 text-[11px] text-muted-foreground">
-                  Donemsel puan gecmisi mevcut semada olmadigi icin liste su an all-time puanla gosteriliyor.
+                  Dönemsel puan geçmişi mevcut şemada olmadığı için liste şu an all-time puanla gösteriliyor.
                 </p>
               ) : null}
             </div>
@@ -185,10 +185,10 @@ export default function LeaderboardPage() {
         />
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-          <MetricCard label="Toplam Uye" value={users.length} icon={<Users className="h-4 w-4" />} />
-          <MetricCard label="En Yuksek Puan" value={topUser?.reputation_points ?? 0} icon={<Star className="h-4 w-4" />} />
+          <MetricCard label="Toplam Üye" value={users.length} icon={<Users className="h-4 w-4" />} />
+          <MetricCard label="En Yüksek Puan" value={topUser?.reputation_points ?? 0} icon={<Star className="h-4 w-4" />} />
           <MetricCard
-            label="Siralaman"
+            label="Sıralaman"
             value={myRank > 0 ? `#${myRank}` : "-"}
             icon={<TrendingUp className="h-4 w-4" />}
           />
@@ -202,10 +202,10 @@ export default function LeaderboardPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold">
-                  Siralaman: <span className="font-extrabold text-primary">#{myRank}</span>
+                  Sıralaman: <span className="font-extrabold text-primary">#{myRank}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {users.find((item) => item.user_id === user?.id)?.reputation_points ?? 0} puan ile {users.length} kullanici arasindasin.
+                  {users.find((item) => item.user_id === user?.id)?.reputation_points ?? 0} puan ile {users.length} kullanıcı arasındasın.
                 </p>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function LeaderboardPage() {
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Kullanici veya bolum ara..."
+                placeholder="Kullanıcı veya bölüm ara..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="h-9 pl-8 text-sm"
@@ -226,10 +226,10 @@ export default function LeaderboardPage() {
 
             <Select value={uniFilter} onValueChange={setUniFilter}>
               <SelectTrigger className="h-9 w-full text-sm sm:w-[240px]">
-                <SelectValue placeholder="Universite" />
+                <SelectValue placeholder="Üniversite" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tum Universiteler</SelectItem>
+                <SelectItem value="all">Tüm Üniversiteler</SelectItem>
                 {universities.map((item) => (
                   <SelectItem key={item} value={item}>
                     {`${item} (${getUniversityMetaLabel(item)})`}
@@ -239,7 +239,7 @@ export default function LeaderboardPage() {
             </Select>
 
             <Badge variant="secondary" className="h-9 shrink-0 self-center rounded-xl px-3 text-xs">
-              {periodScoped.length} sonuc
+              {periodScoped.length} sonuç
             </Badge>
           </div>
         </ProductCard>
@@ -249,13 +249,13 @@ export default function LeaderboardPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-3 gap-2.5"
+            className="grid grid-cols-3 gap-2"
           >
             {[1, 0, 2].map((index) => {
               const row = periodScoped[index];
               if (!row) return null;
 
-              const heights = ["h-28", "h-36", "h-24"];
+              const heights = ["h-[7.5rem]", "h-40", "h-28"];
               const order = [1, 0, 2];
               const rank = index + 1;
 
@@ -266,7 +266,7 @@ export default function LeaderboardPage() {
                     border="subtle"
                     padding="sm"
                     radius="lg"
-                    className={`w-full ${heights[order.indexOf(index)]} flex flex-col items-center justify-end ${index === 0 ? "border-amber-300/35 bg-amber-500/5 shadow-[var(--shadow-warm)]" : ""}`}
+                    className={`w-full ${heights[order.indexOf(index)]} flex flex-col items-center justify-end ${index === 0 ? "border-amber-300/40 bg-amber-500/8 shadow-[var(--shadow-warm)]" : "bg-secondary/30"}`}
                   >
                     <Avatar className={`${index === 0 ? "h-12 w-12" : "h-10 w-10"} mb-1.5`}>
                       <AvatarFallback className={`${index === 0 ? "gradient-hero text-primary-foreground" : "bg-primary/10 text-primary"} text-sm font-bold`}>
@@ -279,7 +279,7 @@ export default function LeaderboardPage() {
                     {rank === 3 ? <Award className="h-5 w-5 text-orange-500" /> : null}
 
                     <p className="mt-1 max-w-full truncate font-heading text-xs font-bold">{row.username || "Anonim"}</p>
-                    <p className="text-sm font-extrabold text-primary">{row.reputation_points ?? 0}</p>
+                    <p className="text-base font-extrabold text-primary">{row.reputation_points ?? 0}</p>
                   </Surface>
                 </Link>
               );
@@ -294,8 +294,8 @@ export default function LeaderboardPage() {
                 variant="loading"
                 size="section"
                 icon={<Flame className="h-5 w-5" />}
-                title="Siralama yukleniyor"
-                description="Liderlik listesi hazirlaniyor."
+                title="Sıralama yükleniyor"
+                description="Liderlik listesi hazırlanıyor."
               />
             ) : periodScoped.length > 0 ? (
               periodScoped.map((row, index) => {
@@ -310,7 +310,7 @@ export default function LeaderboardPage() {
                   >
                     <Link
                       to={`/user/${row.user_id}`}
-                      className={`mt-1.5 flex items-center gap-3 rounded-xl border p-3 transition-colors ${index === 0 ? "mt-0" : ""} ${index < 3 ? "border-border/70 bg-secondary/45" : "border-transparent hover:border-border/70 hover:bg-secondary/30"} ${row.user_id === user?.id ? "ring-1 ring-primary/25" : ""}`}
+                      className={`mt-1.5 flex items-center gap-3 rounded-xl border p-2.5 transition-colors ${index === 0 ? "mt-0" : ""} ${index < 3 ? "border-border/70 bg-secondary/45" : "border-transparent hover:border-border/70 hover:bg-secondary/30"} ${row.user_id === user?.id ? "ring-1 ring-primary/25" : ""}`}
                     >
                       <div className="flex h-6 w-6 items-center justify-center text-xs font-bold text-muted-foreground">
                         {rank === 1 ? <Crown className="h-4.5 w-4.5 text-amber-500" /> : null}
@@ -340,14 +340,14 @@ export default function LeaderboardPage() {
                               ? [
                                   {
                                     kind: "university" as const,
-                                    label: "Universite",
+                                     label: "Üniversite",
                                     value: `${row.university} (${getUniversityMetaLabel(row.university)})`,
                                     emphasis: "subtle" as const,
                                   },
                                 ]
                               : []),
                             ...(row.department
-                              ? [{ kind: "department" as const, label: "Bolum", value: row.department, emphasis: "subtle" as const }]
+                              ? [{ kind: "department" as const, label: "Bölüm", value: row.department, emphasis: "subtle" as const }]
                               : []),
                             ...(!row.university && !row.department
                               ? [{ kind: "custom" as const, label: "Profil", value: "Akademik bilgi yok", emphasis: "subtle" as const }]
@@ -368,8 +368,8 @@ export default function LeaderboardPage() {
             ) : (
               <ProductEmptyState
                 icon={<Search className="h-5 w-5" />}
-                title="Sonuc bulunamadi"
-                description="Filtreleri degistirip yeniden deneyin."
+                title="Sonuç bulunamadı"
+                description="Filtreleri değiştirip yeniden deneyin."
               />
             )}
           </div>

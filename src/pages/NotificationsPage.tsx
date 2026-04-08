@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
   const actionRequiredCount = notifications.filter((item) => !item.is_read && ["mention", "reply", "connection_request"].includes(item.type)).length;
 
   const tabItems = [
-    { key: "all", label: "Tumu", count: notifications.length },
+    { key: "all", label: "Tümü", count: notifications.length },
     { key: "mentions", label: "Etiketler", count: notifications.filter((item) => item.type === "mention").length },
     {
       key: "courses",
@@ -242,7 +242,7 @@ export default function NotificationsPage() {
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
           title="Bildirimler"
-          description="Aksiyon merkezi: önce kritik bildirimleri temizle, sonra ilgili hedefe geç."
+          description="Aksiyon merkezi: önce kritik bildirimleri temizle, sonra ilgili hedefe geç ve akışı kapat."
           icon={<Bell className="h-5 w-5" />}
           actions={
             <>
@@ -259,7 +259,7 @@ export default function NotificationsPage() {
           tabs={<PageTabsBar items={tabItems} value={activeTab} onChange={(next) => setActiveTab(next as typeof activeTab)} />}
         />
 
-        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_328px]">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_336px]">
           <div className="space-y-3.5">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <MetricCard label="Toplam" value={totalCount} icon={<Bell className="h-4 w-4" />} />
@@ -267,7 +267,7 @@ export default function NotificationsPage() {
               <MetricCard label="Okunmuş" value={totalCount - unreadCount} icon={<CheckCheck className="h-4 w-4" />} />
             </div>
 
-            <ProductCard className="bg-gradient-to-b from-card to-secondary/20 p-3">
+            <ProductCard className="bg-gradient-to-b from-card to-secondary/20 p-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="mr-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary">
@@ -301,14 +301,14 @@ export default function NotificationsPage() {
                   </SelectContent>
                 </Select>
 
-                <Badge variant="secondary" className="h-7 rounded-full text-xs sm:ml-auto">
+                <Badge variant="secondary" className="h-7 rounded-full px-2.5 text-xs sm:ml-auto">
                   {filtered.length} sonuç
                 </Badge>
               </div>
             </ProductCard>
 
             {actionRequiredCount > 0 ? (
-              <ProductCard highlighted className="p-3.5">
+              <ProductCard highlighted className="p-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
@@ -371,9 +371,9 @@ export default function NotificationsPage() {
                       <button
                         key={item.id}
                         onClick={() => handleNotificationClick(item)}
-                        className={`group w-full rounded-xl border px-3 py-3 text-left transition-all hover:bg-secondary/45 ${
+                        className={`group w-full rounded-xl border px-3 py-2.5 text-left transition-all hover:bg-secondary/45 ${
                           !item.is_read
-                            ? "border-primary/50 bg-gradient-to-r from-primary/14 via-primary/5 to-card shadow-[var(--shadow-card)] ring-1 ring-primary/25"
+                            ? "border-primary/55 bg-gradient-to-r from-primary/14 via-primary/6 to-card shadow-[var(--shadow-card)] ring-1 ring-primary/30"
                             : "border-border/70 bg-card hover:border-primary/20"
                         }`}
                       >
@@ -388,9 +388,9 @@ export default function NotificationsPage() {
                               </span>
                               {!item.is_read ? <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]" /> : null}
                             </div>
-                            <p className="pr-6 text-sm font-semibold leading-snug">{item.title}</p>
-                            {item.message ? <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">{item.message}</p> : null}
-                            <div className="mt-2 flex items-center justify-between">
+                             <p className="pr-6 text-sm font-semibold leading-snug tracking-[0.01em]">{item.title}</p>
+                             {item.message ? <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground/95">{item.message}</p> : null}
+                             <div className="mt-1.5 flex items-center justify-between">
                               <p className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}
                               </p>

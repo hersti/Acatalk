@@ -1,4 +1,4 @@
-﻿import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ArrowRight, MessageSquare, ThumbsUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -42,7 +42,7 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
           className="max-w-none p-5"
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {items.map((item) => {
             const authorName = item.author_display_name || item.author_username || "Kullanıcı";
             const firstLetter = (authorName[0] || "K").toUpperCase();
@@ -60,7 +60,7 @@ export default function FeedUsefulContentBlock({ items, loading }: FeedUsefulCon
                     navigate(`/post/${item.post_id}`);
                   }
                 }}
-                className="cursor-pointer rounded-xl border border-border/70 bg-card px-3 py-3 transition-all hover:border-primary/35 hover:bg-secondary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                className="cursor-pointer rounded-xl border border-border/70 bg-card px-3 py-2.5 transition-all hover:border-primary/35 hover:bg-secondary/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">

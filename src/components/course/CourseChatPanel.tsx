@@ -88,7 +88,7 @@ export default function CourseChatPanel({
 
   return (
     <Surface variant="soft" border="subtle" padding="none" radius="xl" className="overflow-hidden">
-      <div className="border-b border-border/70 px-4 py-3">
+      <div className="border-b border-border/70 bg-gradient-to-b from-card to-card/95 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-heading flex items-center gap-1.5 text-sm font-bold">
@@ -127,7 +127,7 @@ export default function CourseChatPanel({
         </div>
       ) : (
         <>
-          <div className="max-h-[440px] space-y-2 overflow-y-auto p-4">
+          <div className="max-h-[440px] space-y-1.5 overflow-y-auto bg-gradient-to-b from-secondary/40 to-background p-3.5">
             {loading ? (
               <StateBlock variant="loading" size="inline" title="Sohbet yükleniyor" description="Mesaj akışı hazırlanıyor." />
             ) : error ? (
@@ -160,7 +160,7 @@ export default function CourseChatPanel({
               messages.map((chatMessage) => {
                 const username = chatMessage.username || "kullanici";
                 return (
-                  <div key={chatMessage.id} className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-card/70 px-3 py-2">
+                  <div key={chatMessage.id} className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-card/80 px-3 py-2">
                     <Avatar className="h-7 w-7 shrink-0">
                       {chatMessage.avatarUrl ? <AvatarImage src={chatMessage.avatarUrl} alt={chatMessage.displayName} /> : null}
                       <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
@@ -169,9 +169,9 @@ export default function CourseChatPanel({
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <Link to={`/user/${chatMessage.user_id}`} className="truncate text-xs font-semibold transition-colors hover:text-primary">
-                          {chatMessage.displayName}
-                        </Link>
+                          <Link to={`/user/${chatMessage.user_id}`} className="truncate text-xs font-semibold transition-colors hover:text-primary">
+                            {chatMessage.displayName}
+                          </Link>
                         <Link to={`/user/${chatMessage.user_id}`} className="text-[10px] text-muted-foreground transition-colors hover:text-primary">
                           @{username}
                         </Link>
@@ -187,7 +187,7 @@ export default function CourseChatPanel({
             )}
           </div>
 
-          <div className="border-t border-border/70 p-3">
+          <div className="border-t border-border/70 bg-card/90 p-3">
             {isLoggedIn ? (
               canWrite ? (
                 <form onSubmit={handleSend} className="space-y-2">

@@ -42,8 +42,8 @@ function RouteInlineFallback() {
         <StateBlock
           variant="loading"
           size="section"
-          title="Icerik yukleniyor"
-          description="Lutfen bekleyin."
+          title="İçerik yükleniyor"
+          description="Lütfen bekleyin."
         />
       </div>
     </div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Surface } from "@/components/ui/surface";
 import { Plus, Upload, X, FileText, ClipboardList, BookMarked, Link as LinkIcon, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize, getFileTypeLabel } from "@/lib/content-renderer";
@@ -258,13 +259,13 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
       {!isControlled && (
         <DialogTrigger asChild>
-          <Button size="sm" className="gap-1.5">
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl">
             <Plus className="h-4 w-4" /> Yeni Gönderi
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl border-border/80 p-0 sm:max-w-[680px]">
+        <DialogHeader className="border-b border-border/70 bg-gradient-to-b from-card to-card/95 px-5 py-4">
           <DialogTitle className="font-heading flex items-center gap-2">
             <Icon className="h-5 w-5 text-primary" />
             Gönderi Oluştur
@@ -272,12 +273,15 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
           <DialogDescription>Ders için yeni bir içerik paylaşın.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5 px-5 py-4">
+          <Surface variant="soft" border="subtle" radius="lg" padding="sm" className="text-[11px] text-muted-foreground">
+            Icerik kalitesi ve baglam netligi onceliklidir. Baslikta ders baglami, aciklamada kapsam ve beklenti belirtin.
+          </Surface>
           {/* Content Type */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">İçerik Türü</Label>
             <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="notes"><span className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-notes" /> Notlar</span></SelectItem>
                 <SelectItem value="past_exams"><span className="flex items-center gap-2"><ClipboardList className="h-3.5 w-3.5 text-exams" /> Çıkmış Sorular</span></SelectItem>
@@ -293,12 +297,12 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Sınav Yılı</Label>
-                <Input value={examYear} onChange={(e) => setExamYear(e.target.value)} placeholder="Örn: 2024" maxLength={4} className="h-9 text-sm" />
+                <Input value={examYear} onChange={(e) => setExamYear(e.target.value)} placeholder="Örn: 2024" maxLength={4} className="h-9 rounded-xl text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Dönem</Label>
                 <Select value={examPeriod} onValueChange={setExamPeriod}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {EXAM_PERIODS.map((p) => (
                       <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
@@ -314,7 +318,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Kaynak Türü</Label>
               <Select value={resourceType} onValueChange={setResourceType}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {RESOURCE_TYPES.map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
@@ -330,7 +334,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
               <Label className="text-xs font-semibold flex items-center gap-1.5">
                 <LinkIcon className="h-3 w-3" /> Bağlantı (URL)
               </Label>
-              <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." type="url" className="h-9 text-sm" />
+              <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." type="url" className="h-9 rounded-xl text-sm" />
               <p className="text-[11px] text-muted-foreground">Kaynak web sayfası, video veya doküman bağlantısı.</p>
             </div>
           )}
@@ -338,7 +342,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
           {/* Title */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Başlık <span className="text-destructive">*</span></Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={config.titlePlaceholder} required maxLength={200} className="h-10 text-sm" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={config.titlePlaceholder} required maxLength={200} className="h-10 rounded-xl text-sm" />
             <p className="text-[11px] text-muted-foreground flex justify-between">
               <span>Açıklayıcı bir başlık yazın.</span>
               <span className={title.length > 180 ? "text-destructive" : ""}>{title.length}/200</span>
@@ -348,7 +352,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
           {/* Content */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">{config.contentLabel}</Label>
-            <Textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={config.contentPlaceholder} rows={4} maxLength={5000} className="text-sm" />
+            <Textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={config.contentPlaceholder} rows={4} maxLength={5000} className="rounded-xl text-sm" />
             <p className="text-[11px] text-muted-foreground text-right">
               <span className={content.length > 4800 ? "text-destructive" : ""}>{content.length}/5000</span>
             </p>
@@ -359,12 +363,12 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Dosya Ekle (isteğe bağlı)</Label>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => document.getElementById("file-upload-dialog")?.click()}>
+                <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl gap-1.5 text-xs" onClick={() => document.getElementById("file-upload-dialog")?.click()}>
                   <Upload className="h-3.5 w-3.5" />
                   {file ? "Değiştir" : "Dosya Seç"}
                 </Button>
                 {file && (
-                  <div className="flex items-center gap-1.5 text-xs bg-secondary px-2 py-1 rounded-md flex-1 min-w-0">
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-secondary px-2 py-1 text-xs">
                     <FileText className="h-3 w-3 shrink-0 text-primary" />
                     <span className="truncate">{file.name}</span>
                     <span className="text-muted-foreground shrink-0">({formatFileSize(file.size)})</span>
@@ -388,7 +392,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
           )}
 
           {/* Anonymous */}
-          <div className="flex items-center gap-2 pt-1 border-t">
+          <div className="flex items-center gap-2 border-t border-border/70 pt-1">
             <Checkbox id="anonymous-create" checked={isAnonymous} onCheckedChange={(v) => setIsAnonymous(!!v)} />
             <label htmlFor="anonymous-create" className="text-sm text-muted-foreground cursor-pointer">
               Anonim olarak paylaş
@@ -396,7 +400,7 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
           </div>
 
           {/* Submit */}
-          <Button type="submit" className="w-full h-10" disabled={loading || !title.trim()}>
+          <Button type="submit" className="h-10 w-full rounded-xl" disabled={loading || !title.trim()}>
             {loading ? "Gönderiliyor..." : "Gönder"}
           </Button>
         </form>
@@ -404,3 +408,4 @@ export default function CreatePostDialog({ courseId, defaultType = "notes", onCr
     </Dialog>
   );
 }
+

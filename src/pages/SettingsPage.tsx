@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -119,7 +119,7 @@ export default function SettingsPage() {
     // Validate file type
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowed.includes(file.type)) {
-      toast.error("Sadece JPEG, PNG, WebP veya GIF yÃ¼kleyebilirsiniz.");
+      toast.error("Sadece JPEG, PNG, WebP veya GIF yükleyebilirsiniz.");
       return;
     }
     // Validate size (2MB max)
@@ -139,7 +139,7 @@ export default function SettingsPage() {
         .upload(filePath, file, { upsert: true, contentType: file.type });
 
       if (uploadError) {
-        toast.error("YÃ¼kleme baÅŸarÄ±sÄ±z: " + uploadError.message);
+        toast.error("Yükleme başarısız: " + uploadError.message);
         return;
       }
 
@@ -150,21 +150,21 @@ export default function SettingsPage() {
       const modResult = await moderateImage(publicUrl, "avatar", user.id);
       if (!modResult.safe) {
         await supabase.storage.from("uploads").remove([filePath]);
-        toast.error("Bu gÃ¶rsel platform kurallarÄ±nÄ± ihlal ediyor ve yÃ¼klenemez.");
+        toast.error("Bu görsel platform kurallarını ihlal ediyor ve yüklenemez.");
         return;
       }
 
       // Update profile
       const { error: updateError } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", user.id);
       if (updateError) {
-        toast.error("Profil gÃ¼ncellenemedi.");
+        toast.error("Profil güncellenemedi.");
         return;
       }
 
       setAvatarUrl(publicUrl);
-      toast.success("Avatar gÃ¼ncellendi!");
+      toast.success("Avatar güncellendi!");
     } catch {
-      toast.error("Avatar yÃ¼klenirken bir hata oluÅŸtu.");
+      toast.error("Avatar yüklenirken bir hata oluştu.");
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -182,9 +182,9 @@ export default function SettingsPage() {
       }
       await supabase.from("profiles").update({ avatar_url: null }).eq("user_id", user.id);
       setAvatarUrl(null);
-      toast.success("Avatar kaldÄ±rÄ±ldÄ±.");
+      toast.success("Avatar kaldırıldı.");
     } catch {
-      toast.error("Avatar kaldÄ±rÄ±lamadÄ±.");
+      toast.error("Avatar kaldırılamadı.");
     } finally {
       setUploadingAvatar(false);
     }
@@ -266,9 +266,9 @@ export default function SettingsPage() {
     setUnblocking(blockId);
     const { error } = await supabase.from("blocked_users").delete().eq("id", blockId);
     if (error) {
-      toast.error("Engel kaldÄ±rÄ±lamadÄ±.");
+      toast.error("Engel kaldırılamadı.");
     } else {
-      toast.success("Engel kaldÄ±rÄ±ldÄ±.");
+      toast.success("Engel kaldırıldı.");
       setBlockedUsers((prev) => prev.filter((b) => b.id !== blockId));
     }
     setUnblocking(null);
@@ -294,7 +294,7 @@ export default function SettingsPage() {
 
     const usernameChanged = profile.username !== originalUsername;
     if (usernameChanged && !canChangeUsername()) {
-      toast.error(`KullanÄ±cÄ± adÄ±nÄ± ${daysUntilUsernameChange()} gÃ¼n sonra deÄŸiÅŸtirebilirsiniz.`);
+      toast.error(`Kullanıcı adını ${daysUntilUsernameChange()} gün sonra değiştirebilirsiniz.`);
       setSaving(false);
       return;
     }
@@ -308,7 +308,7 @@ export default function SettingsPage() {
     if (profile.display_name.trim()) {
       const displayCheck = checkUsernameProfanity(profile.display_name.trim());
       if (!displayCheck.safe) {
-        toast.error("GÃ¶rÃ¼nen ad uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor. LÃ¼tfen farklÄ± bir ad seÃ§in.");
+        toast.error("Görünen ad uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.");
         setSaving(false);
         return;
       }
@@ -318,7 +318,7 @@ export default function SettingsPage() {
     if (profile.bio.trim()) {
       const bioQuick = quickContentCheck(profile.bio.trim());
       if (!bioQuick.safe) {
-        toast.error(bioQuick.reason || "HakkÄ±mda metni uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor.");
+        toast.error(bioQuick.reason || "Hakkımda metni uygunsuz içerik barındırıyor.");
         setSaving(false);
         return;
       }
@@ -334,7 +334,7 @@ export default function SettingsPage() {
     if (profile.display_name.trim()) {
       const displayQuick = quickContentCheck(profile.display_name.trim());
       if (!displayQuick.safe) {
-        toast.error("GÃ¶rÃ¼nen ad uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor.");
+        toast.error("Görünen ad uygunsuz içerik barındırıyor.");
         setSaving(false);
         return;
       }
@@ -342,13 +342,13 @@ export default function SettingsPage() {
 
     if (usernameChanged) {
       if (!profile.username.trim() || profile.username.trim().length < 3) {
-        toast.error("KullanÄ±cÄ± adÄ± en az 3 karakter olmalÄ±dÄ±r.");
+        toast.error("Kullanıcı adı en az 3 karakter olmalıdır.");
         setSaving(false);
         return;
       }
       const profanityCheck = checkUsernameProfanity(profile.username.trim());
       if (!profanityCheck.safe) {
-        toast.error("Bu kullanÄ±cÄ± adÄ± uygunsuz iÃ§erik barÄ±ndÄ±rÄ±yor. LÃ¼tfen farklÄ± bir ad seÃ§in.");
+        toast.error("Bu kullanıcı adı uygunsuz içerik barındırıyor. Lütfen farklı bir ad seçin.");
         setSaving(false);
         return;
       }
@@ -359,7 +359,7 @@ export default function SettingsPage() {
     const { error } = await supabase.from("profiles").update(updateData).eq("user_id", user.id);
     if (error) toast.error(error.message);
     else {
-      toast.success("Profil gÃ¼ncellendi!");
+      toast.success("Profil güncellendi!");
       setOriginalUsername(profile.username);
       fetchProfile();
     }
@@ -388,7 +388,7 @@ export default function SettingsPage() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("HesabÄ±nÄ±z baÅŸarÄ±yla silindi.");
+      toast.success("Hesabınız başarıyla silindi.");
       setDeleteDialogOpen(false);
       await supabase.auth.signOut();
       navigate("/auth");
@@ -404,7 +404,7 @@ export default function SettingsPage() {
   const sections = [
     { id: "account", label: "Hesap Bilgileri", icon: User },
     { id: "academic", label: "Akademik Bilgiler", icon: GraduationCap },
-    { id: "security", label: "GÃ¼venlik", icon: Lock },
+    { id: "security", label: "Güvenlik", icon: Lock },
     { id: "privacy", label: "Gizlilik ve DM", icon: Shield },
     { id: "notifications", label: "Bildirimler", icon: Bell },
     { id: "danger", label: "Hesap Silme", icon: Trash2 },
@@ -424,7 +424,7 @@ export default function SettingsPage() {
               <div className="min-w-0 flex-1">
                 <h1 className="font-heading text-[1.65rem] font-extrabold tracking-tight">Ayarlar</h1>
                 <p className="text-sm text-muted-foreground">
-                  Hesap, akademik kimlik, gizlilik ve bildirim tercihlerinizi yÃ¶netin.
+                  Hesap, akademik kimlik, gizlilik ve bildirim tercihlerinizi yönetin.
                 </p>
                 <AcademicMeta
                   className="mt-2"
@@ -432,13 +432,13 @@ export default function SettingsPage() {
                   tone="muted"
                   items={[
                     ...(profile.university
-                      ? [{ kind: "university" as const, label: "Ãœniversite", value: profile.university, emphasis: "subtle" as const }]
+                      ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }]
                       : []),
                     ...(profile.department
-                      ? [{ kind: "department" as const, label: "BÃ¶lÃ¼m", value: profile.department, emphasis: "subtle" as const }]
+                      ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }]
                       : []),
                     ...(profile.class_year !== null
-                      ? [{ kind: "custom" as const, label: "SÄ±nÄ±f", value: profile.class_year === 0 ? "HazÄ±rlÄ±k" : `${profile.class_year}. SÄ±nÄ±f`, emphasis: "subtle" as const }]
+                      ? [{ kind: "custom" as const, label: "Sınıf", value: profile.class_year === 0 ? "Hazırlık" : `${profile.class_year}. Sınıf`, emphasis: "subtle" as const }]
                       : []),
                   ]}
                 />
@@ -447,19 +447,19 @@ export default function SettingsPage() {
           </div>
         </Surface>
 
-        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-[248px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[252px_minmax(0,1fr)]">
           {/* Sidebar */}
           <div>
-            <Surface variant="outline" border="subtle" radius="xl" padding="sm" className="md:sticky md:top-24">
-              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">BÃ¶lÃ¼mler</p>
+            <Surface variant="raised" border="subtle" radius="xl" padding="sm" className="md:sticky md:top-20">
+              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Bölümler</p>
               <div className="space-y-1 p-1.5">
                 {sections.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setActiveSection(s.id)}
-                    className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                       activeSection === s.id
-                        ? "border-primary/35 bg-gradient-to-r from-primary/12 via-primary/5 to-background text-primary shadow-[var(--shadow-soft)]"
+                        ? "border-primary/40 bg-gradient-to-r from-primary/14 via-primary/6 to-background text-primary shadow-[var(--shadow-soft)] ring-1 ring-primary/20"
                         : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-secondary/50 hover:text-foreground"
                     }`}
                   >
@@ -481,12 +481,12 @@ export default function SettingsPage() {
               <Surface variant="raised" border="subtle" radius="xl" padding="none">
                 <CardHeader>
                   <CardTitle className="text-base font-extrabold">Hesap Bilgileri</CardTitle>
-                  <CardDescription className="text-xs">Temel hesap bilgilerinizi yÃ¶netin.</CardDescription>
+                  <CardDescription className="text-xs">Temel hesap bilgilerinizi yönetin.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3.5">
                   {/* Avatar Upload */}
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Profil FotoÄŸrafÄ±</Label>
+                    <Label className="text-xs font-semibold">Profil Fotoğrafı</Label>
                     <div className="flex items-center gap-4">
                       <div className="relative group">
                         <Avatar className="h-16 w-16 border-2 border-border shadow-[var(--shadow-soft)]">
@@ -512,11 +512,11 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
-                          {uploadingAvatar ? "YÃ¼kleniyor..." : "FotoÄŸraf YÃ¼kle"}
+                          {uploadingAvatar ? "Yükleniyor..." : "Fotoğraf Yükle"}
                         </Button>
                         {avatarUrl && (
                           <Button type="button" variant="ghost" size="sm" className="h-7 rounded-lg text-xs text-destructive hover:text-destructive" onClick={handleRemoveAvatar} disabled={uploadingAvatar}>
-                            <Trash2 className="h-3 w-3 mr-1" /> KaldÄ±r
+                            <Trash2 className="h-3 w-3 mr-1" /> Kaldır
                           </Button>
                         )}
                         <p className="text-xs text-muted-foreground">JPEG, PNG, WebP veya GIF. Maks 2MB.</p>
@@ -528,10 +528,10 @@ export default function SettingsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">E-posta</Label>
                     <Input value={user.email || ""} disabled className="h-9 rounded-xl bg-secondary/50 text-sm" />
-                    <p className="text-xs text-muted-foreground">E-posta deÄŸiÅŸikliÄŸi ÅŸu anda desteklenmemektedir.</p>
+                    <p className="text-xs text-muted-foreground">E-posta değişikliği şu anda desteklenmemektedir.</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">KullanÄ±cÄ± AdÄ±</Label>
+                    <Label className="text-xs font-semibold">Kullanıcı Adı</Label>
                     <Input
                       value={profile.username}
                       onChange={(e) => setProfile((p) => ({ ...p, username: e.target.value }))}
@@ -542,15 +542,15 @@ export default function SettingsPage() {
                     />
                     {!canChangeUsername() && (
                       <p className="text-xs text-warning">
-                        KullanÄ±cÄ± adÄ±nÄ±zÄ± {daysUntilUsernameChange()} gÃ¼n sonra deÄŸiÅŸtirebilirsiniz. (30 gÃ¼nde 1 kez)
+                        Kullanıcı adınızı {daysUntilUsernameChange()} gün sonra değiştirebilirsiniz. (30 günde 1 kez)
                       </p>
                     )}
                     {canChangeUsername() && (
-                      <p className="text-xs text-muted-foreground">KullanÄ±cÄ± adÄ± 30 gÃ¼nde bir deÄŸiÅŸtirilebilir.</p>
+                      <p className="text-xs text-muted-foreground">Kullanıcı adı 30 günde bir değiştirilebilir.</p>
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">GÃ¶rÃ¼nen Ad (Ä°steÄŸe baÄŸlÄ±)</Label>
+                    <Label className="text-xs font-semibold">Görünen Ad (İsteğe bağlı)</Label>
                     <Input
                       value={profile.display_name}
                       onChange={(e) => setProfile((p) => ({ ...p, display_name: e.target.value }))}
@@ -560,14 +560,14 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">HakkÄ±mda (Ä°steÄŸe baÄŸlÄ±)</Label>
+                    <Label className="text-xs font-semibold">Hakkımda (İsteğe bağlı)</Label>
                     <Textarea
                       value={profile.bio}
                       onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
-                      placeholder="Kendinizi kÄ±saca tanÄ±tÄ±n..."
+                      placeholder="Kendinizi kısaca tanıtın..."
                       rows={3}
                       maxLength={300}
-                      className="rounded-xl text-sm"
+                        className="min-h-[108px] rounded-xl text-sm"
                     />
                     <p className="text-xs text-muted-foreground text-right">{profile.bio.length}/300</p>
                   </div>
@@ -584,7 +584,7 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle className="text-base font-extrabold">Akademik Bilgiler</CardTitle>
                     <CardDescription className="text-xs">
-                      Ãœniversite ve bÃ¶lÃ¼m bilgileri kayÄ±t sÄ±rasÄ±nda belirlenir ve deÄŸiÅŸtirilemez.
+                      Üniversite ve bölüm bilgileri kayıt sırasında belirlenir ve değiştirilemez.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3.5">
@@ -592,14 +592,14 @@ export default function SettingsPage() {
                       size="sm"
                       tone="muted"
                       items={[
-                        { kind: "verified", label: "DoÄŸrulanmÄ±ÅŸ Ã–ÄŸrenci", emphasis: "default" },
-                        ...(profile.university ? [{ kind: "university" as const, label: "Ãœniversite", value: profile.university, emphasis: "subtle" as const }] : []),
-                        ...(profile.department ? [{ kind: "department" as const, label: "BÃ¶lÃ¼m", value: profile.department, emphasis: "subtle" as const }] : []),
+                        { kind: "verified", label: "Doğrulanmış Öğrenci", emphasis: "default" },
+                        ...(profile.university ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }] : []),
+                        ...(profile.department ? [{ kind: "department" as const, label: "Bölüm", value: profile.department, emphasis: "subtle" as const }] : []),
                       ]}
                     />
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        Ãœniversite
+                        Üniversite
                         <Lock className="h-3 w-3 text-muted-foreground" />
                       </Label>
                       <Input
@@ -608,12 +608,12 @@ export default function SettingsPage() {
                         className="h-9 rounded-xl bg-secondary/50 text-sm"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Ãœniversite bilgisi e-posta adresinize baÄŸlÄ±dÄ±r ve deÄŸiÅŸtirilemez.
+                        Üniversite bilgisi e-posta adresinize bağlıdır ve değiştirilemez.
                       </p>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        BÃ¶lÃ¼m
+                        Bölüm
                         <Lock className="h-3 w-3 text-muted-foreground" />
                       </Label>
                       <Input
@@ -622,21 +622,21 @@ export default function SettingsPage() {
                         className="h-9 rounded-xl bg-secondary/50 text-sm"
                       />
                       <p className="text-xs text-muted-foreground">
-                        BÃ¶lÃ¼m bilgisi kayÄ±t sÄ±rasÄ±nda belirlenir ve deÄŸiÅŸtirilemez.
+                        Bölüm bilgisi kayıt sırasında belirlenir ve değiştirilemez.
                       </p>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        SÄ±nÄ±f
+                        Sınıf
                         <Lock className="h-3 w-3 text-muted-foreground" />
                       </Label>
                       <Input
-                        value={profile.class_year !== null ? (profile.class_year === 0 ? "HazÄ±rlÄ±k" : `${profile.class_year}. SÄ±nÄ±f`) : "BelirtilmemiÅŸ"}
+                        value={profile.class_year !== null ? (profile.class_year === 0 ? "Hazırlık" : `${profile.class_year}. Sınıf`) : "Belirtilmemiş"}
                         disabled
                         className="h-9 rounded-xl bg-secondary/50 text-sm"
                       />
                       <p className="text-xs text-muted-foreground">
-                        SÄ±nÄ±f dÃ¼zeyi kayÄ±t sÄ±rasÄ±nda belirlenir ve deÄŸiÅŸtirilemez.
+                        Sınıf düzeyi kayıt sırasında belirlenir ve değiştirilemez.
                       </p>
                     </div>
                   </CardContent>
@@ -652,8 +652,8 @@ export default function SettingsPage() {
             {activeSection === "security" && (
               <Surface variant="raised" border="subtle" radius="xl" padding="lg" className="space-y-3.5">
                 <div>
-                  <h2 className="font-heading text-base font-bold">GÃ¼venlik</h2>
-                  <p className="text-xs text-muted-foreground">Ä°ki adÄ±mlÄ± doÄŸrulama ile hesabÄ±nÄ±zÄ± koruyun.</p>
+                  <h2 className="font-heading text-base font-bold">Güvenlik</h2>
+                  <p className="text-xs text-muted-foreground">İki adımlı doğrulama ile hesabınızı koruyun.</p>
                 </div>
                 <TwoFactorSetup enabled={mfaEnabled} onStatusChange={checkMfaStatus} />
               </Surface>
@@ -663,32 +663,32 @@ export default function SettingsPage() {
               <div className="space-y-3.5">
                 <Surface variant="raised" border="subtle" radius="xl" padding="none">
                   <CardHeader>
-                    <CardTitle className="text-base font-extrabold">Gizlilik ve DM AyarlarÄ±</CardTitle>
-                    <CardDescription className="text-xs">Kimler size mesaj gÃ¶nderebileceÄŸini belirleyin.</CardDescription>
+                    <CardTitle className="text-base font-extrabold">Gizlilik ve DM Ayarları</CardTitle>
+                    <CardDescription className="text-xs">Kimler size mesaj gönderebileceğini belirleyin.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Kimler DM gÃ¶nderebilir?</Label>
+                      <Label className="text-xs font-semibold">Kimler DM gönderebilir?</Label>
                       <Select value={settings.dm_allowed} onValueChange={(v) => setSettings((s) => ({ ...s, dm_allowed: v }))}>
                         <SelectTrigger className="h-9 rounded-xl text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="everyone">Herkes</SelectItem>
-                          <SelectItem value="nobody">HiÃ§ kimse</SelectItem>
+                          <SelectItem value="nobody">Hiç kimse</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
-                        "Herkes" seÃ§ili ise tÃ¼m kullanÄ±cÄ±lar size doÄŸrudan mesaj gÃ¶nderebilir.
+                        "Herkes" seçili ise tüm kullanıcılar size doğrudan mesaj gönderebilir.
                       </p>
                     </div>
                     <Separator />
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium">BaÄŸlantÄ± isteklerini engelle</p>
+                          <p className="text-sm font-medium">Bağlantı isteklerini engelle</p>
                           <p className="text-xs text-muted-foreground">
-                            Aktif olduÄŸunda hiÃ§ kimse size baÄŸlantÄ± isteÄŸi gÃ¶nderemez.
+                            Aktif olduğunda hiç kimse size bağlantı isteği gönderemez.
                           </p>
                         </div>
                         <Switch
@@ -706,7 +706,7 @@ export default function SettingsPage() {
                           <div>
                             <p className="text-sm font-medium">Hayalet Mod</p>
                             <p className="text-xs text-muted-foreground">
-                              Aktif olduÄŸunda diÄŸer kullanÄ±cÄ±lar sizi Ã§evrimiÃ§i olarak gÃ¶remez.
+                              Aktif olduğunda diğer kullanıcılar sizi çevrimiçi olarak göremez.
                             </p>
                           </div>
                         </div>
@@ -723,9 +723,9 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <BellOff className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">RahatsÄ±z Etme Modu</p>
+                            <p className="text-sm font-medium">Rahatsız Etme Modu</p>
                             <p className="text-xs text-muted-foreground">
-                              Aktif olduÄŸunda yeni DM mesajlarÄ± engellenir ve bildirimler sÄ±nÄ±rlandÄ±rÄ±lÄ±r.
+                              Aktif olduğunda yeni DM mesajları engellenir ve bildirimler sınırlandırılır.
                             </p>
                           </div>
                         </div>
@@ -746,25 +746,25 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle className="text-base font-bold flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      Engellenen KullanÄ±cÄ±lar
+                      Engellenen Kullanıcılar
                     </CardTitle>
-                    <CardDescription className="text-xs">EngellediÄŸiniz kullanÄ±cÄ±larÄ± gÃ¶rÃ¼ntÃ¼leyin ve yÃ¶netin.</CardDescription>
+                    <CardDescription className="text-xs">Engellediğiniz kullanıcıları görüntüleyin ve yönetin.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {loadingBlocked ? (
                       <StateBlock
                         variant="loading"
                         size="inline"
-                        title="Engellenen kullanÄ±cÄ±lar yÃ¼kleniyor"
-                        description="LÃ¼tfen bekleyin."
+                        title="Engellenen kullanıcılar yükleniyor"
+                        description="Lütfen bekleyin."
                       />
                     ) : blockedUsers.length === 0 ? (
                       <StateBlock
                         variant="empty"
                         size="inline"
                         icon={<ShieldOff className="h-4 w-4" />}
-                        title="HenÃ¼z engellenen kullanÄ±cÄ± yok"
-                        description="Bir kullanÄ±cÄ±yÄ± DM ekranÄ±ndan engelleyebilirsiniz."
+                        title="Henüz engellenen kullanıcı yok"
+                        description="Bir kullanıcıyı DM ekranından engelleyebilirsiniz."
                       />
                     ) : (
                       <div className="space-y-2">
@@ -786,8 +786,8 @@ export default function SettingsPage() {
                               <div>
                                 <p className="text-sm font-semibold">{blocked.username || "Bilinmeyen"}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {[blocked.university, blocked.department].filter(Boolean).join(" Â· ") || "Bilgi yok"}
-                                  {" Â· "}
+                                  {[blocked.university, blocked.department].filter(Boolean).join(" · ") || "Bilgi yok"}
+                                  {" · "}
                                   {formatDistanceToNow(new Date(blocked.created_at), { addSuffix: true, locale: tr })}
                                 </p>
                               </div>
@@ -802,7 +802,7 @@ export default function SettingsPage() {
                               {unblocking === blocked.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                "Engeli KaldÄ±r"
+                                "Engeli Kaldır"
                               )}
                             </Button>
                           </Surface>
@@ -817,16 +817,16 @@ export default function SettingsPage() {
             {activeSection === "notifications" && (
               <Surface variant="raised" border="subtle" radius="xl" padding="none">
                 <CardHeader>
-                  <CardTitle className="text-base font-extrabold">Bildirim AyarlarÄ±</CardTitle>
-                  <CardDescription className="text-xs">Hangi bildirimleri almak istediÄŸinizi seÃ§in.</CardDescription>
+                  <CardTitle className="text-base font-extrabold">Bildirim Ayarları</CardTitle>
+                  <CardDescription className="text-xs">Hangi bildirimleri almak istediğinizi seçin.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3.5">
                   {[
-                    { key: "mention_notifications" as const, label: "Bahsetme bildirimleri", desc: "Birisi sizi @kullanÄ±cÄ±adÄ± ile etiketlediÄŸinde" },
-                    { key: "dm_notifications" as const, label: "DM bildirimleri", desc: "Yeni mesaj veya DM isteÄŸi geldiÄŸinde" },
-                    { key: "reply_notifications" as const, label: "YanÄ±t bildirimleri", desc: "Ä°Ã§eriÄŸinize yanÄ±t verildiÄŸinde" },
-                    { key: "vote_notifications" as const, label: "Oy bildirimleri", desc: "Ä°Ã§eriÄŸiniz oy aldÄ±ÄŸÄ±nda" },
-                    { key: "system_notifications" as const, label: "Sistem bildirimleri", desc: "Platform haberleri ve gÃ¼ncellemeler" },
+                    { key: "mention_notifications" as const, label: "Bahsetme bildirimleri", desc: "Birisi sizi @kullanıcıadı ile etiketlediğinde" },
+                    { key: "dm_notifications" as const, label: "DM bildirimleri", desc: "Yeni mesaj veya DM isteği geldiğinde" },
+                    { key: "reply_notifications" as const, label: "Yanıt bildirimleri", desc: "İçeriğinize yanıt verildiğinde" },
+                    { key: "vote_notifications" as const, label: "Oy bildirimleri", desc: "İçeriğiniz oy aldığında" },
+                    { key: "system_notifications" as const, label: "Sistem bildirimleri", desc: "Platform haberleri ve güncellemeler" },
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between">
                       <div>
@@ -856,16 +856,16 @@ export default function SettingsPage() {
                       Hesap Silme
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      HesabÄ±nÄ±zÄ± kalÄ±cÄ± olarak silin. Bu iÅŸlem geri alÄ±namaz.
+                      Hesabınızı kalıcı olarak silin. Bu işlem geri alınamaz.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3.5">
                     <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 space-y-2">
-                      <p className="text-sm font-medium text-destructive">Dikkat: Bu iÅŸlem geri alÄ±namaz!</p>
+                      <p className="text-sm font-medium text-destructive">Dikkat: Bu işlem geri alınamaz!</p>
                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>TÃ¼m gÃ¶nderileriniz, yorumlarÄ±nÄ±z ve mesajlarÄ±nÄ±z silinecektir.</li>
-                        <li>KazandÄ±ÄŸÄ±nÄ±z puanlar ve rozetler kalÄ±cÄ± olarak kaldÄ±rÄ±lacaktÄ±r.</li>
-                        <li>AynÄ± e-posta adresiyle 3 gÃ¼n boyunca yeniden kayÄ±t olamazsÄ±nÄ±z.</li>
+                        <li>Tüm gönderileriniz, yorumlarınız ve mesajlarınız silinecektir.</li>
+                        <li>Kazandığınız puanlar ve rozetler kalıcı olarak kaldırılacaktır.</li>
+                        <li>Aynı e-posta adresiyle 3 gün boyunca yeniden kayıt olamazsınız.</li>
                       </ul>
                     </div>
                     <Button
@@ -874,7 +874,7 @@ export default function SettingsPage() {
                       onClick={() => setDeleteDialogOpen(true)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      HesabÄ±mÄ± Sil
+                      Hesabımı Sil
                     </Button>
                   </CardContent>
                 </Surface>
@@ -890,17 +890,17 @@ export default function SettingsPage() {
             <DialogHeader>
               <DialogTitle className="text-destructive flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
-                Hesap Silme OnayÄ±
+                Hesap Silme Onayı
               </DialogTitle>
               <DialogDescription>
-                Bu iÅŸlem geri alÄ±namaz. HesabÄ±nÄ±z ve tÃ¼m verileriniz kalÄ±cÄ± olarak silinecektir.
-                AynÄ± e-posta adresiyle 3 gÃ¼n boyunca yeniden kayÄ±t olamazsÄ±nÄ±z.
+                Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz kalıcı olarak silinecektir.
+                Aynı e-posta adresiyle 3 gün boyunca yeniden kayıt olamazsınız.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3.5">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  Onaylamak iÃ§in <span className="font-mono text-destructive">HESABIMI SIL</span> yazÄ±n
+                  Onaylamak için <span className="font-mono text-destructive">HESABIMI SIL</span> yazın
                 </Label>
                 <Input
                   value={deleteConfirmText}
@@ -912,14 +912,14 @@ export default function SettingsPage() {
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmText(""); }}>
-                Ä°ptal
+                İptal
               </Button>
               <Button
                 variant="destructive"
                 disabled={deleteConfirmText !== "HESABIMI SIL" || deleting}
                 onClick={handleDeleteAccount}
               >
-                {deleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Siliniyor...</> : "KalÄ±cÄ± Olarak Sil"}
+                {deleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Siliniyor...</> : "Kalıcı Olarak Sil"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -951,7 +951,7 @@ function UserSupportTickets({ userId }: { userId: string }) {
   if (loading) {
     return (
       <Surface variant="raised" border="subtle" radius="xl" padding="lg">
-        <StateBlock variant="loading" size="inline" title="Destek talepleri yÃ¼kleniyor" description="LÃ¼tfen bekleyin." />
+        <StateBlock variant="loading" size="inline" title="Destek talepleri yükleniyor" description="Lütfen bekleyin." />
       </Surface>
     );
   }
@@ -961,7 +961,7 @@ function UserSupportTickets({ userId }: { userId: string }) {
     <Surface variant="raised" border="subtle" radius="xl" padding="none">
       <CardHeader>
         <CardTitle className="text-base font-extrabold">Destek Taleplerim</CardTitle>
-        <CardDescription className="text-xs">GÃ¶nderdiÄŸiniz destek talepleri ve yanÄ±tlarÄ±.</CardDescription>
+        <CardDescription className="text-xs">Gönderdiğiniz destek talepleri ve yanıtları.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {tickets.map((t: any) => (
@@ -969,13 +969,13 @@ function UserSupportTickets({ userId }: { userId: string }) {
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">{t.subject}</p>
               <Badge variant={t.status === "open" ? "destructive" : t.status === "replied" ? "default" : "secondary"} className="text-xs">
-                {t.status === "open" ? "AÃ§Ä±k" : t.status === "replied" ? "YanÄ±tlandÄ±" : "KapatÄ±ldÄ±"}
+                {t.status === "open" ? "Açık" : t.status === "replied" ? "Yanıtlandı" : "Kapatıldı"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">{t.message}</p>
             {t.admin_reply && (
               <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10">
-                <p className="text-xs font-semibold text-primary mb-1">Admin YanÄ±tÄ±:</p>
+                <p className="text-xs font-semibold text-primary mb-1">Admin Yanıtı:</p>
                 <p className="text-xs">{t.admin_reply}</p>
                 {t.replied_at && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1003,7 +1003,7 @@ function AcademicChangeRequestCard({ userId, currentProfile }: { userId: string;
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!explanation.trim()) { toast.error("LÃ¼tfen deÄŸiÅŸiklik nedeninizi aÃ§Ä±klayÄ±n."); return; }
+    if (!explanation.trim()) { toast.error("Lütfen değişiklik nedeninizi açıklayın."); return; }
     setLoading(true);
     const { error } = await supabase.from("academic_suggestions").insert({
       user_id: userId,
@@ -1013,44 +1013,44 @@ function AcademicChangeRequestCard({ userId, currentProfile }: { userId: string;
       class_year: requestYear,
       explanation: explanation.trim(),
     } as any);
-    if (error) toast.error("GÃ¶nderilemedi: " + error.message);
-    else { toast.success("DeÄŸiÅŸiklik talebiniz gÃ¶nderildi. Admin incelemesinden sonra gÃ¼ncellenecektir."); setExplanation(""); }
+    if (error) toast.error("Gönderilemedi: " + error.message);
+    else { toast.success("Değişiklik talebiniz gönderildi. Admin incelemesinden sonra güncellenecektir."); setExplanation(""); }
     setLoading(false);
   };
 
   return (
     <Surface variant="raised" border="subtle" radius="xl" padding="none">
       <CardHeader>
-        <CardTitle className="text-base font-extrabold">Akademik Bilgi DeÄŸiÅŸiklik Talebi</CardTitle>
+        <CardTitle className="text-base font-extrabold">Akademik Bilgi Değişiklik Talebi</CardTitle>
         <CardDescription className="text-xs">
-          YanlÄ±ÅŸ veya gÃ¼ncellenmeyen bilgileriniz varsa deÄŸiÅŸiklik talebi gÃ¶nderin. Admin onayÄ±ndan sonra gÃ¼ncellenecektir.
+          Yanlış veya güncellenmeyen bilgileriniz varsa değişiklik talebi gönderin. Admin onayından sonra güncellenecektir.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3.5">
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Yeni Ãœniversite</Label>
-          <Input value={requestUni} onChange={(e) => setRequestUni(e.target.value)} placeholder="GÃ¼ncellenecek Ã¼niversite" className="h-9 rounded-xl text-sm" />
+          <Label className="text-xs font-semibold">Yeni Üniversite</Label>
+          <Input value={requestUni} onChange={(e) => setRequestUni(e.target.value)} placeholder="Güncellenecek üniversite" className="h-9 rounded-xl text-sm" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Yeni BÃ¶lÃ¼m</Label>
-          <Input value={requestDept} onChange={(e) => setRequestDept(e.target.value)} placeholder="GÃ¼ncellenecek bÃ¶lÃ¼m" className="h-9 rounded-xl text-sm" />
+          <Label className="text-xs font-semibold">Yeni Bölüm</Label>
+          <Input value={requestDept} onChange={(e) => setRequestDept(e.target.value)} placeholder="Güncellenecek bölüm" className="h-9 rounded-xl text-sm" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Yeni SÄ±nÄ±f</Label>
+          <Label className="text-xs font-semibold">Yeni Sınıf</Label>
           <Select value={requestYear} onValueChange={setRequestYear}>
             <SelectTrigger className="h-9 rounded-xl text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">HazÄ±rlÄ±k</SelectItem>
-              {[1,2,3,4,5,6].map(y => <SelectItem key={y} value={String(y)}>{y}. SÄ±nÄ±f</SelectItem>)}
+              <SelectItem value="0">Hazırlık</SelectItem>
+              {[1,2,3,4,5,6].map(y => <SelectItem key={y} value={String(y)}>{y}. Sınıf</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">DeÄŸiÅŸiklik Nedeni <span className="text-destructive">*</span></Label>
-          <Textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Neden deÄŸiÅŸiklik yapÄ±lmasÄ± gerektiÄŸini aÃ§Ä±klayÄ±n..." rows={3} maxLength={500} className="text-sm" />
+          <Label className="text-xs font-semibold">Değişiklik Nedeni <span className="text-destructive">*</span></Label>
+          <Textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Neden değişiklik yapılması gerektiğini açıklayın..." rows={3} maxLength={500} className="text-sm" />
         </div>
         <Button onClick={handleSubmit} disabled={loading || !explanation.trim()} className="h-9 rounded-xl font-semibold">
-          {loading ? "GÃ¶nderiliyor..." : "DeÄŸiÅŸiklik Talebi GÃ¶nder"}
+          {loading ? "Gönderiliyor..." : "Değişiklik Talebi Gönder"}
         </Button>
       </CardContent>
     </Surface>

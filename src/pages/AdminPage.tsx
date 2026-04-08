@@ -37,7 +37,7 @@ function SearchBar({ value, onChange, placeholder }: { value: string; onChange: 
   return (
     <div className="relative">
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="pl-8 h-9 text-sm" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-9 rounded-xl border-border/60 bg-background pl-8 text-sm" />
     </div>
   );
 }
@@ -67,10 +67,10 @@ function StatCard({ icon: Icon, label, value, color, onClick }: { icon: any; lab
       border="subtle"
       padding="md"
       radius="lg"
-      className={`${onClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}`}
+      className={`${onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 mb-1.5">
+      <div className="mb-1.5 flex items-center gap-2">
         <div className={`h-8 w-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${color}`} />
         </div>
@@ -1025,11 +1025,11 @@ export default function AdminPage() {
 
   return (
     <Layout>
-      <div className="mx-auto px-4 py-6 max-w-7xl">
+      <div className="app-page-wrap page-section-stack max-w-[96rem]">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <Shield className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -1037,15 +1037,15 @@ export default function AdminPage() {
               <p className="text-xs text-muted-foreground">Platform yönetimi ve moderasyon merkezi</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => fetchAll(true)} disabled={refreshing}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-xl text-xs" onClick={() => fetchAll(true)} disabled={refreshing}>
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             Yenile
           </Button>
         </div>
 
         {/* Quick action badges */}
-        <Surface variant="soft" border="subtle" padding="sm" radius="lg" className="mb-4">
-          <div className="flex gap-2 flex-wrap">
+        <Surface variant="soft" border="subtle" padding="sm" radius="xl" className="mb-1">
+          <div className="flex flex-wrap gap-1.5">
           {stats.pendingMod > 0 && (
             <Badge variant="destructive" className="cursor-pointer text-xs py-1 px-2.5" onClick={() => { setActiveTab("moderation"); setModQueueFilter("flagged"); }}>
               <ShieldAlert className="h-3 w-3 mr-1" /> {stats.pendingMod} moderasyon bekliyor
@@ -1079,14 +1079,18 @@ export default function AdminPage() {
           </div>
         </Surface>
 
-        <div className="flex gap-6">
+        <div className="flex gap-3">
           {/* Sidebar nav */}
-          <Surface variant="outline" border="subtle" padding="sm" radius="lg" className="hidden md:flex flex-col gap-1 w-48 shrink-0 h-fit">
+          <Surface variant="raised" border="subtle" padding="sm" radius="xl" className="hidden h-fit w-52 shrink-0 flex-col gap-1.5 md:flex md:sticky md:top-20">
             {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
               const badgeCount = key === "reports" ? pendingReportsCount : key === "moderation" ? pendingModCount : key === "suggestions" ? pendingSuggestionsCount : key === "support" ? openTicketsCount : 0;
               return (
                 <button key={key} onClick={() => setActiveTab(key)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    activeTab === key
+                      ? "border-primary/35 bg-gradient-to-r from-primary/12 via-primary/6 to-background text-primary shadow-[var(--shadow-soft)]"
+                      : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-secondary/50 hover:text-foreground"
+                  }`}>
                   <Icon className="h-4 w-4 shrink-0" />
                   {label}
                   {badgeCount > 0 && <Badge variant="destructive" className="ml-auto text-xs h-4 px-1.5">{badgeCount}</Badge>}
@@ -1096,7 +1100,7 @@ export default function AdminPage() {
           </Surface>
 
           {/* Mobile nav */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t p-2 flex gap-1 overflow-x-auto">
+          <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-1 overflow-x-auto border-t bg-background/95 p-2 backdrop-blur md:hidden">
             {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setActiveTab(key)}
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors min-w-[56px] ${activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
@@ -1107,7 +1111,7 @@ export default function AdminPage() {
           </div>
 
           {/* Main */}
-          <div className="flex-1 min-w-0 pb-20 md:pb-0">
+          <div className="min-w-0 flex-1 pb-20 md:pb-0">
             {dataLoading ? (
               <StateBlock
                 variant="loading"
@@ -1119,7 +1123,7 @@ export default function AdminPage() {
               <>
                 {/* ═══ STATS ═══ */}
                 {activeTab === "stats" && (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       <StatCard icon={Users} label="Toplam Kullanıcı" value={stats.totalUsers} color="text-primary" onClick={() => setActiveTab("users")} />
                       <StatCard icon={Building2} label="Üniversite" value={stats.totalUniversities} color="text-green-600" />

@@ -30,8 +30,8 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 220 15% 89%;
+    --input: 220 15% 89%;
     --ring: 217 91% 50%;
 
     --radius: 0.5rem;
@@ -73,11 +73,11 @@
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
     --font-sans: 'DM Sans', system-ui, sans-serif;
 
-    --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-    --shadow-warm: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
-    --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -6px rgb(0 0 0 / 0.04);
-    --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 1px -1px rgb(0 0 0 / 0.03);
+    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-warm: 0 6px 12px -6px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-elevated: 0 12px 24px -8px rgb(0 0 0 / 0.14), 0 6px 10px -8px rgb(0 0 0 / 0.08);
+    --shadow-card: 0 4px 10px -4px rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 
     --shell-left-width: 16rem;
     --shell-topbar-height: 4rem;
@@ -86,10 +86,10 @@
     --split-right-width: 20rem;
     --page-max-width: 88rem;
     --page-x: 1.5rem;
-    --page-y: 1rem;
-    --section-gap: 1rem;
+    --page-y: 0.875rem;
+    --section-gap: 0.875rem;
     --card-padding: 1rem;
-    --card-radius: 0.8rem;
+    --card-radius: 0.72rem;
   }
 
   .dark {

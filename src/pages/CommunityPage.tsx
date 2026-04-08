@@ -33,15 +33,15 @@ type CommunityDef = { id: string; label: string; description: string };
 type ChannelDef = { id: string; label: string; description: string };
 
 const COMMUNITIES: CommunityDef[] = [
-  { id: "global", label: "Global Ogrenci", description: "Tum ogrencilerin ortak topluluk alani" },
-  { id: "itu", label: "ITU Toplulugu", description: "ITU baglamli ortak topluluk" },
-  { id: "bogazici", label: "Bogazici Toplulugu", description: "Bogazici baglamli akademik paylasim" },
-  { id: "odtu", label: "ODTU Toplulugu", description: "ODTU baglamli topluluk akislari" },
+  { id: "global", label: "Global Öğrenci", description: "Tüm öğrencilerin ortak topluluk alanı" },
+  { id: "itu", label: "İTÜ Topluluğu", description: "İTÜ bağlamlı ortak topluluk" },
+  { id: "bogazici", label: "Boğaziçi Topluluğu", description: "Boğaziçi bağlamlı akademik paylaşım" },
+  { id: "odtu", label: "ODTÜ Topluluğu", description: "ODTÜ bağlamlı topluluk akışları" },
 ];
 
 const CHANNELS: ChannelDef[] = [
   { id: "genel", label: "Genel", description: "Genel topluluk sohbeti" },
-  { id: "dersler", label: "Dersler", description: "Ders odakli konular" },
+  { id: "dersler", label: "Dersler", description: "Ders odaklı konular" },
   { id: "projeler", label: "Projeler", description: "Proje ekipleri ve teslimler" },
   { id: "etkinlikler", label: "Etkinlikler", description: "Topluluk etkinlikleri" },
 ];
@@ -93,7 +93,7 @@ export default function CommunityPage() {
       .select("username")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setMyUsername(data?.username || "Kullanici"));
+      .then(({ data }) => setMyUsername(data?.username || "Kullanıcı"));
   }, [user]);
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function CommunityPage() {
           .select("username")
           .eq("user_id", msg.user_id)
           .maybeSingle();
-        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanici" }]);
+        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanıcı" }]);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_messages" }, (payload) => {
         setMessages((prev) => prev.filter((item) => item.id !== (payload.old as { id: string }).id));
@@ -136,7 +136,7 @@ export default function CommunityPage() {
       const userIds = [...new Set(data.map((item) => item.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
       const profileMap = new Map(profiles?.map((item) => [item.user_id, item.username]) || []);
-      setMessages(data.map((item) => ({ ...item, username: profileMap.get(item.user_id) || "Kullanici" })) as CommunityMsg[]);
+      setMessages(data.map((item) => ({ ...item, username: profileMap.get(item.user_id) || "Kullanıcı" })) as CommunityMsg[]);
     } else {
       setMessages([]);
     }
@@ -170,7 +170,7 @@ export default function CommunityPage() {
     const payload = newMsg.trim();
     const quickCheck = quickContentCheck(payload);
     if (!quickCheck.safe) {
-      toast.error(quickCheck.reason || "Bu mesaj platform kurallarini ihlal ediyor.");
+      toast.error(quickCheck.reason || "Bu mesaj platform kurallarını ihlal ediyor.");
       return;
     }
 
@@ -178,14 +178,14 @@ export default function CommunityPage() {
 
     const status = await checkUserModerationStatus(user.id);
     if (!status.canPost) {
-      toast.error(status.reason || "Mesaj gondermeniz engellenmistir.");
+      toast.error(status.reason || "Mesaj göndermeniz engellenmiştir.");
       setSending(false);
       return;
     }
 
     const urlCheck = checkTextUrls(payload);
     if (!urlCheck.safe) {
-      toast.error(urlCheck.reason || "Mesajdaki baglanti kurallara uygun degil.");
+      toast.error(urlCheck.reason || "Mesajdaki bağlantı kurallara uygun değil.");
       setSending(false);
       return;
     }
@@ -200,7 +200,7 @@ export default function CommunityPage() {
     const contentWithTags = `${encodeTag(selectedCommunity, selectedChannel)} ${payload}`;
     const { error } = await supabase.from("community_messages").insert({ user_id: user.id, content: contentWithTags });
 
-    if (error) toast.error("Gonderilemedi");
+    if (error) toast.error("Gönderilemedi");
     else {
       setNewMsg("");
       stopTyping();
@@ -220,27 +220,27 @@ export default function CommunityPage() {
     <Layout>
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
-          title="Communities"
-          description="Coklu community/channel hissi, mevcut community_messages veri modeli korunarak gorunum katmani ile saglanir."
+          title="Topluluklar"
+          description="Çoklu community/channel hissi, mevcut community_messages veri modeli korunarak görünüm katmanında sağlanır."
           icon={<Users className="h-5 w-5" />}
           actions={
             <>
               <Button asChild size="sm" variant="outline" className="h-9 rounded-xl">
-                <Link to="/courses">Course Hub'a Don</Link>
+                <Link to="/courses">Course Hub'a Dön</Link>
               </Button>
               <Badge variant="secondary" className="h-9 rounded-xl px-3 text-xs">
-                {onlineCount} cevrimici
+                {onlineCount} çevrimiçi
               </Badge>
             </>
           }
         />
 
         <SplitViewLayout
-          className="h-[calc(100vh-212px)]"
+          className="h-[calc(100vh-206px)]"
           leftWidth={292}
-          rightWidth={316}
+          rightWidth={324}
           left={
-            <div className="h-full border-r border-border/70 bg-gradient-to-b from-card to-card/95 p-3">
+            <div className="h-full border-r border-border/70 bg-gradient-to-b from-card to-card/95 p-2.5">
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Topluluklar</p>
               <div className="space-y-1.5">
                 {COMMUNITIES.map((community) => {
@@ -252,7 +252,7 @@ export default function CommunityPage() {
                       onClick={() => setSelectedCommunity(community.id)}
                       className={`w-full rounded-xl border p-2.5 text-left transition-colors ${
                         isActive
-                          ? "border-primary/40 bg-gradient-to-r from-primary/12 via-primary/5 to-background shadow-[var(--shadow-soft)]"
+                          ? "border-primary/50 bg-gradient-to-r from-primary/14 via-primary/5 to-background shadow-[var(--shadow-card)] ring-1 ring-primary/20"
                           : "border-border/70 bg-background hover:border-primary/25 hover:bg-background/95"
                       }`}
                     >
@@ -279,15 +279,15 @@ export default function CommunityPage() {
                 <PageTabsBar items={channelTabs} value={selectedChannel} onChange={setSelectedChannel} />
               </div>
 
-              <div className="flex-1 overflow-y-auto px-3.5 py-4">
+              <div className="flex-1 overflow-y-auto px-3.5 py-3">
                 {filteredMessages.length === 0 ? (
                   <ProductEmptyState
                     icon={<MessageCircle className="h-6 w-6" />}
-                    title="Bu kanalda henuz mesaj yok"
-                    description="Sohbeti baslatmak icin ilk mesaji gonderebilirsin."
+                    title="Bu kanalda henüz mesaj yok"
+                    description="Sohbeti başlatmak için ilk mesajı gönderebilirsin."
                   />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {filteredMessages.map((message) => {
                       const isOwn = message.user_id === user?.id;
                       return (
@@ -316,7 +316,7 @@ export default function CommunityPage() {
                                   </button>
                                 ) : null}
                               </div>
-                              <p className={`text-sm ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground shadow-[var(--shadow-soft)]" : "text-foreground"}`}>
+                              <p className={`text-sm leading-relaxed ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground shadow-[var(--shadow-soft)]" : "text-foreground"}`}>
                                 {renderMentions(stripTags(message.content))}
                               </p>
                             </div>
@@ -341,7 +341,7 @@ export default function CommunityPage() {
                           sendTyping();
                         }}
                         onSubmit={() => void handleSend()}
-                        placeholder={`#${selectedChannel} kanalina mesaj yaz...`}
+                        placeholder={`#${selectedChannel} kanalına mesaj yaz...`}
                         rows={1}
                         className="min-h-[38px] max-h-[100px] resize-none rounded-xl border-border/60"
                         maxLength={1000}
@@ -354,7 +354,7 @@ export default function CommunityPage() {
                 </div>
               ) : (
                 <div className="border-t border-border/70 bg-card/85 p-3 text-center text-xs text-muted-foreground">
-                  Mesaj gondermek icin <Link to="/auth" className="font-semibold text-primary">giris yapin</Link>.
+                  Mesaj göndermek için <Link to="/auth" className="font-semibold text-primary">giriş yapın</Link>.
                 </div>
               )}
             </div>
@@ -363,11 +363,11 @@ export default function CommunityPage() {
             <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
               <HelperCard title="Community UX Layer" icon={<Sparkles className="h-4 w-4" />} highlighted>
                 <p className="text-xs text-muted-foreground">
-                  Coklu community ve kanal hissi UI katmaninda olusturulur; veri kaynagi tek ve guvenli kalir.
+                  Çoklu community ve kanal hissi UI katmanında oluşturulur; veri kaynağı tek ve güvenli kalır.
                 </p>
               </HelperCard>
 
-              <HelperCard title="Secili Kanal" icon={<Hash className="h-4 w-4" />}>
+              <HelperCard title="Seçili Kanal" icon={<Hash className="h-4 w-4" />}>
                 <p className="text-sm font-semibold">{CHANNELS.find((channel) => channel.id === selectedChannel)?.label}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {CHANNELS.find((channel) => channel.id === selectedChannel)?.description}
@@ -377,7 +377,7 @@ export default function CommunityPage() {
                 </div>
               </HelperCard>
 
-              <HelperCard title="Baglama Donus" icon={<BookOpen className="h-4 w-4" />}>
+              <HelperCard title="Bağlama Dönüş" icon={<BookOpen className="h-4 w-4" />}>
                 <div className="space-y-2">
                   <Button asChild size="sm" className="h-8 w-full rounded-lg">
                     <Link to="/courses">Derslere Git</Link>

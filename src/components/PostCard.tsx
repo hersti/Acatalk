@@ -96,15 +96,15 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
   return (
     <Link to={`/post/${post.id}`}>
       <Surface
-        className="overflow-hidden hover:border-primary/20 transition-all duration-200 cursor-pointer hover-lift"
+        className="cursor-pointer overflow-hidden transition-all duration-200 hover:border-primary/25"
         variant="raised"
         border="default"
         padding="none"
         radius="xl"
       >
-        <div className="p-4 sm:p-5">
+        <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
-            <div className="flex flex-col items-center gap-0.5 min-w-[40px] pt-0.5">
+            <div className="flex min-w-[40px] flex-col items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/35 px-1 py-1.5 pt-0.5">
               <button onClick={(e) => handleVote(e, 1)} disabled={voting}
                 className={`p-1 rounded-lg transition-all ${userVote === 1 ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/5"} ${voting ? "opacity-50 cursor-not-allowed" : ""}`}
                 aria-label="Yukarı oy"><ChevronUp className="h-5 w-5" strokeWidth={2.5} /></button>
@@ -118,7 +118,7 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] ${typeBadgeClass[post.content_type]}`}>{typeLabels[post.content_type]}</span>
                 {post.file_url && (
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
+                  <span className="flex items-center gap-1 rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                     <FileText className="h-3 w-3" /> {fileLabel}
                   </span>
                 )}
@@ -130,7 +130,7 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
                 )}
               </div>
 
-              <h3 className="font-heading font-bold text-sm sm:text-base leading-snug text-foreground mb-1.5 line-clamp-2">{post.title}</h3>
+              <h3 className="mb-1.5 line-clamp-2 font-heading text-sm font-bold leading-snug text-foreground sm:text-base">{post.title}</h3>
               {metaItems.length > 0 && (
                 <AcademicMeta
                   items={metaItems}
@@ -142,14 +142,14 @@ export default function PostCard({ post, onVoted, showAdminActions }: PostCardPr
               {post.content && <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{post.content}</p>}
 
               {post.file_url && (
-                <button onClick={handleDownload} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors mt-2.5 bg-primary/5 px-3 py-1.5 rounded-lg">
+                <button onClick={handleDownload} className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80">
                   <Download className="h-3.5 w-3.5" />
                   {fileName}
                   {downloadCount > 0 && <span className="text-[10px] text-muted-foreground font-normal ml-1">({downloadCount})</span>}
                 </button>
               )}
 
-              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/40 text-xs text-muted-foreground">
+              <div className="mt-3 flex items-center gap-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
                 {canShowProfile ? (
                   <Link to={`/user/${post.profiles!.user_id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-primary transition-colors">{displayName}</Link>
                 ) : (

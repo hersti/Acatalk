@@ -1,4 +1,4 @@
-﻿import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ArrowRight, BookOpen, MessageCircle, Users } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -55,13 +55,13 @@ export default function FeedCourseBlockBase({
           }
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {items.map((item) => {
             const code = normalizeCourseCode(item.code || "");
             const totalContent = item.notes_count + item.past_exams_count + item.discussion_count + item.kaynaklar_count;
 
             return (
-              <article key={item.course_id} className="rounded-xl border border-border/70 bg-card px-3 py-3 transition-all hover:border-primary/35 hover:bg-secondary/35">
+              <article key={item.course_id} className="rounded-xl border border-border/70 bg-card px-3 py-2.5 transition-all hover:border-primary/35 hover:bg-secondary/35">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="line-clamp-1 text-[13px] font-semibold">{item.name}</p>

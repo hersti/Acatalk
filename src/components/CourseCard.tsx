@@ -23,7 +23,7 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
         padding="none"
         radius="xl"
       >
-        <div className="p-3">
+        <div className="p-2.5">
           <div className="mb-1.5 flex items-start justify-between">
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-1.5">
@@ -61,7 +61,7 @@ export default function CourseCard({ course, postCounts }: CourseCardProps) {
             <ArrowRight className="ml-2 mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-primary" />
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-border pt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-border/70 pt-2">
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <FileText className="h-3 w-3" />
               <span className="font-medium text-foreground">{counts.notes}</span> not

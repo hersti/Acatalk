@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format, formatDistanceToNow, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -96,7 +96,7 @@ export default function MessagesPage() {
       .select("username")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setMyUsername(data?.username || "KullanÄ±cÄ±"));
+      .then(({ data }) => setMyUsername(data?.username || "Kullanıcı"));
   }, [user]);
 
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function MessagesPage() {
 
       const profiles = (profilesData || []) as ProfileMini[];
       const previewRows = (previewRowsData || []) as MessagePreviewRow[];
-      const profileMap = new Map(profiles.map((item) => [item.user_id, item.username || "Kullanici"]));
+      const profileMap = new Map(profiles.map((item) => [item.user_id, item.username || "Kullanıcı"]));
       const previewMap: Record<string, string> = {};
       const countMap: Record<string, number> = {};
 
@@ -197,7 +197,7 @@ export default function MessagesPage() {
             conv,
             isHidden,
             otherUserId,
-            otherUsername: profileMap.get(otherUserId) || "Kullanici",
+            otherUsername: profileMap.get(otherUserId) || "Kullanıcı",
           };
         })
         .filter((item) => !item.isHidden)
@@ -215,7 +215,7 @@ export default function MessagesPage() {
       setConversationMessageCountMap(countMap);
       setConversationUnreadMap(unreadOverview.byConversation);
     } catch (error) {
-      toast.error("Mesaj listesi yuklenemedi. Lutfen tekrar deneyin.");
+      toast.error("Mesaj listesi yüklenemedi. Lütfen tekrar deneyin.");
       console.error("fetchConversations failed", error);
     }
   }, [user]);
@@ -228,7 +228,7 @@ export default function MessagesPage() {
       .order("created_at", { ascending: true });
 
     if (error) {
-      toast.error("Mesajlar yuklenemedi.");
+      toast.error("Mesajlar yüklenemedi.");
       return;
     }
 
@@ -259,7 +259,7 @@ export default function MessagesPage() {
     if (!user) return;
 
     if (await isBlocked(user.id, otherUserId)) {
-      toast.error("Bu kullanÄ±cÄ±yla mesajlaÅŸma engellendi.");
+      toast.error("Bu kullanıcıyla mesajlaşma engellendi.");
       return;
     }
 
@@ -271,18 +271,18 @@ export default function MessagesPage() {
     const settings = otherSettings as UserSettingsRow | null;
 
     if (settings?.dm_allowed === "nobody") {
-      toast.error("Bu kullanÄ±cÄ± DM almayÄ± kapatmÄ±ÅŸ.");
+      toast.error("Bu kullanıcı DM almayı kapatmış.");
       return;
     }
 
     if (settings?.dnd_mode) {
-      toast.error("Bu kullanÄ±cÄ± ÅŸu anda rahatsÄ±z etmeyin modunda.");
+      toast.error("Bu kullanıcı şu anda rahatsız etmeyin modunda.");
       return;
     }
 
     const connected = await isConnected(otherUserId);
     if (!connected) {
-      toast.error("Mesaj gÃ¶ndermek iÃ§in Ã¶nce baÄŸlantÄ± kurmanÄ±z gerekiyor.");
+      toast.error("Mesaj göndermek için önce bağlantı kurmanız gerekiyor.");
       return;
     }
 
@@ -338,7 +338,7 @@ export default function MessagesPage() {
       await supabase.from("conversations").update({ hidden_for_user2: true }).eq("id", conversation.id);
     }
 
-    toast.success("KonuÅŸma listeden kaldÄ±rÄ±ldÄ±.");
+    toast.success("Konuşma listeden kaldırıldı.");
     if (activeConv === conversation.id) setActiveConv(null);
     await fetchConversations();
   };
@@ -348,7 +348,7 @@ export default function MessagesPage() {
     const { error } = await supabase.from("blocked_users").insert({ blocker_id: user.id, blocked_id: otherUserId });
     if (error) return;
 
-    toast.success("KullanÄ±cÄ± engellendi.");
+    toast.success("Kullanıcı engellendi.");
     const conversation = conversations.find((item) => item.other_user_id === otherUserId);
     if (conversation) {
       const isUser1 = conversation.user1_id === user.id;
@@ -369,7 +369,7 @@ export default function MessagesPage() {
 
     const quickCheck = quickContentCheck(newMsg.trim());
     if (!quickCheck.safe) {
-      toast.error(quickCheck.reason || "Bu mesaj platform kurallarÄ±nÄ± ihlal ediyor.");
+      toast.error(quickCheck.reason || "Bu mesaj platform kurallarını ihlal ediyor.");
       return;
     }
 
@@ -377,13 +377,13 @@ export default function MessagesPage() {
     try {
       const status = await checkUserModerationStatus(user.id);
       if (!status.canPost) {
-        toast.error(status.reason || "Mesaj gÃ¶ndermeniz engellenmiÅŸtir.");
+        toast.error(status.reason || "Mesaj göndermeniz engellenmiştir.");
         return;
       }
 
       const urlCheck = checkTextUrls(newMsg.trim());
       if (!urlCheck.safe) {
-        toast.error(urlCheck.reason || "MesajÄ±nÄ±zdaki baÄŸlantÄ± platform kurallarÄ±na uygun deÄŸil.");
+        toast.error(urlCheck.reason || "Mesajınızdaki bağlantı platform kurallarına uygun değil.");
         return;
       }
 
@@ -408,7 +408,7 @@ export default function MessagesPage() {
       stopTyping();
       await fetchConversations();
     } catch (error) {
-      toast.error("Mesaj gonderilemedi. Lutfen tekrar deneyin.");
+      toast.error("Mesaj gönderilemedi. Lütfen tekrar deneyin.");
       console.error("handleSend failed", error);
     } finally {
       setSending(false);
@@ -447,8 +447,8 @@ export default function MessagesPage() {
     <Layout>
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
-          title="Mesajlar"
-          description="DM alanı hızlı iletişim katmanıdır. Ana tartışmayı yine ders bağlamında sürdürmek için konuşmaları net, odaklı ve erişilebilir tut."
+          title="Mesaj Merkezi"
+          description="DM alanı hızlı koordinasyon katmanıdır. Akademik kalıcı akışı ders bağlamında korumak için konuşmaları net, erişilebilir ve aksiyon odaklı tut."
           icon={<MessageCircle className="h-5 w-5" />}
           actions={
             <>
@@ -461,12 +461,12 @@ export default function MessagesPage() {
         />
 
         <SplitViewLayout
-          className="h-[calc(100vh-212px)]"
-          leftWidth={332}
-          rightWidth={324}
+          className="h-[calc(100vh-206px)]"
+          leftWidth={336}
+          rightWidth={332}
           left={
             <div className={cn("flex h-full flex-col", activeConv && "hidden lg:flex")}>
-              <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-3.5">
+              <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-3">
                 <SectionHeader
                   title="Sohbet Listesi"
                   description={`${conversations.length} aktif konuşma`}
@@ -479,20 +479,20 @@ export default function MessagesPage() {
                     </div>
                   }
                 />
-                <div className="mt-2.5 relative">
+                  <div className="relative mt-2">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={dmSearchQuery}
                     onChange={(event) => setDmSearchQuery(event.target.value)}
                     placeholder="Kişi veya konuşma ara..."
-                    className="h-9 rounded-xl border-transparent bg-secondary/70 pl-9 text-sm focus:border-border focus:bg-background"
+                      className="h-9 rounded-xl border-border/40 bg-secondary/55 pl-9 text-sm focus:border-primary/30 focus:bg-background"
                   />
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/35 to-background p-2">
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/35 to-background p-1.5">
                 {filteredConversations.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {filteredConversations.map((conversation) => {
                       const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
                       const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
@@ -531,7 +531,7 @@ export default function MessagesPage() {
                                   ) : null}
                                 </div>
                               </div>
-                              <p className="line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">{preview}</p>
+                              <p className="line-clamp-2 text-[12px] leading-relaxed text-muted-foreground/95">{preview}</p>
                             </div>
                           </div>
                         </ListItemCard>
@@ -563,7 +563,7 @@ export default function MessagesPage() {
             <div className={cn("flex h-full flex-col", !activeConv && "hidden lg:flex")}>
               {activeConversation ? (
                 <>
-                  <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-3 sm:px-4">
+                  <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-2.5 sm:px-4">
                     <div className="flex items-center gap-3">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 lg:hidden" onClick={() => setActiveConv(null)}>
                         <ArrowLeft className="h-4 w-4" />
@@ -622,7 +622,7 @@ export default function MessagesPage() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/45 via-background to-background px-3.5 py-5 sm:px-5">
-                    <div className="mx-auto w-full max-w-3xl space-y-2.5">
+                    <div className="mx-auto w-full max-w-3xl space-y-2">
                       {messages.length === 0 ? (
                         <ProductEmptyState
                           icon={<MessageCircle className="h-6 w-6" />}
@@ -651,7 +651,7 @@ export default function MessagesPage() {
                               <div className={cn("flex", isOwnMessage ? "justify-end" : "justify-start")}>
                                 <div
                                   className={cn(
-                                    "max-w-[78%] rounded-2xl border px-3.5 py-2.5 shadow-sm",
+                                    "max-w-[76%] rounded-2xl border px-3.5 py-2.5 shadow-sm",
                                     isOwnMessage
                                       ? "rounded-br-md border-primary bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                                       : "rounded-bl-md border-border/90 bg-card text-foreground shadow-[var(--shadow-soft)]",
@@ -671,9 +671,9 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-border/80 bg-gradient-to-b from-card to-card/95 px-3 py-2.5 sm:px-4">
+                  <div className="border-t border-border/80 bg-gradient-to-b from-card to-card/95 px-3 py-2 sm:px-4">
                     <form onSubmit={handleSend} className="mx-auto w-full max-w-3xl">
-                      <ProductCard className="p-1.5">
+                      <ProductCard className="border-border/80 bg-card p-1.5">
                         <div className="flex items-end gap-2">
                           <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-lg" aria-label="Dosya ekle">
                             <Paperclip className="h-4.5 w-4.5" />
@@ -686,7 +686,7 @@ export default function MessagesPage() {
                                 sendTyping();
                               }}
                               onSubmit={() => handleSend()}
-                              placeholder="Mesajınızı yazın..."
+                            placeholder="Mesajını yaz..."
                               rows={1}
                               className="min-h-[36px] max-h-[104px] resize-none border-0 bg-transparent shadow-none"
                               maxLength={2000}
@@ -755,7 +755,7 @@ export default function MessagesPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
-                      <MetricCard label="Mesaj" value={activeConversationMessageCount} className="p-3" />
+                      <MetricCard label="Mesaj" value={activeConversationMessageCount} className="p-2.5" />
                       <MetricCard
                         label="Son hareket"
                         value={
@@ -763,7 +763,7 @@ export default function MessagesPage() {
                             ? formatDistanceToNow(new Date(activeConversationReferenceDate), { addSuffix: true, locale: tr })
                             : "-"
                         }
-                        className="p-3"
+                        className="p-2.5"
                       />
                     </div>
                   </HelperCard>

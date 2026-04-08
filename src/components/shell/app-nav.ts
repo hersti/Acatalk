@@ -57,7 +57,7 @@ const TITLE_RULES: TitleRule[] = [
   { match: (pathname) => pathname === "/", title: "Ana Akis", description: "Kesif ve akademik sosyal akisin merkezi" },
   { match: (pathname) => pathname.startsWith("/courses"), title: "Dersler", description: "Ders hublari, kaynaklar ve tartismalar" },
   { match: (pathname) => pathname.startsWith("/course/"), title: "Course Hub", description: "Ders baglaminda icerik ve sohbet" },
-  { match: (pathname) => pathname.startsWith("/universities"), title: "Universiteler", description: "Universite bazli topluluk ve sinyaller" },
+  { match: (pathname) => pathname.startsWith("/universities"), title: "Üniversiteler", description: "Üniversite bazlı topluluk ve sinyaller" },
   { match: (pathname) => pathname.startsWith("/messages"), title: "Mesajlar", description: "Hizli ileti sim ve DM akisi" },
   { match: (pathname) => pathname.startsWith("/notifications"), title: "Bildirimler", description: "Aksiyon gerektiren olaylar" },
   { match: (pathname) => pathname.startsWith("/communities"), title: "Topluluklar", description: "Ilgi alanina gore topluluk kesfi" },

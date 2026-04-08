@@ -9,6 +9,7 @@ import {
   Compass,
   MessageCircle,
   Pin,
+  Plus,
   Share2,
   ThumbsUp,
   TrendingUp,
@@ -229,10 +230,16 @@ export default function FeedPage() {
       <div className="app-page-wrap page-section-stack">
         <AppPageHeader
           title="Ana Akis"
-          description="Header/Tabs, featured blok, metrik seridi ve gercek veri akis kartlariyla figma parity feed yuzeyi."
+          description="Kesif, etkileşim ve ders baglamini tek akista birlestiren final feed yuzeyi."
           icon={<Compass className="h-5 w-5" />}
           actions={
             <>
+              <Button asChild size="sm" className="h-9 rounded-xl">
+                <Link to="/">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Icerik Olustur
+                </Link>
+              </Button>
               <Button asChild size="sm" className="h-9 rounded-xl">
                 <Link to="/courses">Dersleri Kesfet</Link>
               </Button>
@@ -247,17 +254,17 @@ export default function FeedPage() {
           tabs={<PageTabsBar items={tabs} value={activeTab} onChange={(next) => setActiveTab(next as FeedTab)} />}
         />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_332px]">
+          <div className="space-y-3.5">
             {featuredPost ? (
-              <ProductCard highlighted>
+              <ProductCard highlighted className="p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Pin className="h-4 w-4 text-primary" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Featured Akademik Blok</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Featured Akademik Blok</p>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 border border-border/70">
+                  <Avatar className="h-10 w-10 border border-border/70 shadow-[var(--shadow-soft)]">
                     {featuredPost.authorAvatar ? <AvatarImage src={featuredPost.authorAvatar} alt={featuredPost.authorName} /> : null}
                     <AvatarFallback>{featuredPost.authorName[0]}</AvatarFallback>
                   </Avatar>
@@ -274,21 +281,21 @@ export default function FeedPage() {
                     </div>
 
                     <Link to={`/post/${featuredPost.id}`} className="block">
-                      <h2 className="line-clamp-1 text-base font-bold tracking-tight hover:text-primary">{featuredPost.title}</h2>
+                      <h2 className="line-clamp-1 text-[1.02rem] font-bold tracking-tight hover:text-primary">{featuredPost.title}</h2>
                       <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{featuredPost.content}</p>
                     </Link>
 
                     <div className="mt-3 flex items-center gap-2">
-                      <Button asChild size="sm" className="h-8 rounded-lg">
+                      <Button asChild size="sm" className="h-8 rounded-xl">
                         <Link to={`/course/${featuredPost.courseId}`}>Course Hub'a Git</Link>
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground">
+                      <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-1.5 text-muted-foreground">
                         <ThumbsUp className="h-3.5 w-3.5" /> {featuredPost.helpfulCount}
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground">
+                      <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-1.5 text-muted-foreground">
                         <MessageCircle className="h-3.5 w-3.5" /> {featuredPost.commentCount}
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground" aria-label="Paylas">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-muted-foreground" aria-label="Paylas">
                         <Share2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -337,11 +344,11 @@ export default function FeedPage() {
             ) : null}
 
             {feedLoading || timelineLoading ? (
-              <StateBlock variant="loading" size="section" title="Akis yukleniyor" description="Featured ve timeline bloklari hazirlaniyor." />
+            <StateBlock variant="loading" size="section" title="Akış yükleniyor" description="Featured ve timeline blokları hazırlanıyor." />
             ) : filteredFlowPosts.length === 0 ? (
               <ProductEmptyState
                 icon={<MessageCircle className="h-6 w-6" />}
-                title="Bu sekmede icerik bulunamadi"
+                title="Bu sekmede içerik bulunamadı"
                 description="Farkli bir sekmeye gecerek veya ders akisini genisleterek devam edebilirsiniz."
                 actionNode={
                   <Button asChild size="sm" className="h-9 rounded-xl">
@@ -350,11 +357,11 @@ export default function FeedPage() {
                 }
               />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {filteredFlowPosts.map((post) => (
-                  <ProductCard key={post.id} interactive>
+                  <ProductCard key={post.id} interactive className="p-3">
                     <div className="flex items-start gap-3">
-                      <Avatar className="h-9 w-9 border border-border/70">
+                      <Avatar className="h-9 w-9 border border-border/70 shadow-[var(--shadow-soft)]">
                         {post.authorAvatar ? <AvatarImage src={post.authorAvatar} alt={post.authorName} /> : null}
                         <AvatarFallback>{post.authorName[0]}</AvatarFallback>
                       </Avatar>
@@ -363,7 +370,7 @@ export default function FeedPage() {
                           <p className="text-sm font-semibold">{post.authorName}</p>
                           <span className="text-xs text-muted-foreground">@{post.authorUsername}</span>
                           <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: tr })}</span>
-                          <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          <span className="rounded-md border border-border/60 bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                             {CONTENT_TYPE_LABEL[post.contentType] || "Icerik"}
                           </span>
                         </div>
@@ -376,17 +383,17 @@ export default function FeedPage() {
 
                         <Link to={`/post/${post.id}`}>
                           <h3 className="line-clamp-1 text-sm font-semibold hover:text-primary">{post.title}</h3>
-                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
+                          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{post.content}</p>
                         </Link>
 
                         <div className="mt-3 flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground">
+                          <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-1.5 text-muted-foreground">
                             <ThumbsUp className="h-3.5 w-3.5" /> {post.helpfulCount}
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground">
+                          <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-1.5 text-muted-foreground">
                             <MessageCircle className="h-3.5 w-3.5" /> {post.commentCount}
                           </Button>
-                          <Button asChild size="sm" variant="outline" className="ml-auto h-8 rounded-lg">
+                          <Button asChild size="sm" variant="outline" className="ml-auto h-8 rounded-xl">
                             <Link to={`/course/${post.courseId}`}>Course Hub</Link>
                           </Button>
                         </div>
@@ -424,7 +431,7 @@ export default function FeedPage() {
             </HelperCard>
 
             <HelperCard title="Ust Baglam" icon={<Building2 className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
-              <p className="text-xs text-muted-foreground">Universite ve ders baglamlari arasinda hizli gecis icin bu bloklari kullan.</p>
+                <p className="text-xs text-muted-foreground">Üniversite ve ders bağlamları arasında hızlı geçiş için bu blokları kullan.</p>
               <div className="mt-3 space-y-2">
                 <Button asChild size="sm" variant="outline" className="h-8 w-full rounded-lg">
                   <Link to="/universities">Universiteler</Link>
