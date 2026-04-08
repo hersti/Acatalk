@@ -42,8 +42,8 @@ function RouteInlineFallback() {
         <StateBlock
           variant="loading"
           size="section"
-          title="İçerik yükleniyor"
-          description="Lütfen bekleyin."
+          title="Icerik yukleniyor"
+          description="Lutfen bekleyin."
         />
       </div>
     </div>
@@ -79,7 +79,8 @@ const App = () => (
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/communities" element={withRouteFallback(<CommunityPage />)} />`r`n            <Route path="/communities/:id" element={withRouteFallback(<CommunityPage />)} />
+            <Route path="/communities" element={withRouteFallback(<CommunityPage />)} />
+            <Route path="/communities/:id" element={withRouteFallback(<CommunityPage />)} />
             <Route path="/community" element={<Navigate to="/communities" replace />} />
             <Route path="/university-chat" element={withRouteFallback(<UniversityChatPage />)} />
             <Route path="/about" element={withRouteFallback(<AboutPage />)} />

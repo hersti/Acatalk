@@ -54,6 +54,7 @@ import { checkTextUrls } from "@/lib/moderate-url";
 import { quickContentCheck } from "@/lib/profanity-filter";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useIsUserOnline } from "@/hooks/useGlobalPresence";
+import { fetchDmUnreadOverview, markDmConversationRead } from "@/features/inbox/lib/dm-unread";
 import { cn } from "@/lib/utils";
 
 type ConversationRow = Tables<"conversations">;
@@ -76,6 +77,7 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<ConversationUI[]>([]);
   const [conversationPreviewMap, setConversationPreviewMap] = useState<Record<string, string>>({});
   const [conversationMessageCountMap, setConversationMessageCountMap] = useState<Record<string, number>>({});
+  const [conversationUnreadMap, setConversationUnreadMap] = useState<Record<string, number>>({});
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [newMsg, setNewMsg] = useState("");
@@ -106,6 +108,8 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!activeConv) return;
     void fetchMessages(activeConv);
+    setConversationUnreadMap((prev) => ({ ...prev, [activeConv]: 0 }));
+    void markDmConversationRead(activeConv);
 
     const channel = supabase
       .channel(`msgs-${activeConv}`)
@@ -114,6 +118,8 @@ export default function MessagesPage() {
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${activeConv}` },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as MessageRow]);
+          setConversationUnreadMap((prev) => ({ ...prev, [activeConv]: 0 }));
+          void markDmConversationRead(activeConv);
         },
       )
       .subscribe();
@@ -129,76 +135,103 @@ export default function MessagesPage() {
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("conversations")
-      .select("*")
-      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-      .order("last_message_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+        .order("last_message_at", { ascending: false });
 
-    const rows = (data || []) as ConversationRow[];
-    if (!rows.length) {
-      setConversations([]);
-      setConversationPreviewMap({});
-      setConversationMessageCountMap({});
-      return;
-    }
-
-    const conversationIds = rows.map((conv) => conv.id);
-    const otherUserIds = rows.map((conv) => (conv.user1_id === user.id ? conv.user2_id : conv.user1_id));
-    const [{ data: profilesData }, { data: previewRowsData }] = await Promise.all([
-      supabase.from("profiles").select("user_id, username").in("user_id", otherUserIds),
-      supabase
-        .from("messages")
-        .select("conversation_id, content, created_at")
-        .in("conversation_id", conversationIds)
-        .order("created_at", { ascending: false }),
-    ]);
-    const profiles = (profilesData || []) as ProfileMini[];
-    const previewRows = (previewRowsData || []) as MessagePreviewRow[];
-    const profileMap = new Map(profiles.map((item) => [item.user_id, item.username || "KullanÄ±cÄ±"]));
-    const previewMap: Record<string, string> = {};
-    const countMap: Record<string, number> = {};
-
-    for (const row of previewRows) {
-      countMap[row.conversation_id] = (countMap[row.conversation_id] || 0) + 1;
-      if (!previewMap[row.conversation_id]) {
-        previewMap[row.conversation_id] = row.content?.trim() || "";
+      if (error) {
+        throw error;
       }
+
+      const rows = (data || []) as ConversationRow[];
+      if (!rows.length) {
+        setConversations([]);
+        setConversationPreviewMap({});
+        setConversationMessageCountMap({});
+        setConversationUnreadMap({});
+        return;
+      }
+
+      const conversationIds = rows.map((conv) => conv.id);
+      const otherUserIds = rows.map((conv) => (conv.user1_id === user.id ? conv.user2_id : conv.user1_id));
+      const [{ data: profilesData, error: profilesError }, { data: previewRowsData, error: previewError }, unreadOverview] =
+        await Promise.all([
+          supabase.from("profiles").select("user_id, username").in("user_id", otherUserIds),
+          supabase
+            .from("messages")
+            .select("conversation_id, content, created_at")
+            .in("conversation_id", conversationIds)
+            .order("created_at", { ascending: false }),
+          fetchDmUnreadOverview(),
+        ]);
+
+      if (profilesError) {
+        throw profilesError;
+      }
+      if (previewError) {
+        throw previewError;
+      }
+
+      const profiles = (profilesData || []) as ProfileMini[];
+      const previewRows = (previewRowsData || []) as MessagePreviewRow[];
+      const profileMap = new Map(profiles.map((item) => [item.user_id, item.username || "Kullanici"]));
+      const previewMap: Record<string, string> = {};
+      const countMap: Record<string, number> = {};
+
+      for (const row of previewRows) {
+        countMap[row.conversation_id] = (countMap[row.conversation_id] || 0) + 1;
+        if (!previewMap[row.conversation_id]) {
+          previewMap[row.conversation_id] = row.content?.trim() || "";
+        }
+      }
+
+      const normalized = rows
+        .map((conv) => {
+          const isUser1 = conv.user1_id === user.id;
+          const otherUserId = isUser1 ? conv.user2_id : conv.user1_id;
+          const isHidden = isUser1 ? conv.hidden_for_user1 : conv.hidden_for_user2;
+          return {
+            conv,
+            isHidden,
+            otherUserId,
+            otherUsername: profileMap.get(otherUserId) || "Kullanici",
+          };
+        })
+        .filter((item) => !item.isHidden)
+        .map(
+          (item) =>
+            ({
+              ...item.conv,
+              other_user_id: item.otherUserId,
+              other_username: item.otherUsername,
+            }) satisfies ConversationUI,
+        );
+
+      setConversations(normalized);
+      setConversationPreviewMap(previewMap);
+      setConversationMessageCountMap(countMap);
+      setConversationUnreadMap(unreadOverview.byConversation);
+    } catch (error) {
+      toast.error("Mesaj listesi yuklenemedi. Lutfen tekrar deneyin.");
+      console.error("fetchConversations failed", error);
     }
-
-    const normalized = rows
-      .map((conv) => {
-        const isUser1 = conv.user1_id === user.id;
-        const otherUserId = isUser1 ? conv.user2_id : conv.user1_id;
-        const isHidden = isUser1 ? conv.hidden_for_user1 : conv.hidden_for_user2;
-        return {
-          conv,
-          isHidden,
-          otherUserId,
-          otherUsername: profileMap.get(otherUserId) || "KullanÄ±cÄ±",
-        };
-      })
-      .filter((item) => !item.isHidden)
-      .map(
-        (item) =>
-          ({
-            ...item.conv,
-            other_user_id: item.otherUserId,
-            other_username: item.otherUsername,
-          }) satisfies ConversationUI,
-      );
-
-    setConversations(normalized);
-    setConversationPreviewMap(previewMap);
-    setConversationMessageCountMap(countMap);
   }, [user]);
 
   const fetchMessages = async (conversationId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
+
+    if (error) {
+      toast.error("Mesajlar yuklenemedi.");
+      return;
+    }
+
     setMessages((data || []) as MessageRow[]);
   };
 
@@ -365,12 +398,18 @@ export default function MessagesPage() {
         sender_id: user.id,
         content: newMsg.trim(),
       });
-      if (!error) {
-        await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", activeConv);
-        setNewMsg("");
-        stopTyping();
-        await fetchConversations();
+      if (error) {
+        throw error;
       }
+
+      await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", activeConv);
+      setNewMsg("");
+      setConversationUnreadMap((prev) => ({ ...prev, [activeConv]: 0 }));
+      stopTyping();
+      await fetchConversations();
+    } catch (error) {
+      toast.error("Mesaj gonderilemedi. Lutfen tekrar deneyin.");
+      console.error("handleSend failed", error);
     } finally {
       setSending(false);
     }
@@ -458,9 +497,17 @@ export default function MessagesPage() {
                       const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
                       const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
                       const isActive = activeConv === conversation.id;
+                      const unreadCount = conversationUnreadMap[conversation.id] || 0;
 
                       return (
-                        <ListItemCard key={conversation.id} onClick={() => setActiveConv(conversation.id)} active={isActive}>
+                        <ListItemCard
+                          key={conversation.id}
+                          onClick={() => {
+                            setActiveConv(conversation.id);
+                            setConversationUnreadMap((prev) => ({ ...prev, [conversation.id]: 0 }));
+                          }}
+                          active={isActive}
+                        >
                           <div className="flex items-start gap-3">
                             <div className="relative mt-0.5">
                               <Avatar className="h-10 w-10 shrink-0 border border-border/70">
@@ -473,9 +520,16 @@ export default function MessagesPage() {
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-start justify-between gap-2">
                                 <p className="truncate text-sm font-semibold">{conversation.other_username}</p>
-                                <span className="shrink-0 text-[11px] text-muted-foreground">
-                                  {formatDistanceToNow(new Date(referenceDate), { addSuffix: true, locale: tr })}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                                    {formatDistanceToNow(new Date(referenceDate), { addSuffix: true, locale: tr })}
+                                  </span>
+                                  {unreadCount > 0 ? (
+                                    <Badge className="h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                                      {unreadCount > 99 ? "99+" : unreadCount}
+                                    </Badge>
+                                  ) : null}
+                                </div>
                               </div>
                               <p className="line-clamp-2 text-xs text-muted-foreground">{preview}</p>
                             </div>

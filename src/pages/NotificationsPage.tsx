@@ -74,6 +74,7 @@ export default function NotificationsPage() {
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "mentions" | "courses" | "social">("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterRead, setFilterRead] = useState<string>("all");
@@ -85,15 +86,45 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async (userId: string) => {
     setLoading(true);
-    const { data } = await supabase
-      .from("notifications")
-      .select("id, type, title, message, link, is_read, created_at, user_id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    setNotifications((data || []) as NotificationRow[]);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, type, title, message, link, is_read, created_at, user_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (error) {
+        throw error;
+      }
+
+      setNotifications((data || []) as NotificationRow[]);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Bildirim listesi yuklenemedi.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`notifications-page-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => {
+          void fetchNotifications(user.id);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const filtered = useMemo(
     () =>
@@ -111,7 +142,17 @@ export default function NotificationsPage() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
+
+    if (error) {
+      toast.error("Bildirimler okundu durumuna alinamadi.");
+      return;
+    }
+
     setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
     toast.success("Tüm bildirimler okundu olarak işaretlendi.");
   };
@@ -139,7 +180,16 @@ export default function NotificationsPage() {
 
   const handleNotificationClick = async (notification: NotificationRow) => {
     if (!notification.is_read) {
-      await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id);
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", notification.id);
+
+      if (error) {
+        toast.error("Bildirim durumu guncellenemedi.");
+        return;
+      }
+
       setNotifications((prev) => prev.map((item) => (item.id === notification.id ? { ...item, is_read: true } : item)));
     }
 
@@ -273,6 +323,18 @@ export default function NotificationsPage() {
 
             {loading ? (
               <StateBlock variant="loading" size="section" title="Bildirimler yükleniyor" description="Aksiyon listen hazırlanıyor." />
+            ) : loadError ? (
+              <StateBlock
+                variant="error"
+                size="section"
+                title="Bildirimler alinamadi"
+                description="Sunucuya ulasilamadi veya yetki hatasi olustu."
+                secondaryAction={
+                  <Button size="sm" variant="outline" className="h-9 rounded-xl" onClick={() => void fetchNotifications(user.id)}>
+                    Yeniden dene
+                  </Button>
+                }
+              />
             ) : filtered.length === 0 ? (
               <ProductEmptyState
                 icon={<Bell className="h-6 w-6" />}

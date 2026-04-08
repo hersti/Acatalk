@@ -80,10 +80,11 @@
     --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
 
     --shell-left-width: 16rem;
+    --shell-topbar-height: 4rem;
     --helper-panel-width: 20rem;
     --split-left-width: 20rem;
     --split-right-width: 20rem;
-    --page-max-width: 84rem;
+    --page-max-width: 88rem;
     --page-x: 1.5rem;
     --page-y: 1rem;
     --section-gap: 1.25rem;
@@ -172,6 +173,7 @@
 
   .app-shell-main {
     @apply min-h-screen bg-background;
+    background-image: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted) / 0.25) 220px, hsl(var(--background)));
   }
 
   .app-page-wrap {
