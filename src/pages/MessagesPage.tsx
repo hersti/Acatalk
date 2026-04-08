@@ -12,8 +12,11 @@ import {
   Link2Off,
   MessageCircle,
   MoreVertical,
+  Paperclip,
+  Phone,
   Search,
   Send,
+  Video,
   Users,
 } from "lucide-react";
 
@@ -394,7 +397,7 @@ export default function MessagesPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <Surface variant="soft" border="subtle" padding="md" radius="xl">
+        <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-[var(--shadow-soft)]">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <MessageCircle className="h-4.5 w-4.5 text-primary" />
@@ -412,352 +415,352 @@ export default function MessagesPage() {
               <UserSearchDialog onUserSelected={handleUserSelected} />
             </div>
           </div>
-        </Surface>
+        </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[320px_minmax(0,1fr)_288px]" style={{ minHeight: "calc(100vh - 220px)" }}>
-          <Surface
-            variant="soft"
-            border="subtle"
-            padding="none"
-            radius="xl"
-            className={cn("flex h-full flex-col overflow-hidden", activeConv && "hidden lg:flex")}
-          >
-            <div className="border-b border-border/70 p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">Mesaj Listesi</p>
-                  <p className="text-xs text-muted-foreground">{conversations.length} aktif konuşma</p>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-background shadow-[var(--shadow-card)]">
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)_288px]" style={{ minHeight: "calc(100vh - 220px)" }}>
+            <div className={cn("flex h-full flex-col border-r border-border bg-card", activeConv && "hidden lg:flex")}>
+              <div className="border-b border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold">Mesajlar</p>
+                    <p className="text-xs text-muted-foreground">{conversations.length} aktif konuşma</p>
+                  </div>
+                  <div className="sm:hidden">
+                    <UserSearchDialog onUserSelected={handleUserSelected} />
+                  </div>
                 </div>
-                <div className="sm:hidden">
-                  <UserSearchDialog onUserSelected={handleUserSelected} />
+
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={dmSearchQuery}
+                    onChange={(event) => setDmSearchQuery(event.target.value)}
+                    placeholder="Kişi veya konuşma ara..."
+                    className="h-9 border-transparent bg-secondary pl-9"
+                  />
                 </div>
               </div>
 
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={dmSearchQuery}
-                  onChange={(event) => setDmSearchQuery(event.target.value)}
-                  placeholder="Kişi veya konuşma ara..."
-                  className="h-9 border-transparent bg-secondary pl-9"
-                />
-              </div>
-            </div>
+              <div className="flex-1 overflow-y-auto bg-muted/20 p-2">
+                {filteredConversations.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {filteredConversations.map((conversation) => {
+                      const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
+                      const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
+                      const isActive = activeConv === conversation.id;
 
-            <div className="flex-1 overflow-y-auto p-2">
-              {filteredConversations.length > 0 ? (
-                <div className="space-y-1.5">
-                  {filteredConversations.map((conversation) => {
-                    const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
-                    const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
-                    return (
-                      <button
-                        key={conversation.id}
-                        onClick={() => setActiveConv(conversation.id)}
-                        className={cn(
-                          "w-full rounded-xl border px-3 py-3 text-left transition-all",
-                          "hover:border-primary/30 hover:bg-secondary/40",
-                          activeConv === conversation.id
-                            ? "border-primary/40 bg-primary/10"
-                            : "border-transparent bg-background/60",
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="relative mt-0.5">
-                            <Avatar className="h-10 w-10 shrink-0">
-                              <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                                {conversation.other_username[0]?.toUpperCase() || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <OnlineDot userId={conversation.other_user_id} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex items-start justify-between gap-2">
-                              <p className="truncate text-sm font-semibold">{conversation.other_username}</p>
-                              <span className="shrink-0 text-[11px] text-muted-foreground">
-                                {formatDistanceToNow(new Date(referenceDate), { addSuffix: true, locale: tr })}
-                              </span>
+                      return (
+                        <button
+                          key={conversation.id}
+                          onClick={() => setActiveConv(conversation.id)}
+                          className={cn(
+                            "w-full rounded-xl border px-3 py-3 text-left transition-all",
+                            isActive
+                              ? "border-primary/40 bg-primary/10 shadow-sm"
+                              : "border-transparent bg-card hover:border-border hover:bg-background",
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="relative mt-0.5">
+                              <Avatar className="h-10 w-10 shrink-0 border border-border/60">
+                                <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                                  {conversation.other_username[0]?.toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <OnlineDot userId={conversation.other_user_id} />
                             </div>
-                            <p className="line-clamp-2 text-xs text-muted-foreground">{preview}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-1 flex items-start justify-between gap-2">
+                                <p className="truncate text-sm font-semibold">{conversation.other_username}</p>
+                                <span className="shrink-0 text-[11px] text-muted-foreground">
+                                  {formatDistanceToNow(new Date(referenceDate), { addSuffix: true, locale: tr })}
+                                </span>
+                              </div>
+                              <p className="line-clamp-2 text-xs text-muted-foreground">{preview}</p>
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : dmSearchQuery.trim() ? (
-                <StateBlock
-                  variant="noResults"
-                  size="inline"
-                  icon={<Search className="h-4 w-4" />}
-                  title="Eşleşen konuşma bulunamadı"
-                  description="Arama ifadesini düzenleyip tekrar deneyin."
-                  className="m-2"
-                  primaryAction={
-                    <Button size="sm" variant="outline" onClick={() => setDmSearchQuery("")}>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : dmSearchQuery.trim() ? (
+                  <div className="m-2 rounded-xl border border-dashed border-border bg-card p-6 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+                      <Search className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">Eşleşen konuşma bulunamadı</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Arama ifadesini düzenleyip tekrar deneyin.</p>
+                    <Button size="sm" variant="outline" className="mt-3" onClick={() => setDmSearchQuery("")}>
                       Aramayı Temizle
                     </Button>
-                  }
-                />
-              ) : (
-                <StateBlock
-                  variant="empty"
-                  size="inline"
-                  icon={<Link2Off className="h-4 w-4" />}
-                  title="Henüz DM yok"
-                  description="Bağlantı kurduğun kullanıcılarla burada sohbet başlatabilirsin."
-                  className="m-2"
-                  primaryAction={<UserSearchDialog onUserSelected={handleUserSelected} />}
-                />
-              )}
-            </div>
-          </Surface>
-
-          <Surface
-            variant="soft"
-            border="subtle"
-            padding="none"
-            radius="xl"
-            className={cn("flex h-full flex-col overflow-hidden", !activeConv && "hidden lg:flex")}
-          >
-            {activeConversation ? (
-              <>
-                <div className="border-b border-border/70 bg-card/80 p-4">
-                  <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 lg:hidden" onClick={() => setActiveConv(null)}>
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="relative">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                          {activeConversation.other_username[0]?.toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <OnlineDot userId={activeConversation.other_user_id} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{activeConversation.other_username}</p>
-                      {typingUsers.length > 0 ? (
-                        <p className="flex items-center gap-1 text-xs text-primary">
-                          <span className="flex gap-0.5">
-                            <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0ms" }} />
-                            <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "150ms" }} />
-                            <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "300ms" }} />
-                          </span>
-                          yazıyor...
-                        </p>
-                      ) : (
-                        <OnlineStatusText userId={activeConversation.other_user_id} />
-                      )}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleHideConversation(activeConversation)}>
-                          <EyeOff className="mr-2 h-3.5 w-3.5" /> Konuşmayı Kaldır
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleBlockUser(activeConversation.other_user_id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Ban className="mr-2 h-3.5 w-3.5" /> Kullanıcıyı Engelle
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
-                </div>
+                ) : (
+                  <div className="m-2 rounded-xl border border-dashed border-border bg-card p-6 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+                      <Link2Off className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">Henüz DM yok</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Bağlantı kurduğun kullanıcılarla burada sohbet başlatabilirsin.</p>
+                    <div className="mt-3 inline-flex">
+                      <UserSearchDialog onUserSelected={handleUserSelected} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/25 via-background to-background p-4 md:p-5">
-                  <div className="mx-auto w-full max-w-3xl space-y-3">
-                    {messages.length === 0 ? (
-                      <StateBlock
-                        variant="empty"
-                        size="inline"
-                        icon={<MessageCircle className="h-4 w-4" />}
-                        title="Bu konuşmada henüz mesaj yok"
-                        description="İlk mesajı göndererek sohbeti başlatabilirsin."
-                      />
-                    ) : (
-                      messages.map((message, index) => {
-                        const messageDate = new Date(message.created_at);
-                        const previousMessageDate = index > 0 ? new Date(messages[index - 1].created_at) : null;
-                        const showDateDivider = !previousMessageDate || !isSameDay(messageDate, previousMessageDate);
-                        const isOwnMessage = message.sender_id === user.id;
+            <div className={cn("flex h-full flex-col bg-muted/20 lg:border-r lg:border-border", !activeConv && "hidden lg:flex")}>
+              {activeConversation ? (
+                <>
+                  <div className="h-16 border-b border-border bg-card px-5">
+                    <div className="flex h-full items-center gap-3">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 lg:hidden" onClick={() => setActiveConv(null)}>
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 border border-border/70">
+                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                            {activeConversation.other_username[0]?.toUpperCase() || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <OnlineDot userId={activeConversation.other_user_id} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{activeConversation.other_username}</p>
+                        {typingUsers.length > 0 ? (
+                          <p className="flex items-center gap-1 text-xs text-primary">
+                            <span className="flex gap-0.5">
+                              <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0ms" }} />
+                              <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "150ms" }} />
+                              <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: "300ms" }} />
+                            </span>
+                            yazıyor...
+                          </p>
+                        ) : (
+                          <OnlineStatusText userId={activeConversation.other_user_id} />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Sesli arama">
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Görüntülü arama">
+                          <Video className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleHideConversation(activeConversation)}>
+                              <EyeOff className="mr-2 h-3.5 w-3.5" /> Konuşmayı Kaldır
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleBlockUser(activeConversation.other_user_id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Ban className="mr-2 h-3.5 w-3.5" /> Kullanıcıyı Engelle
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
 
-                        return (
-                          <div key={message.id}>
-                            {showDateDivider ? (
-                              <div className="my-4 flex items-center gap-3">
-                                <div className="h-px flex-1 bg-border/70" />
-                                <span className="text-[11px] font-medium text-muted-foreground">
-                                  {format(messageDate, "d MMMM", { locale: tr })}
-                                </span>
-                                <div className="h-px flex-1 bg-border/70" />
-                              </div>
-                            ) : null}
+                  <div className="flex-1 overflow-y-auto px-5 py-6">
+                    <div className="mx-auto w-full max-w-3xl space-y-3">
+                      {messages.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
+                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                            <MessageCircle className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm font-semibold">Bu konuşmada henüz mesaj yok</p>
+                          <p className="mt-1 text-xs text-muted-foreground">İlk mesajı göndererek sohbeti başlatabilirsin.</p>
+                        </div>
+                      ) : (
+                        messages.map((message, index) => {
+                          const messageDate = new Date(message.created_at);
+                          const previousMessageDate = index > 0 ? new Date(messages[index - 1].created_at) : null;
+                          const showDateDivider = !previousMessageDate || !isSameDay(messageDate, previousMessageDate);
+                          const isOwnMessage = message.sender_id === user.id;
 
-                            <div className={cn("flex", isOwnMessage ? "justify-end" : "justify-start")}>
-                              <div
-                                className={cn(
-                                  "max-w-[78%] rounded-2xl border px-4 py-2.5 shadow-sm",
-                                  isOwnMessage
-                                    ? "rounded-br-md border-primary/70 bg-primary text-primary-foreground"
-                                    : "rounded-bl-md border-border/70 bg-card text-foreground",
-                                )}
-                              >
-                                <p className="text-sm leading-relaxed">{renderMentions(message.content)}</p>
-                                <p className={cn("mt-1 text-[11px]", isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                                  {formatDistanceToNow(messageDate, { addSuffix: true, locale: tr })}
-                                </p>
+                          return (
+                            <div key={message.id}>
+                              {showDateDivider ? (
+                                <div className="my-4 flex items-center gap-3">
+                                  <div className="h-px flex-1 bg-border/70" />
+                                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                    {format(messageDate, "d MMMM", { locale: tr })}
+                                  </span>
+                                  <div className="h-px flex-1 bg-border/70" />
+                                </div>
+                              ) : null}
+
+                              <div className={cn("flex", isOwnMessage ? "justify-end" : "justify-start")}>
+                                <div
+                                  className={cn(
+                                    "max-w-[78%] rounded-2xl border px-4 py-2.5 shadow-sm",
+                                    isOwnMessage
+                                      ? "rounded-br-md border-primary/80 bg-primary text-primary-foreground"
+                                      : "rounded-bl-md border-border bg-card text-foreground",
+                                  )}
+                                >
+                                  <p className="text-sm leading-relaxed">{renderMentions(message.content)}</p>
+                                  <p className={cn("mt-1 text-[11px]", isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                                    {formatDistanceToNow(messageDate, { addSuffix: true, locale: tr })}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </div>
-
-                <form onSubmit={handleSend} className="border-t border-border/70 bg-card/80 p-3">
-                  <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
-                    <div className="flex-1">
-                      <MentionInput
-                        value={newMsg}
-                        onChange={(value) => {
-                          setNewMsg(value);
-                          sendTyping();
-                        }}
-                        onSubmit={() => handleSend()}
-                        placeholder="Mesajınızı yazın..."
-                        rows={1}
-                        className="min-h-[42px] max-h-[110px] resize-none rounded-xl border-border/70 bg-background"
-                        maxLength={2000}
-                      />
+                          );
+                        })
+                      )}
+                      <div ref={messagesEndRef} />
                     </div>
-                    <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={sending || !newMsg.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
                   </div>
-                  <p className="mx-auto mt-2 w-full max-w-3xl text-[11px] text-muted-foreground">
-                    Akademik iletişim kurallarına uygun, saygılı ve yapıcı bir dil kullanın.
-                  </p>
-                </form>
-              </>
-            ) : (
-              <div className="flex flex-1 items-center justify-center bg-gradient-to-br from-secondary/40 via-background to-background p-5">
-                <StateBlock
-                  variant="empty"
-                  size="section"
-                  icon={<MessageCircle className="h-5 w-5" />}
-                  title="Bir konuşma seç"
-                  description="DM listesinden bir sohbet seç veya yeni mesaj başlat."
-                  primaryAction={<UserSearchDialog onUserSelected={handleUserSelected} />}
-                  secondaryAction={
-                    <Button asChild size="sm" variant="outline">
-                      <Link to="/notifications">Bildirimlere Git</Link>
-                    </Button>
-                  }
-                />
-              </div>
-            )}
-          </Surface>
 
-          <aside className="hidden h-full flex-col gap-3 lg:flex">
-            <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Info className="h-4 w-4 text-primary" />
+                  <form onSubmit={handleSend} className="border-t border-border bg-card px-4 py-3">
+                    <div className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border border-border bg-background p-2 shadow-sm">
+                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Dosya ekle">
+                        <Paperclip className="h-4.5 w-4.5" />
+                      </Button>
+                      <div className="flex-1">
+                        <MentionInput
+                          value={newMsg}
+                          onChange={(value) => {
+                            setNewMsg(value);
+                            sendTyping();
+                          }}
+                          onSubmit={() => handleSend()}
+                          placeholder="Mesajınızı yazın..."
+                          rows={1}
+                          className="min-h-[38px] max-h-[110px] resize-none border-0 bg-transparent shadow-none"
+                          maxLength={2000}
+                        />
+                      </div>
+                      <Button type="submit" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={sending || !newMsg.trim()}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="mx-auto mt-2 w-full max-w-3xl text-[11px] text-muted-foreground">
+                      Akademik iletişim kurallarına uygun, saygılı ve yapıcı bir dil kullanın.
+                    </p>
+                  </form>
+                </>
+              ) : (
+                <div className="flex flex-1 items-center justify-center px-6 py-10">
+                  <div className="w-full max-w-md rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
+                      <MessageCircle className="h-7 w-7 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-base font-semibold">Mesajlaşmaya Başlayın</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      DM listesinden bir sohbet seçin veya yeni konuşma başlatın.
+                    </p>
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      <UserSearchDialog onUserSelected={handleUserSelected} />
+                      <Button asChild size="sm" variant="outline">
+                        <Link to="/notifications">Bildirimler</Link>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="font-heading text-sm font-bold">DM Katmanı</h2>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Bu alan hızlı birebir iletişim içindir. Kalıcı akademik tartışmaları Course Hub tarafında sürdür.
-              </p>
-            </Surface>
+              )}
+            </div>
 
-            {activeConversation ? (
-              <Surface variant="base" border="subtle" padding="md" radius="xl">
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
-                        {activeConversation.other_username[0]?.toUpperCase() || "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <OnlineDot userId={activeConversation.other_user_id} />
+            <aside className="hidden h-full flex-col border-l border-border bg-card lg:flex">
+              <div className="border-b border-border p-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Info className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{activeConversation.other_username}</p>
-                    <OnlineStatusText userId={activeConversation.other_user_id} />
-                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                      {activeConversationPreview || "Henüz mesaj önizlemesi yok."}
+                  <h2 className="text-sm font-semibold">Konuşma Yardımcısı</h2>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  DM hızlı iletişim katmanıdır; kalıcı tartışmaları ders bağlamında sürdür.
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {activeConversation ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-muted/20 p-4">
+                      <div className="mb-3 flex items-start gap-3">
+                        <div className="relative">
+                          <Avatar className="h-14 w-14 border border-border/70">
+                            <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
+                              {activeConversation.other_username[0]?.toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <OnlineDot userId={activeConversation.other_user_id} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{activeConversation.other_username}</p>
+                          <OnlineStatusText userId={activeConversation.other_user_id} />
+                          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                            {activeConversationPreview || "Henüz mesaj önizlemesi yok."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-card p-2.5">
+                          <p className="text-muted-foreground">Mesaj</p>
+                          <p className="mt-0.5 font-semibold">{activeConversationMessageCount}</p>
+                        </div>
+                        <div className="rounded-lg bg-card p-2.5">
+                          <p className="text-muted-foreground">Son Hareket</p>
+                          <p className="mt-0.5 line-clamp-1 font-semibold">
+                            {activeConversationReferenceDate
+                              ? formatDistanceToNow(new Date(activeConversationReferenceDate), { addSuffix: true, locale: tr })
+                              : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hızlı İşlemler</p>
+                      <div className="space-y-2">
+                        <Button asChild size="sm" className="h-8 w-full">
+                          <Link to={`/user/${activeConversation.other_user_id}`}>Profili Gör</Link>
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-full" onClick={() => void handleHideConversation(activeConversation)}>
+                          Konuşmayı Kaldır
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+                      <Info className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">Yardım paneli hazır</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Bir konuşma seçtiğinizde bağlam ve hızlı işlemler burada görünür.
                     </p>
                   </div>
-                </div>
+                )}
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-lg bg-secondary/60 px-2.5 py-2">
-                    <p className="text-muted-foreground">Mesaj</p>
-                    <p className="mt-0.5 font-semibold">{activeConversationMessageCount}</p>
-                  </div>
-                  <div className="rounded-lg bg-secondary/60 px-2.5 py-2">
-                    <p className="text-muted-foreground">Son Hareket</p>
-                    <p className="mt-0.5 line-clamp-1 font-semibold">
-                      {activeConversationReferenceDate
-                        ? formatDistanceToNow(new Date(activeConversationReferenceDate), { addSuffix: true, locale: tr })
-                        : "-"}
-                    </p>
+                <div className="mt-3 rounded-xl border border-border bg-card p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bağlama Dönüş</p>
+                  <div className="space-y-2">
+                    <Button asChild size="sm" className="h-8 w-full">
+                      <Link to="/notifications">Bildirimler</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="h-8 w-full">
+                      <Link to="/courses">Dersler</Link>
+                    </Button>
                   </div>
                 </div>
-
-                <div className="mt-3 space-y-2">
-                  <Button asChild size="sm" className="h-8 w-full">
-                    <Link to={`/user/${activeConversation.other_user_id}`}>Profili Gör</Link>
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 w-full" onClick={() => void handleHideConversation(activeConversation)}>
-                    Konuşmayı Kaldır
-                  </Button>
-                </div>
-              </Surface>
-            ) : null}
-
-            <Surface variant="soft" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Bell className="h-4 w-4" />
-                <p className="text-xs font-semibold uppercase tracking-wide">Hızlı Geçişler</p>
               </div>
-              <div className="mt-3 space-y-2">
-                <Button asChild size="sm" className="h-8 w-full">
-                  <Link to="/notifications">Bildirimler</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="h-8 w-full">
-                  <Link to="/courses">Dersler</Link>
-                </Button>
-              </div>
-            </Surface>
-
-            <Surface variant="base" border="subtle" padding="md" radius="xl">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                </div>
-                <h2 className="font-heading text-sm font-bold">Konuşma Ritmi</h2>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Liste, sohbet ve yardımcı panel birlikte çalışır. Yan panel hızlı karar ve bağlam desteği verir.
-              </p>
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-secondary/70 px-2 py-1 text-[11px] text-muted-foreground">
-                <Users className="h-3.5 w-3.5 text-primary" />
-                Odağı kaybetmeden iletişim
-              </div>
-            </Surface>
-          </aside>
+            </aside>
+          </div>
         </div>
       </div>
     </Layout>
@@ -773,3 +776,4 @@ function OnlineStatusText({ userId }: { userId: string }) {
   const isOnline = useIsUserOnline(userId);
   return <p className={`text-xs ${isOnline ? "text-emerald-500" : "text-muted-foreground"}`}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</p>;
 }
+
