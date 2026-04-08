@@ -236,12 +236,12 @@ export default function CommunityPage() {
         />
 
         <SplitViewLayout
-          className="h-[calc(100vh-220px)]"
-          leftWidth={280}
-          rightWidth={300}
+          className="h-[calc(100vh-212px)]"
+          leftWidth={292}
+          rightWidth={316}
           left={
             <div className="h-full border-r border-border/70 bg-gradient-to-b from-card to-card/95 p-3">
-              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Topluluklar</p>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Topluluklar</p>
               <div className="space-y-1.5">
                 {COMMUNITIES.map((community) => {
                   const isActive = community.id === selectedCommunity;
@@ -251,7 +251,9 @@ export default function CommunityPage() {
                       type="button"
                       onClick={() => setSelectedCommunity(community.id)}
                       className={`w-full rounded-xl border p-2.5 text-left transition-colors ${
-                        isActive ? "border-primary/35 bg-primary/10" : "border-border/70 bg-background hover:border-primary/25"
+                        isActive
+                          ? "border-primary/40 bg-gradient-to-r from-primary/12 via-primary/5 to-background shadow-[var(--shadow-soft)]"
+                          : "border-border/70 bg-background hover:border-primary/25 hover:bg-background/95"
                       }`}
                     >
                       <p className="text-xs font-semibold">{community.label}</p>
@@ -264,7 +266,7 @@ export default function CommunityPage() {
           }
           main={
             <div className="flex h-full flex-col bg-gradient-to-b from-secondary/40 to-background">
-              <div className="border-b border-border/70 bg-card/80 px-4 py-3">
+              <div className="border-b border-border/70 bg-card/90 px-3.5 py-3">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <Globe className="h-4 w-4 text-primary" />
@@ -277,7 +279,7 @@ export default function CommunityPage() {
                 <PageTabsBar items={channelTabs} value={selectedChannel} onChange={setSelectedChannel} />
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="flex-1 overflow-y-auto px-3.5 py-4">
                 {filteredMessages.length === 0 ? (
                   <ProductEmptyState
                     icon={<MessageCircle className="h-6 w-6" />}
@@ -285,14 +287,14 @@ export default function CommunityPage() {
                     description="Sohbeti baslatmak icin ilk mesaji gonderebilirsin."
                   />
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {filteredMessages.map((message) => {
                       const isOwn = message.user_id === user?.id;
                       return (
-                        <ProductCard key={message.id} className="p-3">
+                        <ProductCard key={message.id} className="p-2.5">
                           <div className={`flex items-start gap-2.5 ${isOwn ? "justify-end" : ""}`}>
                             {!isOwn ? (
-                              <Avatar className="h-8 w-8 shrink-0">
+                              <Avatar className="h-8 w-8 shrink-0 border border-border/60">
                                 <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
                                   {(message.username || "?")[0].toUpperCase()}
                                 </AvatarFallback>
@@ -314,7 +316,7 @@ export default function CommunityPage() {
                                   </button>
                                 ) : null}
                               </div>
-                              <p className={`text-sm ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground" : "text-foreground"}`}>
+                              <p className={`text-sm ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground shadow-[var(--shadow-soft)]" : "text-foreground"}`}>
                                 {renderMentions(stripTags(message.content))}
                               </p>
                             </div>
@@ -328,7 +330,7 @@ export default function CommunityPage() {
               </div>
 
               {user ? (
-                <div className="border-t border-border/70 bg-card/85 px-3 py-3">
+                <div className="border-t border-border/70 bg-card/90 px-3 py-2.5">
                   <TypingIndicator typingUsers={typingUsers} />
                   <form onSubmit={handleSend} className="mt-2 flex items-end gap-2">
                     <div className="flex-1">
@@ -341,11 +343,11 @@ export default function CommunityPage() {
                         onSubmit={() => void handleSend()}
                         placeholder={`#${selectedChannel} kanalina mesaj yaz...`}
                         rows={1}
-                        className="min-h-[40px] max-h-[100px] resize-none rounded-xl border-border/60"
+                        className="min-h-[38px] max-h-[100px] resize-none rounded-xl border-border/60"
                         maxLength={1000}
                       />
                     </div>
-                    <Button type="submit" size="icon" className="h-10 w-10 rounded-xl" disabled={sending || !newMsg.trim()}>
+                    <Button type="submit" size="icon" className="h-9 w-9 rounded-xl" disabled={sending || !newMsg.trim()}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </form>
@@ -370,7 +372,9 @@ export default function CommunityPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {CHANNELS.find((channel) => channel.id === selectedChannel)?.description}
                 </p>
-                <div className="mt-2 text-[11px] text-muted-foreground">Mesaj: {filteredMessages.length}</div>
+                <div className="mt-2 rounded-lg bg-secondary/60 px-2.5 py-2 text-[11px] text-muted-foreground">
+                  Mesaj: {filteredMessages.length}
+                </div>
               </HelperCard>
 
               <HelperCard title="Baglama Donus" icon={<BookOpen className="h-4 w-4" />}>

@@ -259,12 +259,12 @@ export default function ProfilePage() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_332px]">
+          <div className="space-y-3.5">
             <ProductCard highlighted className="overflow-hidden p-0">
               <div className="h-1.5 bg-gradient-to-r from-primary/80 via-primary/35 to-accent/60" />
-              <div className="h-28 gradient-hero" />
-              <div className="px-6 pb-6">
+              <div className="h-24 gradient-hero" />
+              <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <div className="-mt-11 flex items-end gap-4">
                   <div className="relative">
                     <Avatar className="h-20 w-20 shrink-0 border-4 border-card" style={{ boxShadow: "var(--shadow-card)" }}>
@@ -278,14 +278,14 @@ export default function ProfilePage() {
 
                   <div className="min-w-0 flex-1 pt-10">
                     <div className="flex items-center gap-2">
-                      <h1 className="truncate font-heading text-2xl font-extrabold tracking-tight">{profile?.username || "Profil"}</h1>
-                      <Badge className="border-emerald-200 bg-emerald-500/10 text-xs text-emerald-600">Çevrimiçi</Badge>
+                      <h1 className="truncate font-heading text-[1.65rem] font-extrabold tracking-tight">{profile?.username || "Profil"}</h1>
+                      <Badge className="h-6 rounded-full border-emerald-300 bg-emerald-500/10 px-2 text-[11px] text-emerald-600">Çevrimiçi</Badge>
                     </div>
 
                     <AcademicMeta
                       size="sm"
                       tone="muted"
-                      className="mt-1"
+                      className="mt-1.5"
                       items={[
                         ...(profile?.university
                           ? [{ kind: "university" as const, label: "Üniversite", value: profile.university, emphasis: "subtle" as const }]
@@ -299,9 +299,9 @@ export default function ProfilePage() {
                       ]}
                     />
 
-                    {profile?.bio ? <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground">{profile.bio}</p> : null}
+                    {profile?.bio ? <p className="mt-1.5 line-clamp-2 text-xs italic text-muted-foreground">{profile.bio}</p> : null}
 
-                    <div className="mt-2 flex items-center gap-1.5">
+                    <div className="mt-2.5 flex items-center gap-1.5">
                       <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
                         <Star className="h-3 w-3 text-primary" />
                       </div>
@@ -311,13 +311,13 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="mt-5 border-t border-border/60 pt-4">
+                <div className="mt-4.5 border-t border-border/60 pt-3.5">
                   <SectionHeader
                     title="Katkı Özeti"
                     description="Profildeki akademik hareketin genel görünümü"
                     icon={<TrendingUp className="h-4 w-4" />}
                   />
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                     <MetricCard label="Gönderi" value={userStats.posts} icon={<FileText className="h-4 w-4" />} className="p-3" />
                     <MetricCard label="Oy" value={userStats.votes} icon={<ThumbsUp className="h-4 w-4" />} className="p-3" />
                     <MetricCard label="Yorum" value={userStats.comments} icon={<MessageSquare className="h-4 w-4" />} className="p-3" />
@@ -330,8 +330,8 @@ export default function ProfilePage() {
             </ProductCard>
 
             <Tabs defaultValue="contributions" className="w-full">
-              <ProductCard className="p-2">
-                <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl bg-secondary/80 p-1">
+              <ProductCard className="p-1.5">
+                <TabsList className="grid h-10 w-full grid-cols-3 rounded-xl bg-secondary/80 p-1">
                   <TabsTrigger value="contributions" className="rounded-lg text-xs font-semibold">
                     Katkılar
                   </TabsTrigger>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                 </TabsList>
               </ProductCard>
 
-              <TabsContent value="contributions" className="mt-3 space-y-2">
+              <TabsContent value="contributions" className="mt-2.5 space-y-2">
                 <SectionHeader title="Katkılarım" description="Son paylaştığın içerikler" icon={<FileText className="h-4 w-4" />} />
                 {recentPosts.length === 0 ? (
                   <ProductEmptyState
@@ -362,7 +362,7 @@ export default function ProfilePage() {
                     const Icon = contentTypeIcon[item.content_type || ""] || FileText;
                     return (
                       <Link key={item.id} to={`/post/${item.id}`}>
-                        <ProductCard className="cursor-pointer p-3 transition-colors hover:border-primary/20">
+                        <ProductCard className="cursor-pointer p-2.5 transition-colors hover:border-primary/20">
                           <div className="flex items-center gap-3">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                               <Icon className="h-4 w-4 text-primary" />
@@ -381,13 +381,13 @@ export default function ProfilePage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="saved" className="mt-3 space-y-2">
+              <TabsContent value="saved" className="mt-2.5 space-y-2">
                 <SectionHeader title="Kaydedilenler" description="Sonra dönmek için sakladığın içerikler" icon={<BookMarked className="h-4 w-4" />} />
                 {bookmarks.length === 0 ? (
                   <ProductEmptyState icon={<BookMarked className="h-5 w-5" />} title="Henüz kaydedilen içerik yok" description="Kaydettiğin içerikler burada listelenecek." />
                 ) : (
                   bookmarks.map((item) => (
-                    <ProductCard key={item.id} className="p-3 transition-colors hover:border-primary/20">
+                    <ProductCard key={item.id} className="p-2.5 transition-colors hover:border-primary/20">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <BookMarked className="h-4 w-4 text-primary" />
@@ -413,14 +413,14 @@ export default function ProfilePage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="activity" className="mt-3 space-y-2">
+              <TabsContent value="activity" className="mt-2.5 space-y-2">
                 <SectionHeader title="Son Aktivite" description="Yorum ve etkileşim akışın" icon={<Clock className="h-4 w-4" />} />
                 {recentComments.length === 0 && recentPosts.length === 0 ? (
                   <ProductEmptyState icon={<Clock className="h-5 w-5" />} title="Henüz aktivite yok" description="Yorumların ve katkıların burada görünecek." />
                 ) : (
                   recentComments.slice(0, 8).map((item) => (
                     <Link key={item.id} to={`/post/${item.post_id}`}>
-                      <ProductCard className="cursor-pointer p-3 transition-colors hover:border-primary/20">
+                      <ProductCard className="cursor-pointer p-2.5 transition-colors hover:border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary">
                             <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -458,7 +458,7 @@ export default function ProfilePage() {
                 <div className="mt-2 space-y-1.5">
                   {activeCourses.map((course) => (
                     <Link key={course.id} to={`/course/${course.id}`}>
-                      <ProductCard className="p-2.5 transition-colors hover:border-primary/30">
+                      <ProductCard className="p-2 transition-colors hover:border-primary/30">
                         <p className="line-clamp-1 text-xs font-semibold">{course.name}</p>
                         <p className="text-[11px] text-muted-foreground">{course.contributionCount} katkı</p>
                       </ProductCard>
@@ -483,7 +483,7 @@ export default function ProfilePage() {
             </HelperCard>
           </HelperPanel>
 
-          <div className="space-y-3 lg:hidden">
+          <div className="space-y-3.5 lg:hidden">
             <ProductCard>
               <h2 className="font-heading text-sm font-bold">Hızlı Geçiş</h2>
               <p className="mt-1 text-xs text-muted-foreground">

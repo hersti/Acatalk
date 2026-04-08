@@ -87,9 +87,9 @@
     --page-max-width: 88rem;
     --page-x: 1.5rem;
     --page-y: 1rem;
-    --section-gap: 1.25rem;
-    --card-padding: 1.25rem;
-    --card-radius: 0.9rem;
+    --section-gap: 1rem;
+    --card-padding: 1rem;
+    --card-radius: 0.8rem;
   }
 
   .dark {

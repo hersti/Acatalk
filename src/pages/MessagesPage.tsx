@@ -461,12 +461,12 @@ export default function MessagesPage() {
         />
 
         <SplitViewLayout
-          className="h-[calc(100vh-220px)]"
-          leftWidth={320}
-          rightWidth={320}
+          className="h-[calc(100vh-212px)]"
+          leftWidth={332}
+          rightWidth={324}
           left={
             <div className={cn("flex h-full flex-col", activeConv && "hidden lg:flex")}>
-              <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-4 py-4">
+              <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-3.5">
                 <SectionHeader
                   title="Sohbet Listesi"
                   description={`${conversations.length} aktif konuşma`}
@@ -479,20 +479,20 @@ export default function MessagesPage() {
                     </div>
                   }
                 />
-                <div className="mt-3 relative">
+                <div className="mt-2.5 relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={dmSearchQuery}
                     onChange={(event) => setDmSearchQuery(event.target.value)}
                     placeholder="Kişi veya konuşma ara..."
-                    className="h-10 rounded-xl border-transparent bg-secondary/70 pl-9 focus:border-border focus:bg-background"
+                    className="h-9 rounded-xl border-transparent bg-secondary/70 pl-9 text-sm focus:border-border focus:bg-background"
                   />
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/35 to-background p-2.5">
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/35 to-background p-2">
                 {filteredConversations.length > 0 ? (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {filteredConversations.map((conversation) => {
                       const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
                       const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
@@ -510,7 +510,7 @@ export default function MessagesPage() {
                         >
                           <div className="flex items-start gap-3">
                             <div className="relative mt-0.5">
-                              <Avatar className="h-10 w-10 shrink-0 border border-border/70">
+                              <Avatar className="h-10 w-10 shrink-0 border border-border/70 shadow-[var(--shadow-soft)]">
                                 <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                                   {conversation.other_username[0]?.toUpperCase() || "?"}
                                 </AvatarFallback>
@@ -531,7 +531,7 @@ export default function MessagesPage() {
                                   ) : null}
                                 </div>
                               </div>
-                              <p className="line-clamp-2 text-xs text-muted-foreground">{preview}</p>
+                              <p className="line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">{preview}</p>
                             </div>
                           </div>
                         </ListItemCard>
@@ -563,13 +563,13 @@ export default function MessagesPage() {
             <div className={cn("flex h-full flex-col", !activeConv && "hidden lg:flex")}>
               {activeConversation ? (
                 <>
-                  <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-4 py-3 sm:px-5">
+                  <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-3.5 py-3 sm:px-4">
                     <div className="flex items-center gap-3">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 lg:hidden" onClick={() => setActiveConv(null)}>
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
                       <div className="relative">
-                        <Avatar className="h-10 w-10 border border-border/70">
+                        <Avatar className="h-10 w-10 border border-border/70 shadow-[var(--shadow-soft)]">
                           <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                             {activeConversation.other_username[0]?.toUpperCase() || "?"}
                           </AvatarFallback>
@@ -592,15 +592,15 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Sesli arama">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label="Sesli arama">
                           <Phone className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Görüntülü arama">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label="Görüntülü arama">
                           <Video className="h-4 w-4" />
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -621,8 +621,8 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/45 via-background to-background px-4 py-6 sm:px-6">
-                    <div className="mx-auto w-full max-w-3xl space-y-3">
+                  <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/45 via-background to-background px-3.5 py-5 sm:px-5">
+                    <div className="mx-auto w-full max-w-3xl space-y-2.5">
                       {messages.length === 0 ? (
                         <ProductEmptyState
                           icon={<MessageCircle className="h-6 w-6" />}
@@ -639,7 +639,7 @@ export default function MessagesPage() {
                           return (
                             <div key={message.id}>
                               {showDateDivider ? (
-                                <div className="my-5 flex items-center gap-3">
+                                <div className="my-4.5 flex items-center gap-3">
                                   <div className="h-px flex-1 bg-border/70" />
                                   <span className="rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                                     {format(messageDate, "d MMMM", { locale: tr })}
@@ -651,7 +651,7 @@ export default function MessagesPage() {
                               <div className={cn("flex", isOwnMessage ? "justify-end" : "justify-start")}>
                                 <div
                                   className={cn(
-                                    "max-w-[78%] rounded-2xl border px-4 py-3 shadow-sm",
+                                    "max-w-[78%] rounded-2xl border px-3.5 py-2.5 shadow-sm",
                                     isOwnMessage
                                       ? "rounded-br-md border-primary bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                                       : "rounded-bl-md border-border/90 bg-card text-foreground shadow-[var(--shadow-soft)]",
@@ -671,11 +671,11 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-border/80 bg-gradient-to-b from-card to-card/95 px-3 py-3 sm:px-4">
+                  <div className="border-t border-border/80 bg-gradient-to-b from-card to-card/95 px-3 py-2.5 sm:px-4">
                     <form onSubmit={handleSend} className="mx-auto w-full max-w-3xl">
-                      <ProductCard className="p-2">
+                      <ProductCard className="p-1.5">
                         <div className="flex items-end gap-2">
-                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Dosya ekle">
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-lg" aria-label="Dosya ekle">
                             <Paperclip className="h-4.5 w-4.5" />
                           </Button>
                           <div className="flex-1">
@@ -688,11 +688,11 @@ export default function MessagesPage() {
                               onSubmit={() => handleSend()}
                               placeholder="Mesajınızı yazın..."
                               rows={1}
-                              className="min-h-[38px] max-h-[110px] resize-none border-0 bg-transparent shadow-none"
+                              className="min-h-[36px] max-h-[104px] resize-none border-0 bg-transparent shadow-none"
                               maxLength={2000}
                             />
                           </div>
-                          <Button type="submit" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={sending || !newMsg.trim()}>
+                          <Button type="submit" size="icon" className="h-9 w-9 shrink-0 rounded-xl" disabled={sending || !newMsg.trim()}>
                             <Send className="h-4 w-4" />
                           </Button>
                         </div>
@@ -754,7 +754,7 @@ export default function MessagesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <MetricCard label="Mesaj" value={activeConversationMessageCount} className="p-3" />
                       <MetricCard
                         label="Son hareket"

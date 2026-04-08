@@ -28,7 +28,7 @@ export function PageTabsBar({ items, value, onChange, className }: PageTabsBarPr
               type="button"
               onClick={() => onChange(item.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
                 isActive
                   ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                   : "text-muted-foreground hover:bg-background hover:text-foreground",
@@ -39,7 +39,7 @@ export function PageTabsBar({ items, value, onChange, className }: PageTabsBarPr
               {typeof item.count === "number" ? (
                 <span
                   className={cn(
-                    "inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1 text-[10px]",
+                    "inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
                     isActive ? "bg-primary-foreground/20" : "bg-background text-foreground",
                   )}
                 >

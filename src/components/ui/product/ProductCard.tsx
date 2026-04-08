@@ -16,11 +16,11 @@ export function ProductCard({ children, className, interactive = false, highligh
       variant={highlighted ? "helper" : "raised"}
       border="subtle"
       radius="xl"
-      padding="md"
+      padding="sm"
       interactive={interactive}
       className={cn(
-        "border-border/75 bg-gradient-to-b from-card to-card/95",
-        highlighted && "border-primary/25 bg-gradient-to-br from-primary/10 via-card to-accent/10",
+        "border-border/75 bg-gradient-to-b from-card to-card/95 shadow-[var(--shadow-card)]",
+        highlighted && "border-primary/30 bg-gradient-to-br from-primary/12 via-card to-accent/12",
         className,
       )}
     >

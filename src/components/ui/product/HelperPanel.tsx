@@ -8,5 +8,5 @@ type HelperPanelProps = {
 };
 
 export function HelperPanel({ children, className }: HelperPanelProps) {
-  return <div className={cn("h-full space-y-3 overflow-y-auto bg-card p-4 sm:p-5", className)}>{children}</div>;
+  return <div className={cn("h-full space-y-2.5 overflow-y-auto bg-card p-3.5 sm:p-4", className)}>{children}</div>;
 }
