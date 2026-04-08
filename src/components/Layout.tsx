@@ -37,14 +37,14 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   if (isAuthenticatedAppShell) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="app-shell-main">
         <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:block">
           <AppSidebar />
         </div>
 
         <div className="flex min-h-screen flex-col lg:pl-64">
           <AppTopbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 bg-[hsl(var(--background))]">{children}</main>
         </div>
         <SupportButton />
       </div>

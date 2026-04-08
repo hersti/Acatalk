@@ -78,6 +78,17 @@
     --shadow-warm: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
     --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -6px rgb(0 0 0 / 0.04);
     --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+
+    --shell-left-width: 16rem;
+    --helper-panel-width: 20rem;
+    --split-left-width: 20rem;
+    --split-right-width: 20rem;
+    --page-max-width: 84rem;
+    --page-x: 1.5rem;
+    --page-y: 1rem;
+    --section-gap: 1.25rem;
+    --card-padding: 1.25rem;
+    --card-radius: 0.9rem;
   }
 
   .dark {
@@ -157,6 +168,34 @@
   .surface-soft {
     @apply bg-card border border-border;
     box-shadow: var(--shadow-soft);
+  }
+
+  .app-shell-main {
+    @apply min-h-screen bg-background;
+  }
+
+  .app-page-wrap {
+    width: min(var(--page-max-width), calc(100% - 2rem));
+    margin-inline: auto;
+    padding-inline: var(--page-x);
+    padding-block: var(--page-y);
+  }
+
+  .page-section-stack {
+    @apply flex flex-col;
+    gap: var(--section-gap);
+  }
+
+  .panel-surface {
+    @apply border border-border bg-card;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  .helper-surface {
+    @apply border border-border bg-card;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-elevated);
   }
 
   .hover-lift {

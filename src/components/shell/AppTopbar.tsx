@@ -64,12 +64,12 @@ export default function AppTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm lg:hidden">
-      <div className="flex h-12 items-center gap-3 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur lg:hidden">
+      <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
         <div className="lg:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" aria-label="Menü">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" aria-label="Menü">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -88,7 +88,7 @@ export default function AppTopbar() {
                         navigate(item.to);
                         setMenuOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <Icon className="h-4 w-4" />
                       {item.label}
@@ -105,7 +105,7 @@ export default function AppTopbar() {
                       navigate("/profile");
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
                     <User className="h-4 w-4" />
                     Profil
@@ -116,7 +116,7 @@ export default function AppTopbar() {
                       navigate("/settings");
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
                     <Settings className="h-4 w-4" />
                     Ayarlar
@@ -126,7 +126,7 @@ export default function AppTopbar() {
                     onClick={() => {
                       handleThemeToggle();
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
                     {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     {isDark ? "Açık Tema" : "Koyu Tema"}
@@ -138,7 +138,7 @@ export default function AppTopbar() {
                         navigate("/admin");
                         setMenuOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <LayoutDashboard className="h-4 w-4" />
                       Yönetim Paneli
@@ -150,7 +150,7 @@ export default function AppTopbar() {
                       void signOut();
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                     Çıkış Yap
@@ -173,7 +173,7 @@ export default function AppTopbar() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Ders, içerik veya kullanıcı ara..."
-              className="h-9 rounded-lg border-transparent bg-muted pl-9 text-sm focus:border-border focus:bg-background"
+              className="h-10 rounded-xl border-transparent bg-secondary/70 pl-9 text-sm focus:border-border focus:bg-background"
             />
           </div>
         </form>

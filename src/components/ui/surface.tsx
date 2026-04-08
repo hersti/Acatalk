@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-export type SurfaceVariant = "base" | "raised" | "soft" | "outline" | "ghost";
+export type SurfaceVariant = "base" | "raised" | "soft" | "outline" | "ghost" | "panel" | "helper";
 export type SurfacePadding = "none" | "sm" | "md" | "lg";
 export type SurfaceRadius = "sm" | "md" | "lg" | "xl";
 export type SurfaceBorder = "none" | "subtle" | "default";
@@ -17,6 +17,8 @@ const surfaceVariants = cva(
         base: "bg-card [box-shadow:var(--shadow-soft)]",
         raised: "bg-card [box-shadow:var(--shadow-card)]",
         soft: "bg-secondary/55 [box-shadow:var(--shadow-panel)]",
+        panel: "bg-card/95 [box-shadow:var(--shadow-card)]",
+        helper: "bg-card [box-shadow:var(--shadow-elevated)]",
         outline: "bg-card shadow-none",
         ghost: "bg-transparent shadow-none",
       },

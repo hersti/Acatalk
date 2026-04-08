@@ -25,10 +25,10 @@ function SidebarLink({ item }: { item: AppNavItem }) {
       to={item.to}
       end={item.exact}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors",
-        "hover:bg-secondary hover:text-foreground",
+        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-all",
+        "hover:bg-secondary/85 hover:text-foreground",
       )}
-      activeClassName="bg-primary/10 text-primary"
+      activeClassName="bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span>{item.label}</span>
@@ -113,19 +113,19 @@ export default function AppSidebar() {
   };
 
   return (
-    <aside className="h-screen w-64 border-r border-border bg-card">
-      <div className="flex h-full flex-col px-3 py-4">
-        <Link to="/" className="mb-4 flex items-center gap-2 px-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-hero">
+    <aside className="h-screen w-64 border-r border-border bg-card/95 backdrop-blur">
+      <div className="flex h-full flex-col px-3 py-5">
+        <Link to="/" className="mb-5 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-2.5 py-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl gradient-hero">
             <GraduationCap className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
             <p className="font-heading text-base font-bold tracking-tight">ACATALK</p>
-            <p className="text-xs text-muted-foreground">Akademik Sosyal Ağ</p>
+            <p className="text-xs text-muted-foreground">Akademik sosyal ürün</p>
           </div>
         </Link>
 
-        <form onSubmit={handleSearch} className="mb-3">
+        <form onSubmit={handleSearch} className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -133,7 +133,7 @@ export default function AppSidebar() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Ders, içerik veya kullanıcı ara..."
-              className="h-9 rounded-lg border-transparent bg-muted pl-9 text-sm focus:border-border focus:bg-background"
+              className="h-10 rounded-xl border-transparent bg-secondary/70 pl-9 text-sm focus:border-border focus:bg-background"
             />
           </div>
         </form>
@@ -144,19 +144,19 @@ export default function AppSidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto border-t border-border/70 pt-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-lg border border-border/80 bg-background px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                className="flex w-full items-center gap-2 rounded-xl border border-border/80 bg-background px-2.5 py-2.5 text-left transition-colors hover:bg-secondary/60"
               >
                 <Avatar className="h-8 w-8">
                   {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
                   <AvatarFallback className="text-xs font-semibold">{displayName.slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{displayName}</p>
+                  <p className="truncate text-sm font-semibold">{displayName}</p>
                   <p className="text-xs text-muted-foreground">Hesap</p>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground" />
