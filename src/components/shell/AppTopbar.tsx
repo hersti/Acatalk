@@ -64,7 +64,7 @@ export default function AppTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-card/95 backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-gradient-to-b from-card to-card/95 backdrop-blur lg:hidden">
       <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
         <div className="lg:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -161,7 +161,7 @@ export default function AppTopbar() {
           </Sheet>
         </div>
 
-        <Link to="/" className="font-heading text-base font-bold tracking-tight lg:hidden">
+        <Link to="/" className="rounded-lg px-1 py-0.5 font-heading text-base font-bold tracking-tight lg:hidden">
           ACATALK
         </Link>
 

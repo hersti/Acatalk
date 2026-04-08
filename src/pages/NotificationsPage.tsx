@@ -195,7 +195,7 @@ export default function NotificationsPage() {
               <MetricCard label="Okunmuş" value={totalCount - unreadCount} icon={<CheckCheck className="h-4 w-4" />} />
             </div>
 
-            <ProductCard>
+            <ProductCard className="bg-gradient-to-b from-card to-secondary/20">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="mr-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary">
@@ -263,7 +263,7 @@ export default function NotificationsPage() {
                 }
               />
             ) : (
-              <ProductCard className="p-2">
+              <ProductCard className="bg-gradient-to-b from-card to-secondary/20 p-2">
                 <div className="space-y-2">
                   {filtered.map((item) => {
                     const Icon = TYPE_ICONS[item.type] || Bell;
@@ -274,7 +274,9 @@ export default function NotificationsPage() {
                         key={item.id}
                         onClick={() => handleNotificationClick(item)}
                         className={`group w-full rounded-xl border px-3 py-3 text-left transition-all hover:bg-secondary/45 ${
-                          !item.is_read ? "border-primary/35 bg-primary/10" : "border-border/70 bg-card"
+                          !item.is_read
+                            ? "border-primary/45 bg-gradient-to-r from-primary/12 to-card shadow-[var(--shadow-soft)] ring-1 ring-primary/20"
+                            : "border-border/70 bg-card"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -288,8 +290,8 @@ export default function NotificationsPage() {
                               </span>
                               {!item.is_read ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
                             </div>
-                            <p className="pr-6 text-sm font-semibold">{item.title}</p>
-                            {item.message ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.message}</p> : null}
+                            <p className="pr-6 text-sm font-semibold leading-snug">{item.title}</p>
+                            {item.message ? <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.message}</p> : null}
                             <div className="mt-2 flex items-center justify-between">
                               <p className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: tr })}
@@ -313,7 +315,7 @@ export default function NotificationsPage() {
             )}
           </div>
 
-          <HelperPanel className="hidden lg:block">
+          <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
             <HelperCard title="Aksiyon Kuyruğu" icon={<CheckCheck className="h-4 w-4" />} highlighted>
               <p className="text-xs text-muted-foreground">
                 Önce okunmamışları temizle, sonra bildirimlerin götürdüğü hedeflere gidip akışı tamamla.
@@ -328,7 +330,7 @@ export default function NotificationsPage() {
               </div>
             </HelperCard>
 
-            <HelperCard title="Öncelik Özeti" icon={<AlertCircle className="h-4 w-4" />}>
+            <HelperCard title="Öncelik Özeti" icon={<AlertCircle className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/15">
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Okunmamış</span>
@@ -346,7 +348,7 @@ export default function NotificationsPage() {
               </div>
             </HelperCard>
 
-            <HelperCard title="Bağlama Dönüş" icon={<BookOpen className="h-4 w-4" />}>
+            <HelperCard title="Bağlama Dönüş" icon={<BookOpen className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
               <div className="space-y-2">
                 <Button asChild size="sm" className="h-8 w-full rounded-lg">
                   <Link to="/messages">Mesajlara Git</Link>

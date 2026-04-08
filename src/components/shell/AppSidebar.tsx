@@ -28,7 +28,7 @@ function SidebarLink({ item }: { item: AppNavItem }) {
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-all",
         "hover:bg-secondary/85 hover:text-foreground",
       )}
-      activeClassName="bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
+      activeClassName="bg-primary text-primary-foreground shadow-[var(--shadow-soft)] ring-1 ring-primary/35"
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span>{item.label}</span>
@@ -113,9 +113,9 @@ export default function AppSidebar() {
   };
 
   return (
-    <aside className="h-screen w-64 border-r border-border bg-card/95 backdrop-blur">
+    <aside className="h-screen w-64 border-r border-border bg-gradient-to-b from-card to-card/95 backdrop-blur">
       <div className="flex h-full flex-col px-3 py-5">
-        <Link to="/" className="mb-5 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-2.5 py-2.5">
+        <Link to="/" className="mb-5 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-2.5 py-2.5 shadow-[var(--shadow-soft)]">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl gradient-hero">
             <GraduationCap className="h-4 w-4 text-primary-foreground" />
           </div>
@@ -138,7 +138,10 @@ export default function AppSidebar() {
           </div>
         </form>
 
-        <nav className="space-y-1">
+        <div className="mb-2 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ana Navigasyon</p>
+        </div>
+        <nav className="space-y-1 rounded-xl border border-border/60 bg-background/60 p-1.5">
           {APP_PRIMARY_ITEMS.map((item) => (
             <SidebarLink key={item.to} item={item} />
           ))}

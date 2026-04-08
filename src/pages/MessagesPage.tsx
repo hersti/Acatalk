@@ -422,16 +422,23 @@ export default function MessagesPage() {
         />
 
         <SplitViewLayout
-          className="h-[calc(100vh-230px)]"
+          className="h-[calc(100vh-220px)]"
           leftWidth={320}
           rightWidth={320}
           left={
             <div className={cn("flex h-full flex-col", activeConv && "hidden lg:flex")}>
-              <div className="border-b border-border/80 bg-card px-4 py-4">
+              <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-4 py-4">
                 <SectionHeader
                   title="Sohbet Listesi"
                   description={`${conversations.length} aktif konuşma`}
-                  action={<div className="sm:hidden"><UserSearchDialog onUserSelected={handleUserSelected} /></div>}
+                  action={
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="hidden h-6 rounded-full px-2 text-[11px] sm:inline-flex">
+                        {filteredConversations.length} görünür
+                      </Badge>
+                      <div className="sm:hidden"><UserSearchDialog onUserSelected={handleUserSelected} /></div>
+                    </div>
+                  }
                 />
                 <div className="mt-3 relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -444,9 +451,9 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-muted/25 p-2.5">
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/35 to-background p-2.5">
                 {filteredConversations.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {filteredConversations.map((conversation) => {
                       const referenceDate = conversation.last_message_at || conversation.created_at || new Date().toISOString();
                       const preview = conversationPreviewMap[conversation.id] || "Sohbeti açmak için tıklayın.";
@@ -502,7 +509,7 @@ export default function MessagesPage() {
             <div className={cn("flex h-full flex-col", !activeConv && "hidden lg:flex")}>
               {activeConversation ? (
                 <>
-                  <div className="border-b border-border/80 bg-card px-4 py-3 sm:px-5">
+                  <div className="border-b border-border/80 bg-gradient-to-b from-card to-card/95 px-4 py-3 sm:px-5">
                     <div className="flex items-center gap-3">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 lg:hidden" onClick={() => setActiveConv(null)}>
                         <ArrowLeft className="h-4 w-4" />
@@ -560,7 +567,7 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/35 via-background to-background px-4 py-5 sm:px-5">
+                  <div className="flex-1 overflow-y-auto bg-gradient-to-b from-secondary/45 via-background to-background px-4 py-6 sm:px-6">
                     <div className="mx-auto w-full max-w-3xl space-y-3">
                       {messages.length === 0 ? (
                         <ProductEmptyState
@@ -590,13 +597,13 @@ export default function MessagesPage() {
                               <div className={cn("flex", isOwnMessage ? "justify-end" : "justify-start")}>
                                 <div
                                   className={cn(
-                                    "max-w-[78%] rounded-2xl border px-4 py-2.5 shadow-sm",
+                                    "max-w-[78%] rounded-2xl border px-4 py-3 shadow-sm",
                                     isOwnMessage
-                                      ? "rounded-br-md border-primary bg-primary text-primary-foreground"
-                                      : "rounded-bl-md border-border/90 bg-card text-foreground",
+                                      ? "rounded-br-md border-primary bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
+                                      : "rounded-bl-md border-border/90 bg-card text-foreground shadow-[var(--shadow-soft)]",
                                   )}
                                 >
-                                  <p className="text-sm leading-relaxed">{renderMentions(message.content)}</p>
+                                  <p className="text-sm leading-relaxed tracking-[0.01em]">{renderMentions(message.content)}</p>
                                   <p className={cn("mt-1 text-[11px]", isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground")}>
                                     {formatDistanceToNow(messageDate, { addSuffix: true, locale: tr })}
                                   </p>
@@ -610,7 +617,7 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-border/80 bg-card px-3 py-3 sm:px-4">
+                  <div className="border-t border-border/80 bg-gradient-to-b from-card to-card/95 px-3 py-3 sm:px-4">
                     <form onSubmit={handleSend} className="mx-auto w-full max-w-3xl">
                       <ProductCard className="p-2">
                         <div className="flex items-end gap-2">
@@ -662,7 +669,7 @@ export default function MessagesPage() {
             </div>
           }
           right={
-            <HelperPanel className="hidden lg:block">
+            <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
               <HelperCard
                 title="Konuşma Yardımcısı"
                 icon={<Info className="h-4 w-4" />}
@@ -675,7 +682,7 @@ export default function MessagesPage() {
 
               {activeConversation ? (
                 <>
-                  <HelperCard>
+                  <HelperCard className="bg-gradient-to-b from-card to-secondary/15">
                     <div className="mb-3 flex items-start gap-3">
                       <div className="relative">
                         <Avatar className="h-14 w-14 border border-border/70">
@@ -707,7 +714,7 @@ export default function MessagesPage() {
                     </div>
                   </HelperCard>
 
-                  <HelperCard title="Hızlı İşlemler" icon={<Users className="h-4 w-4" />}>
+                  <HelperCard title="Hızlı İşlemler" icon={<Users className="h-4 w-4" />} highlighted>
                     <div className="space-y-2">
                       <Button asChild size="sm" className="h-8 w-full rounded-lg">
                         <Link to={`/user/${activeConversation.other_user_id}`}>Profili Gör</Link>
@@ -729,7 +736,7 @@ export default function MessagesPage() {
                 </HelperCard>
               )}
 
-              <HelperCard title="Bağlama Dönüş" icon={<BookOpen className="h-4 w-4" />}>
+              <HelperCard title="Bağlama Dönüş" icon={<BookOpen className="h-4 w-4" />} className="bg-gradient-to-b from-card to-secondary/20">
                 <div className="space-y-2">
                   <Button asChild size="sm" className="h-8 w-full rounded-lg">
                     <Link to="/notifications">Bildirimler</Link>

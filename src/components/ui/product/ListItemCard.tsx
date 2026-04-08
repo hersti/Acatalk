@@ -15,11 +15,14 @@ export function ListItemCard({ children, active = false, onClick, className }: L
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-xl border px-3 py-3 text-left transition-all",
-        active ? "border-primary/35 bg-primary/10 shadow-sm" : "border-border/60 bg-card hover:border-primary/20 hover:bg-background",
+        "relative w-full rounded-xl border px-3 py-3 text-left transition-all",
+        active
+          ? "border-primary/45 bg-gradient-to-r from-primary/12 to-card shadow-[var(--shadow-soft)] ring-1 ring-primary/20"
+          : "border-border/60 bg-card hover:border-primary/25 hover:bg-background",
         className,
       )}
     >
+      {active ? <span className="absolute inset-y-2 left-0.5 w-1 rounded-full bg-primary/75" /> : null}
       {children}
     </button>
   );
