@@ -7,3 +7,6 @@ export * from "@/components/ui/product/ProductCard";
 export * from "@/components/ui/product/MetricCard";
 export * from "@/components/ui/product/ListItemCard";
 export * from "@/components/ui/product/ProductEmptyState";
+export * from "@/components/ui/product/PageTabsBar";
+export * from "@/components/ui/product/PageMetricsRow";
+export * from "@/components/ui/product/ContextChip";

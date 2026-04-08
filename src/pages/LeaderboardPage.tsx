@@ -11,7 +11,9 @@ import { AcademicMeta } from "@/components/ui/academic-meta";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import { PageTabsBar } from "@/components/ui/product";
 import { Trophy, Medal, Award, Search, Crown, Flame, TrendingUp, Users, Star } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   fetchUniversitiesCatalog,
@@ -29,8 +31,21 @@ interface LeaderUser {
   avatar_url: string | null;
 }
 
+type BadgePayload = {
+  key: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  icon: string | null;
+};
+
+type BadgeEntry = {
+  badge: BadgePayload | null;
+  earned_at: string | null;
+};
+
 /* ─── Stat Card ─── */
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
+function StatCard({ icon: Icon, label, value, color }: { icon: LucideIcon; label: string; value: number | string; color: string }) {
   return (
     <Surface className="p-4" border="subtle">
       <div className="flex items-center gap-2 mb-1.5">
@@ -52,7 +67,8 @@ export default function LeaderboardPage() {
   const [uniFilter, setUniFilter] = useState("all");
   const [universities, setUniversities] = useState<string[]>([]);
   const [universityCatalog, setUniversityCatalog] = useState<UniversityCatalogRow[]>([]);
-  const [badgeMap, setBadgeMap] = useState<Map<string, any[]>>(new Map());
+  const [badgeMap, setBadgeMap] = useState<Map<string, BadgeEntry[]>>(new Map());
+  const [period, setPeriod] = useState<"all" | "monthly" | "weekly">("all");
 
   const universityCatalogByName = useMemo(() => {
     const map = new Map<string, UniversityCatalogRow>();
@@ -99,10 +115,10 @@ export default function LeaderboardPage() {
           .from("user_badges").select("user_id, badge_id, earned_at, badges(key, name, description, category, icon)")
           .in("user_id", userIds);
         if (userBadges) {
-          const map = new Map<string, any[]>();
-          userBadges.forEach((ub: any) => {
+          const map = new Map<string, BadgeEntry[]>();
+          userBadges.forEach((ub) => {
             const arr = map.get(ub.user_id) || [];
-            arr.push({ badge: ub.badges, earned_at: ub.earned_at });
+            arr.push({ badge: (ub.badges as BadgePayload | null) ?? null, earned_at: ub.earned_at ?? null });
             map.set(ub.user_id, arr);
           });
           setBadgeMap(map);
@@ -120,6 +136,12 @@ export default function LeaderboardPage() {
     }
     return true;
   });
+
+  const periodScoped = useMemo(() => {
+    // Current schema does not expose reliable period-scoped reputation history.
+    // Keep leaderboard data real while exposing period tabs with explicit fallback behavior.
+    return filtered;
+  }, [filtered]);
 
   const myRank = user ? users.findIndex(u => u.user_id === user.id) + 1 : 0;
   const topUser = users[0];
@@ -144,6 +166,23 @@ export default function LeaderboardPage() {
             <p className="text-xs text-muted-foreground">En çok katkı sağlayan öğrenciler</p>
           </div>
         </div>
+
+        <Surface variant="soft" border="subtle" padding="sm" className="mb-4">
+          <PageTabsBar
+            value={period}
+            onChange={(next) => setPeriod(next as typeof period)}
+            items={[
+              { key: "all", label: "Tum Zamanlar", count: periodScoped.length },
+              { key: "monthly", label: "Bu Ay", count: periodScoped.length },
+              { key: "weekly", label: "Bu Hafta", count: periodScoped.length },
+            ]}
+          />
+          {(period === "monthly" || period === "weekly") ? (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Donemsel puan gecmisi mevcut semada olmadigi icin liste su an all-time puanla gosteriliyor.
+            </p>
+          ) : null}
+        </Surface>
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -198,15 +237,15 @@ export default function LeaderboardPage() {
                   ))}
                 </SelectContent>
             </Select>
-            <Badge variant="secondary" className="text-xs shrink-0 self-center">{filtered.length} sonuç</Badge>
+            <Badge variant="secondary" className="text-xs shrink-0 self-center">{periodScoped.length} sonuç</Badge>
           </div>
         </Surface>
 
         {/* Top 3 podium */}
-        {filtered.length >= 3 && !search.trim() && uniFilter === "all" && (
+        {periodScoped.length >= 3 && !search.trim() && uniFilter === "all" && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="grid grid-cols-3 gap-2 mb-4">
             {[1, 0, 2].map(idx => {
-              const u = filtered[idx];
+              const u = periodScoped[idx];
               if (!u) return null;
               const heights = ["h-28", "h-36", "h-24"];
               const order = [1, 0, 2];
@@ -245,7 +284,7 @@ export default function LeaderboardPage() {
                 title="Sıralama yükleniyor"
                 description="Liderlik listesi hazırlanıyor."
               />
-            ) : filtered.length > 0 ? filtered.map((u, i) => (
+            ) : periodScoped.length > 0 ? periodScoped.map((u, i) => (
               <motion.div
                 key={u.id}
                 initial={{ opacity: 0, x: -10 }}

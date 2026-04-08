@@ -12,6 +12,8 @@ import { StateBlock } from "@/components/ui/state-blocks";
 import SearchableSelect from "@/components/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { PageTabsBar } from "@/components/ui/product";
 import {
   fetchUniversitiesCatalog,
   formatUniversityMetaLabel,
@@ -24,11 +26,14 @@ type PostCountMap = Record<string, { notes: number; past_exams: number; discussi
 const ALL_UNIVERSITIES = "__all_universities__";
 
 export default function CoursesPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [universities, setUniversities] = useState<UniversityCatalogRow[]>([]);
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [postCounts, setPostCounts] = useState<PostCountMap>({});
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<"all" | "enrolled" | "available">("all");
+  const [profileUniversity, setProfileUniversity] = useState<string | null>(null);
 
   const searchQuery = searchParams.get("search") || "";
   const universityQuery = searchParams.get("university") || "";
@@ -58,6 +63,22 @@ export default function CoursesPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setProfileUniversity(null);
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("university")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setProfileUniversity(data?.university || null);
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +157,13 @@ export default function CoursesPage() {
     ],
     [universities],
   );
+
+  const displayedCourses = useMemo(() => {
+    if (activeView === "all") return courses;
+    if (!profileUniversity) return activeView === "available" ? courses : [];
+    if (activeView === "enrolled") return courses.filter((course) => course.university === profileUniversity);
+    return courses.filter((course) => course.university !== profileUniversity);
+  }, [activeView, courses, profileUniversity]);
 
   const applyFilters = (event?: FormEvent) => {
     event?.preventDefault();
@@ -222,11 +250,31 @@ export default function CoursesPage() {
                   ) : null}
                 </div>
               ) : null}
+
+              <div className="mt-2">
+                <PageTabsBar
+                  value={activeView}
+                  onChange={(next) => setActiveView(next as typeof activeView)}
+                  items={[
+                    { key: "all", label: "Tumu", count: courses.length },
+                    {
+                      key: "enrolled",
+                      label: "Kayitli",
+                      count: profileUniversity ? courses.filter((course) => course.university === profileUniversity).length : 0,
+                    },
+                    {
+                      key: "available",
+                      label: "Kesfet",
+                      count: profileUniversity ? courses.filter((course) => course.university !== profileUniversity).length : courses.length,
+                    },
+                  ]}
+                />
+              </div>
             </Surface>
 
             <div className="flex items-center justify-between">
               <Badge variant="secondary" className="text-xs font-semibold">
-                {courses.length} ders
+                {displayedCourses.length} ders
               </Badge>
               <Button asChild variant="link" size="sm" className="h-auto px-0 text-xs">
                 <Link to="/">Ana Akış'a Dön</Link>
@@ -240,7 +288,7 @@ export default function CoursesPage() {
                 title="Dersler yükleniyor"
                 description="Course Hub listesi hazırlanıyor."
               />
-            ) : courses.length === 0 ? (
+            ) : displayedCourses.length === 0 ? (
               <StateBlock
                 variant="noResults"
                 size="section"
@@ -259,7 +307,7 @@ export default function CoursesPage() {
               />
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {courses.map((course) => (
+                {displayedCourses.map((course) => (
                   <CourseCard key={course.id} course={course} postCounts={postCounts[course.id]} />
                 ))}
               </div>

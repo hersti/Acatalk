@@ -1,23 +1,24 @@
-import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
-import { tr } from "date-fns/locale";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import MentionInput, { renderMentions } from "@/components/MentionInput";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StateBlock } from "@/components/ui/state-blocks";
 import { Surface } from "@/components/ui/surface";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { tr } from "date-fns/locale";
+import { BookOpen, Globe, Hash, MessageCircle, Send, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Send, Globe, Trash2, Users } from "lucide-react";
-import { Link } from "react-router-dom";
 import { moderateText, checkUserModerationStatus, getViolationMessage } from "@/lib/moderation";
 import { checkTextUrls } from "@/lib/moderate-url";
 import { quickContentCheck } from "@/lib/profanity-filter";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useTypingIndicator, TypingIndicator } from "@/hooks/useTypingIndicator";
+import { AppPageHeader, HelperCard, HelperPanel, PageTabsBar, ProductCard, ProductEmptyState, SplitViewLayout } from "@/components/ui/product";
 
 interface CommunityMsg {
   id: string;
@@ -27,67 +28,149 @@ interface CommunityMsg {
   username?: string;
 }
 
+type CommunityDef = { id: string; label: string; description: string };
+
+type ChannelDef = { id: string; label: string; description: string };
+
+const COMMUNITIES: CommunityDef[] = [
+  { id: "global", label: "Global Ogrenci", description: "Tum ogrencilerin ortak topluluk alani" },
+  { id: "itu", label: "ITU Toplulugu", description: "ITU baglamli ortak topluluk" },
+  { id: "bogazici", label: "Bogazici Toplulugu", description: "Bogazici baglamli akademik paylasim" },
+  { id: "odtu", label: "ODTU Toplulugu", description: "ODTU baglamli topluluk akislari" },
+];
+
+const CHANNELS: ChannelDef[] = [
+  { id: "genel", label: "Genel", description: "Genel topluluk sohbeti" },
+  { id: "dersler", label: "Dersler", description: "Ders odakli konular" },
+  { id: "projeler", label: "Projeler", description: "Proje ekipleri ve teslimler" },
+  { id: "etkinlikler", label: "Etkinlikler", description: "Topluluk etkinlikleri" },
+];
+
+const encodeTag = (communityId: string, channelId: string) => `[co:${communityId}] [ch:${channelId}]`;
+const stripTags = (raw: string) => raw.replace(/^\[co:[^\]]+\]\s*\[ch:[^\]]+\]\s*/i, "").trim();
+
+function extractTags(content: string) {
+  const communityMatch = content.match(/\[co:([^\]]+)\]/i);
+  const channelMatch = content.match(/\[ch:([^\]]+)\]/i);
+  return {
+    community: communityMatch?.[1]?.toLowerCase() || "global",
+    channel: channelMatch?.[1]?.toLowerCase() || "genel",
+  };
+}
+
 export default function CommunityPage() {
+  const { id } = useParams<{ id?: string }>();
   const { user, isAdmin } = useAuth();
+
+  const initialCommunity = useMemo(() => {
+    const routeId = (id || "").toLowerCase();
+    if (COMMUNITIES.some((item) => item.id === routeId)) return routeId;
+    return "global";
+  }, [id]);
+
+  const [selectedCommunity, setSelectedCommunity] = useState(initialCommunity);
+  const [selectedChannel, setSelectedChannel] = useState("genel");
   const [messages, setMessages] = useState<CommunityMsg[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [myUsername, setMyUsername] = useState<string>();
-  const onlineCount = useOnlinePresence("community-presence", user?.id);
-  const { typingUsers, sendTyping, stopTyping } = useTypingIndicator("community-chat-typing", user?.id, myUsername);
+  const onlineCount = useOnlinePresence(`community-presence-${selectedCommunity}`, user?.id);
+
+  const typingNamespace = `community-${selectedCommunity}-${selectedChannel}`;
+  const { typingUsers, sendTyping, stopTyping } = useTypingIndicator(typingNamespace, user?.id, myUsername);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
+    setSelectedCommunity(initialCommunity);
+  }, [initialCommunity]);
+
+  useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("username").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => setMyUsername(data?.username || "Kullanıcı"));
+    supabase
+      .from("profiles")
+      .select("username")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setMyUsername(data?.username || "Kullanici"));
   }, [user]);
 
   useEffect(() => {
-    fetchMessages();
+    void fetchMessages();
+
     const channel = supabase
       .channel("community-chat")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" }, async (payload) => {
-        const msg = payload.new as any;
-        const { data: profile } = await supabase.from("profiles").select("username").eq("user_id", msg.user_id).maybeSingle();
-        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanıcı" }]);
+        const msg = payload.new as CommunityMsg;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("user_id", msg.user_id)
+          .maybeSingle();
+        setMessages((prev) => [...prev, { ...msg, username: profile?.username || "Kullanici" }]);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_messages" }, (payload) => {
-        setMessages((prev) => prev.filter((m) => m.id !== (payload.old as any).id));
+        setMessages((prev) => prev.filter((item) => item.id !== (payload.old as { id: string }).id));
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
     if (!initialLoadDone.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, selectedChannel, selectedCommunity]);
 
   const fetchMessages = async () => {
     const { data } = await supabase
-      .from("community_messages").select("*")
-      .order("created_at", { ascending: true }).limit(200);
+      .from("community_messages")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(400);
 
     if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((m: any) => m.user_id))];
+      const userIds = [...new Set(data.map((item) => item.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.username]) || []);
-      setMessages(data.map((m: any) => ({ ...m, username: profileMap.get(m.user_id) || "Kullanıcı" })));
+      const profileMap = new Map(profiles?.map((item) => [item.user_id, item.username]) || []);
+      setMessages(data.map((item) => ({ ...item, username: profileMap.get(item.user_id) || "Kullanici" })) as CommunityMsg[]);
+    } else {
+      setMessages([]);
     }
-    setTimeout(() => { initialLoadDone.current = true; }, 100);
+
+    setTimeout(() => {
+      initialLoadDone.current = true;
+    }, 120);
   };
 
-  const handleSend = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const filteredMessages = useMemo(() => {
+    return messages.filter((message) => {
+      const tags = extractTags(message.content || "");
+      return tags.community === selectedCommunity && tags.channel === selectedChannel;
+    });
+  }, [messages, selectedChannel, selectedCommunity]);
+
+  const channelCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const msg of messages) {
+      const tags = extractTags(msg.content || "");
+      if (tags.community !== selectedCommunity) continue;
+      map.set(tags.channel, (map.get(tags.channel) || 0) + 1);
+    }
+    return map;
+  }, [messages, selectedCommunity]);
+
+  const handleSend = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!user || !newMsg.trim() || sending) return;
 
-    // Instant client-side block (no network call)
-    const quickCheck = quickContentCheck(newMsg.trim());
+    const payload = newMsg.trim();
+    const quickCheck = quickContentCheck(payload);
     if (!quickCheck.safe) {
-      toast.error(quickCheck.reason || "Bu mesaj platform kurallarını ihlal ediyor.");
+      toast.error(quickCheck.reason || "Bu mesaj platform kurallarini ihlal ediyor.");
       return;
     }
 
@@ -95,29 +178,34 @@ export default function CommunityPage() {
 
     const status = await checkUserModerationStatus(user.id);
     if (!status.canPost) {
-      toast.error(status.reason || "Mesaj göndermeniz engellenmiştir.");
+      toast.error(status.reason || "Mesaj gondermeniz engellenmistir.");
       setSending(false);
       return;
     }
 
-    // Check URLs for safety
-    const urlCheck = checkTextUrls(newMsg.trim());
+    const urlCheck = checkTextUrls(payload);
     if (!urlCheck.safe) {
-      toast.error(urlCheck.reason || "Mesajınızdaki bir bağlantı platform kurallarını ihlal ediyor.");
+      toast.error(urlCheck.reason || "Mesajdaki baglanti kurallara uygun degil.");
       setSending(false);
       return;
     }
 
-    const modResult = await moderateText(newMsg.trim(), "community_message");
+    const modResult = await moderateText(payload, "community_message");
     if (!modResult.safe) {
       toast.error(getViolationMessage(modResult.violation_type));
       setSending(false);
       return;
     }
 
-    const { error } = await supabase.from("community_messages").insert({ user_id: user.id, content: newMsg.trim() });
-    if (error) toast.error("Gönderilemedi");
-    else { setNewMsg(""); stopTyping(); }
+    const contentWithTags = `${encodeTag(selectedCommunity, selectedChannel)} ${payload}`;
+    const { error } = await supabase.from("community_messages").insert({ user_id: user.id, content: contentWithTags });
+
+    if (error) toast.error("Gonderilemedi");
+    else {
+      setNewMsg("");
+      stopTyping();
+    }
+
     setSending(false);
   };
 
@@ -125,110 +213,179 @@ export default function CommunityPage() {
     await supabase.from("community_messages").delete().eq("id", msgId);
   };
 
+  const channelTabs = CHANNELS.map((channel) => ({ key: channel.id, label: channel.label, count: channelCounts.get(channel.id) || 0 }));
+  const selectedCommunityMeta = COMMUNITIES.find((item) => item.id === selectedCommunity) || COMMUNITIES[0];
+
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl gradient-hero flex items-center justify-center shadow-sm">
-              <Globe className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-heading text-xl font-extrabold">Topluluk Sohbeti</h1>
-              <p className="text-xs text-muted-foreground">Tüm öğrencilere açık genel sohbet</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/70 px-2.5 py-1.5 rounded-full">
-            <Users className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium">{onlineCount} çevrimiçi</span>
-          </div>
-        </div>
+      <div className="app-page-wrap page-section-stack">
+        <AppPageHeader
+          title="Communities"
+          description="Coklu community/channel hissi, mevcut community_messages veri modeli korunarak gorunum katmani ile saglanir."
+          icon={<Users className="h-5 w-5" />}
+          actions={
+            <>
+              <Button asChild size="sm" variant="outline" className="h-9 rounded-xl">
+                <Link to="/courses">Course Hub'a Don</Link>
+              </Button>
+              <Badge variant="secondary" className="h-9 rounded-xl px-3 text-xs">
+                {onlineCount} cevrimici
+              </Badge>
+            </>
+          }
+        />
 
-        <Surface variant="soft" border="subtle" padding="none" radius="lg" className="flex flex-col overflow-hidden" style={{ height: "calc(100vh - 220px)" }}>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.length === 0 && (
-              <StateBlock
-                variant="empty"
-                size="inline"
-                icon={<Globe className="h-4 w-4" />}
-                title="Heniz mesaj yok"
-                description="Ilk mesaji siz yazin."
-              />
-            )}
-            {messages.map((m, i) => {
-              const isOwn = m.user_id === user?.id;
-              const showAvatar = i === 0 || messages[i - 1]?.user_id !== m.user_id;
-              return (
-                <div key={m.id} className={`flex gap-2.5 ${isOwn ? "flex-row-reverse" : ""}`}>
-                  {showAvatar ? (
-                    <Link to={`/user/${m.user_id}`}>
-                      <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
-                          {(m.username || "?")[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Link>
-                  ) : <div className="w-8 shrink-0" />}
-                  <div className={`max-w-[70%] ${isOwn ? "text-right" : ""}`}>
-                    {showAvatar && (
-                      <div className={`flex items-center gap-1.5 mb-0.5 ${isOwn ? "justify-end" : ""}`}>
-                        {!isOwn && (
-                          <Link to={`/user/${m.user_id}`} className="text-xs font-semibold hover:text-primary transition-colors">
-                            {m.username}
-                          </Link>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(m.created_at!), { addSuffix: true, locale: tr })}
-                        </span>
-                        {isAdmin && (
-                          <button onClick={() => handleDelete(m.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    <div className={`inline-block rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
-                      isOwn
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-secondary rounded-bl-md"
-                    }`}>
-                      {renderMentions(m.content)}
-                    </div>
+        <SplitViewLayout
+          className="h-[calc(100vh-220px)]"
+          leftWidth={280}
+          rightWidth={300}
+          left={
+            <div className="h-full border-r border-border/70 bg-gradient-to-b from-card to-card/95 p-3">
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Topluluklar</p>
+              <div className="space-y-1.5">
+                {COMMUNITIES.map((community) => {
+                  const isActive = community.id === selectedCommunity;
+                  return (
+                    <button
+                      key={community.id}
+                      type="button"
+                      onClick={() => setSelectedCommunity(community.id)}
+                      className={`w-full rounded-xl border p-2.5 text-left transition-colors ${
+                        isActive ? "border-primary/35 bg-primary/10" : "border-border/70 bg-background hover:border-primary/25"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">{community.label}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">{community.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          }
+          main={
+            <div className="flex h-full flex-col bg-gradient-to-b from-secondary/40 to-background">
+              <div className="border-b border-border/70 bg-card/80 px-4 py-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Globe className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{selectedCommunityMeta.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{selectedCommunityMeta.description}</p>
                   </div>
                 </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
+                <PageTabsBar items={channelTabs} value={selectedChannel} onChange={setSelectedChannel} />
+              </div>
 
-          {user ? (
-            <>
-              <TypingIndicator typingUsers={typingUsers} />
-              <form onSubmit={handleSend} className="p-3 border-t border-border/70 bg-card/70 flex gap-2 items-end">
-                <div className="flex-1">
-                  <MentionInput
-                    value={newMsg}
-                    onChange={(val) => { setNewMsg(val); sendTyping(); }}
-                    onSubmit={() => handleSend()}
-                    placeholder="Topluluğa mesaj yazın... (@kullanıcı ile etiketleyin)"
-                    rows={1}
-                    className="min-h-[40px] max-h-[100px] rounded-xl resize-none border-border/50"
-                    maxLength={1000}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {filteredMessages.length === 0 ? (
+                  <ProductEmptyState
+                    icon={<MessageCircle className="h-6 w-6" />}
+                    title="Bu kanalda henuz mesaj yok"
+                    description="Sohbeti baslatmak icin ilk mesaji gonderebilirsin."
                   />
+                ) : (
+                  <div className="space-y-2.5">
+                    {filteredMessages.map((message) => {
+                      const isOwn = message.user_id === user?.id;
+                      return (
+                        <ProductCard key={message.id} className="p-3">
+                          <div className={`flex items-start gap-2.5 ${isOwn ? "justify-end" : ""}`}>
+                            {!isOwn ? (
+                              <Avatar className="h-8 w-8 shrink-0">
+                                <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
+                                  {(message.username || "?")[0].toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : null}
+                            <div className={`min-w-0 ${isOwn ? "text-right" : ""}`}>
+                              <div className="mb-1 flex items-center gap-1.5">
+                                <span className="text-xs font-semibold">{message.username}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: tr })}
+                                </span>
+                                {isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(message.id)}
+                                    className="text-[10px] font-semibold text-destructive"
+                                  >
+                                    Sil
+                                  </button>
+                                ) : null}
+                              </div>
+                              <p className={`text-sm ${isOwn ? "inline-block rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground" : "text-foreground"}`}>
+                                {renderMentions(stripTags(message.content))}
+                              </p>
+                            </div>
+                          </div>
+                        </ProductCard>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {user ? (
+                <div className="border-t border-border/70 bg-card/85 px-3 py-3">
+                  <TypingIndicator typingUsers={typingUsers} />
+                  <form onSubmit={handleSend} className="mt-2 flex items-end gap-2">
+                    <div className="flex-1">
+                      <MentionInput
+                        value={newMsg}
+                        onChange={(value) => {
+                          setNewMsg(value);
+                          sendTyping();
+                        }}
+                        onSubmit={() => void handleSend()}
+                        placeholder={`#${selectedChannel} kanalina mesaj yaz...`}
+                        rows={1}
+                        className="min-h-[40px] max-h-[100px] resize-none rounded-xl border-border/60"
+                        maxLength={1000}
+                      />
+                    </div>
+                    <Button type="submit" size="icon" className="h-10 w-10 rounded-xl" disabled={sending || !newMsg.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
                 </div>
-                <Button type="submit" size="icon" className="h-10 w-10 rounded-xl shrink-0" disabled={sending || !newMsg.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
-            </>
-          ) : (
-            <div className="p-3 border-t border-border/70 text-center bg-card/70">
-              <p className="text-xs text-muted-foreground">
-                Mesaj yazmak için <Link to="/auth" className="text-primary font-semibold hover:underline">giriş yapın</Link>.
-              </p>
+              ) : (
+                <div className="border-t border-border/70 bg-card/85 p-3 text-center text-xs text-muted-foreground">
+                  Mesaj gondermek icin <Link to="/auth" className="font-semibold text-primary">giris yapin</Link>.
+                </div>
+              )}
             </div>
-          )}
-        </Surface>
+          }
+          right={
+            <HelperPanel className="hidden bg-gradient-to-b from-card to-card/95 lg:block">
+              <HelperCard title="Community UX Layer" icon={<Sparkles className="h-4 w-4" />} highlighted>
+                <p className="text-xs text-muted-foreground">
+                  Coklu community ve kanal hissi UI katmaninda olusturulur; veri kaynagi tek ve guvenli kalir.
+                </p>
+              </HelperCard>
+
+              <HelperCard title="Secili Kanal" icon={<Hash className="h-4 w-4" />}>
+                <p className="text-sm font-semibold">{CHANNELS.find((channel) => channel.id === selectedChannel)?.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {CHANNELS.find((channel) => channel.id === selectedChannel)?.description}
+                </p>
+                <div className="mt-2 text-[11px] text-muted-foreground">Mesaj: {filteredMessages.length}</div>
+              </HelperCard>
+
+              <HelperCard title="Baglama Donus" icon={<BookOpen className="h-4 w-4" />}>
+                <div className="space-y-2">
+                  <Button asChild size="sm" className="h-8 w-full rounded-lg">
+                    <Link to="/courses">Derslere Git</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="h-8 w-full rounded-lg">
+                    <Link to="/messages">Mesajlar</Link>
+                  </Button>
+                </div>
+              </HelperCard>
+            </HelperPanel>
+          }
+        />
       </div>
     </Layout>
   );

@@ -28,6 +28,7 @@ import {
   HelperCard,
   HelperPanel,
   MetricCard,
+  PageTabsBar,
   ProductCard,
   ProductEmptyState,
 } from "@/components/ui/product";
@@ -73,6 +74,7 @@ export default function NotificationsPage() {
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"all" | "mentions" | "courses" | "social">("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterRead, setFilterRead] = useState<string>("all");
 
@@ -96,12 +98,15 @@ export default function NotificationsPage() {
   const filtered = useMemo(
     () =>
       notifications.filter((item) => {
+        if (activeTab === "mentions" && item.type !== "mention") return false;
+        if (activeTab === "courses" && !["reply", "vote", "follow_upload"].includes(item.type)) return false;
+        if (activeTab === "social" && !["follow", "connection_request", "mention"].includes(item.type)) return false;
         if (filterType !== "all" && item.type !== filterType) return false;
         if (filterRead === "unread" && item.is_read) return false;
         if (filterRead === "read" && !item.is_read) return false;
         return true;
       }),
-    [filterRead, filterType, notifications],
+    [activeTab, filterRead, filterType, notifications],
   );
 
   const markAllRead = async () => {
@@ -146,6 +151,22 @@ export default function NotificationsPage() {
   const uniqueTypes = useMemo(() => [...new Set(notifications.map((item) => item.type))], [notifications]);
   const unreadCount = notifications.filter((item) => !item.is_read).length;
   const totalCount = notifications.length;
+  const actionRequiredCount = notifications.filter((item) => !item.is_read && ["mention", "reply", "connection_request"].includes(item.type)).length;
+
+  const tabItems = [
+    { key: "all", label: "Tumu", count: notifications.length },
+    { key: "mentions", label: "Etiketler", count: notifications.filter((item) => item.type === "mention").length },
+    {
+      key: "courses",
+      label: "Ders",
+      count: notifications.filter((item) => ["reply", "vote", "follow_upload"].includes(item.type)).length,
+    },
+    {
+      key: "social",
+      label: "Sosyal",
+      count: notifications.filter((item) => ["follow", "connection_request", "mention"].includes(item.type)).length,
+    },
+  ];
 
   if (!user) {
     return (
@@ -185,6 +206,7 @@ export default function NotificationsPage() {
               </Button>
             </>
           }
+          tabs={<PageTabsBar items={tabItems} value={activeTab} onChange={(next) => setActiveTab(next as typeof activeTab)} />}
         />
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -234,6 +256,20 @@ export default function NotificationsPage() {
                 </Badge>
               </div>
             </ProductCard>
+
+            {actionRequiredCount > 0 ? (
+              <ProductCard highlighted className="p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">Aksiyon gerekli</p>
+                    <p className="text-xs text-muted-foreground">
+                      {actionRequiredCount} bildirim yanit veya kontrol bekliyor.
+                    </p>
+                  </div>
+                </div>
+              </ProductCard>
+            ) : null}
 
             {loading ? (
               <StateBlock variant="loading" size="section" title="Bildirimler yükleniyor" description="Aksiyon listen hazırlanıyor." />
